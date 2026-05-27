@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EHDS Demo · FHIR Server Viewer</title>
+    <link rel="stylesheet" href="/ui/styles.css" />
+    <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='28'>🩺</text></svg>" />
+</head>
+<body>
+    <header class="app-header">
+        <div class="brand">
+            <span class="dot"></span>
+            <span class="title">EHDS Demo</span>
+            <span class="subtitle">EU Health Data API · synthetic data</span>
+        </div>
+        <nav>
+            <a href="#/" data-nav>Patients</a>
+            <a href="#/server" data-nav>Server</a>
+            <a href="/metadata" target="_blank" rel="noopener">CapabilityStatement &rarr;</a>
+            <a href="/.well-known/smart-configuration" target="_blank" rel="noopener">SMART config &rarr;</a>
+        </nav>
+    </header>
+    <main id="app">
+        <div class="loading">loading…</div>
+    </main>
+    <footer>
+        <span>read-only viewer · open-source · Apache-2.0</span>
+        <span class="env-pill" id="env-pill">env: ?</span>
+    </footer>
+    <script src="/ui/main.js"></script>
+</body>
+</html>

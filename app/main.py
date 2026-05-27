@@ -25,6 +25,14 @@ def _build_app() -> FastAPI:
     def healthz() -> dict[str, str]:
         return {"status": "ok"}
 
+    # dev convenience: GET / -> /ui (root POST is reserved for ITI-105 submission)
+    if not settings.is_prod:
+        from fastapi.responses import RedirectResponse
+
+        @app.get("/", include_in_schema=False)
+        def _root_redirect() -> RedirectResponse:
+            return RedirectResponse(url="/ui", status_code=307)
+
     app.include_router(smart_router)
 
     from app.routers import metadata as metadata_router
@@ -42,6 +50,11 @@ def _build_app() -> FastAPI:
     app.include_router(binary_router.router)
     app.include_router(resource_router.router)
     app.include_router(docsubmit_router.router)
+
+    # dev-only UI (gated on ENV != prod inside the router)
+    if not settings.is_prod:
+        from app.routers import ui as ui_router
+        app.include_router(ui_router.router)
 
     return app
 
