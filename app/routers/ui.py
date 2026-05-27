@@ -66,6 +66,7 @@ async def api_patients() -> JSONResponse:
     out = []
     for p in store.list_all("Patient"):
         name = (p.get("name") or [{}])[0]
+        ident = (p.get("identifier") or [{}])[0]
         out.append({
             "id": p["id"],
             "family": name.get("family", ""),
@@ -74,6 +75,8 @@ async def api_patients() -> JSONResponse:
             "gender": p.get("gender"),
             "country": (p.get("address") or [{}])[0].get("country", ""),
             "city": (p.get("address") or [{}])[0].get("city", ""),
+            "identifier_system": ident.get("system", ""),
+            "identifier_value": ident.get("value", ""),
         })
     out.sort(key=lambda r: r["id"])
     return JSONResponse(out)
