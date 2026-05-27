@@ -25,3 +25,4 @@ config/server_keys/
 # os
 .DS_Store
 Thumbs.db
+data/keys/

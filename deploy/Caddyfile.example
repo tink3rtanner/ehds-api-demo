@@ -5,7 +5,7 @@
     encode gzip
     reverse_proxy 127.0.0.1:8000 {
         header_up X-Forwarded-Proto https
-        header_up X-Forwarded-Host {host}
+        # X-Forwarded-Host is set by caddy's reverse_proxy by default.
     }
     header {
         # don't leak server fingerprint

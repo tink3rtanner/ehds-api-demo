@@ -26,11 +26,12 @@ Open-source FHIR R4 server implementing the [EU Health Data API IG](https://buil
 ```bash
 ssh deploy@<box-ip>
 
-# 1. clone
+# 1. clone — target dir MUST be /srv/ehds-api (the systemd unit has that
+#    path hard-coded in WorkingDirectory + ReadWritePaths)
 sudo mkdir -p /srv && sudo chown deploy:deploy /srv
 cd /srv
-git clone https://github.com/tink3rtanner/ehds-api-demo.git
-cd ehds-api-demo
+git clone https://github.com/tink3rtanner/ehds-api-demo.git ehds-api
+cd ehds-api
 
 # 2. python env + deps
 python3.12 -m venv .venv
