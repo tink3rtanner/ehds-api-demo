@@ -245,6 +245,31 @@ async def api_build_info() -> JSONResponse:
     })
 
 
+@router.get("/api/qr")
+async def api_qr(text: str) -> Response:
+    """SVG QR code for arbitrary text — used by the /ui#/qr sharing page.
+
+    cached for a year per-text since QR encoding is deterministic and
+    the inputs are short, public URLs.
+    """
+    _gate()
+    if not text or len(text) > 1024:
+        raise HTTPException(status_code=400, detail="text must be 1..1024 chars")
+    import io
+
+    import qrcode
+    import qrcode.image.svg
+    buf = io.BytesIO()
+    img = qrcode.make(text, image_factory=qrcode.image.svg.SvgImage,
+                      border=2, box_size=10)
+    img.save(buf)
+    return Response(
+        content=buf.getvalue(),
+        media_type="image/svg+xml",
+        headers={"Cache-Control": "public, max-age=31536000, immutable"},
+    )
+
+
 @router.get("/api/proxy")
 async def api_proxy(path: str, request: Request) -> Response:
     """proxy a GET against the live FHIR REST surface so a browser click

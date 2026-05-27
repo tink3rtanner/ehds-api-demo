@@ -22,6 +22,7 @@ dependencies = [
     "slowapi>=0.1.9",
     "python-json-logger>=2.0",
     "PyYAML>=6.0",
+    "qrcode>=7.4",  # SVG QR codes for the /ui#/qr page
 ]
 
 [project.optional-dependencies]

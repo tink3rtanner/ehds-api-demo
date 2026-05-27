@@ -94,17 +94,35 @@ function setLoading() {
 }
 
 // ---------- URL chips ----------
+// GET chips are clickable links that open the actual server response in a new
+// tab via /ui/api/proxy (which injects a dev bearer server-side, so the link
+// Just Works in a browser without the user needing a token). non-GET methods
+// stay as spans because clicking can't POST/PUT/DELETE. opts.noLink forces a
+// non-link span (used for illustrative paths like `/Patient/{id}`).
 function urlChip(method, path, opts = {}) {
     const display = `${method} ${path}`;
-    const chip = el('span', { class: 'url-chip with-copy' },
+    const hasPlaceholder = /\{[^}]+\}|\\\$/.test(path);
+    const linkable = method === 'GET' && !opts.noLink && !hasPlaceholder;
+    const tag = linkable ? 'a' : 'span';
+    const attrs = { class: 'url-chip with-copy' + (linkable ? ' linkable' : '') };
+    if (linkable) {
+        attrs.href = `/ui/api/proxy?path=${encodeURIComponent(path)}`;
+        attrs.target = '_blank';
+        attrs.rel = 'noopener';
+        attrs.title = 'open live JSON from the server';
+    }
+    return el(tag, attrs,
         el('span', { class: 'verb' }, method),
         el('span', {}, ` ${path}`),
         el('button', {
             class: 'copy-btn', title: 'copy URL',
-            onclick: (e) => { e.stopPropagation(); copyText(opts.toCopy || display); },
+            onclick: (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                copyText(opts.toCopy || display);
+            },
         }, '⧉'),
     );
-    return chip;
 }
 
 // ---------- JSON modal ----------
@@ -222,61 +240,138 @@ function pickCoding(resource) {
 }
 
 // ---------- patient list ----------
+const PATIENT_VIEW_KEY = 'ehds-patient-view';
+
 async function renderPatientList() {
     setLoading();
     try {
         const patients = await api('/ui/api/patients');
+        const view = localStorage.getItem(PATIENT_VIEW_KEY) || 'grid';
+
         const head = el('div', { class: 'page-head' },
             el('h1', {}, 'Patients'),
-            el('div', { class: 'meta' }, `${patients.length} synthetic patients · ITI-78-style PDQm + IPA · all read-only`),
+            el('div', { class: 'meta' },
+                `${patients.length} synthetic patients · ITI-78-style PDQm + IPA · all read-only · `,
+                el('a', { href: '/ui/api/proxy?path=/Patient', target: '_blank', rel: 'noopener', class: 'mono', style: 'color:var(--text-muted);' },
+                    'GET /Patient ↗'),
+            ),
+        );
+
+        const viewToggle = el('div', { class: 'view-toggle', role: 'tablist' },
+            viewBtn('grid', '▦ Grid', view),
+            viewBtn('table', '☰ Table', view),
         );
         const search = el('div', { class: 'search-box' },
             el('input', {
                 placeholder: 'filter by name, country, city, id…',
                 'aria-label': 'filter patients',
-                oninput: (e) => filterCards(e.target.value),
+                oninput: (e) => filterPatientRows(e.target.value),
             }),
         );
-        const grid = el('div', { class: 'patient-grid', id: 'patient-grid' });
 
-        for (const p of patients) {
-            const fullName = `${p.given} ${p.family}`.trim();
-            const card = el('a', {
-                class: 'patient-card',
-                href: `#/p/${p.id}`,
-                'data-search': `${fullName} ${p.family} ${p.country} ${COUNTRY_NAMES[p.country] || ''} ${p.id} ${p.city || ''} ${p.identifier_value || ''}`.toLowerCase(),
-            },
-                el('div', { class: 'name' }, fullName,
-                    el('span', { class: 'country-pill', title: COUNTRY_NAMES[p.country] || p.country }, p.country),
-                ),
-                el('div', { class: 'meta' },
-                    el('span', {}, p.gender || '—'),
-                    el('span', {}, `born ${p.birthDate || '—'}`),
-                    el('span', {}, p.city || ''),
-                ),
-                p.identifier_value ? el('div', { class: 'ident',
-                    title: `identifier system: ${p.identifier_system}`,
-                    style: 'display:block;margin-top:6px;font-size:11px;color:var(--text-faint);font-family:ui-monospace,monospace;',
-                }, p.identifier_value) : null,
-                el('div', { class: 'ident' },
-                    el('span', { class: 'id' }, `Patient/${p.id}`),
-                    el('span', {}, '→'),
-                ),
-            );
-            grid.appendChild(card);
-        }
+        const body = view === 'table'
+            ? renderPatientTable(patients)
+            : renderPatientGrid(patients);
 
         app.innerHTML = '';
-        app.append(head, search, grid);
+        app.append(head, el('div', { class: 'list-controls' }, search, viewToggle), body);
     } catch (e) {
         renderError(e.message);
     }
 }
 
-function filterCards(q) {
+function viewBtn(key, label, current) {
+    return el('button', {
+        class: 'btn-ghost' + (current === key ? ' active' : ''),
+        onclick: () => {
+            localStorage.setItem(PATIENT_VIEW_KEY, key);
+            renderPatientList();
+        },
+    }, label);
+}
+
+function docBadges(pid) {
+    return el('span', { class: 'doc-badges' },
+        ...Object.entries(CATEGORY_LABELS).map(([cat, meta]) =>
+            el('a', {
+                class: 'doc-badge',
+                href: `#/p/${pid}/doc/${cat}`,
+                title: meta.label,
+                onclick: (e) => e.stopPropagation(),  // don't bubble to card link
+            }, meta.icon),
+        ),
+    );
+}
+
+function renderPatientGrid(patients) {
+    const grid = el('div', { class: 'patient-grid', id: 'patient-grid' });
+    for (const p of patients) {
+        const fullName = `${p.given} ${p.family}`.trim();
+        const card = el('a', {
+            class: 'patient-card patient-row',
+            href: `#/p/${p.id}`,
+            'data-search': `${fullName} ${p.family} ${p.country} ${COUNTRY_NAMES[p.country] || ''} ${p.id} ${p.city || ''} ${p.identifier_value || ''}`.toLowerCase(),
+        },
+            el('div', { class: 'name' }, fullName,
+                el('span', { class: 'country-pill', title: COUNTRY_NAMES[p.country] || p.country }, p.country),
+            ),
+            el('div', { class: 'meta' },
+                el('span', {}, p.gender || '—'),
+                el('span', {}, `born ${p.birthDate || '—'}`),
+                el('span', {}, p.city || ''),
+            ),
+            p.identifier_value ? el('div', { class: 'ident',
+                title: `identifier system: ${p.identifier_system}`,
+                style: 'display:block;margin-top:6px;font-size:11px;color:var(--text-faint);font-family:ui-monospace,monospace;',
+            }, p.identifier_value) : null,
+            el('div', { class: 'ident' },
+                el('span', { class: 'id' }, `Patient/${p.id}`),
+                docBadges(p.id),
+            ),
+        );
+        grid.appendChild(card);
+    }
+    return grid;
+}
+
+function renderPatientTable(patients) {
+    const tbl = el('table', { class: 'patients-table' },
+        el('thead', {}, el('tr', {},
+            el('th', {}, 'FHIR id'),
+            el('th', {}, 'Name'),
+            el('th', {}, 'Country'),
+            el('th', {}, 'Birth'),
+            el('th', {}, 'Sex'),
+            el('th', {}, 'Identifier'),
+            el('th', {}, 'Documents'),
+            el('th', {}, ''),
+        )),
+        el('tbody', {}, ...patients.map((p) => {
+            const fullName = `${p.given} ${p.family}`.trim();
+            return el('tr', {
+                class: 'patient-row',
+                'data-search': `${fullName} ${p.country} ${COUNTRY_NAMES[p.country] || ''} ${p.id} ${p.city || ''} ${p.identifier_value || ''}`.toLowerCase(),
+            },
+                el('td', { class: 'mono' },
+                    el('a', { href: `#/p/${p.id}` }, `Patient/${p.id}`),
+                ),
+                el('td', {}, fullName),
+                el('td', {}, el('span', { class: 'country-pill', title: COUNTRY_NAMES[p.country] || p.country }, p.country)),
+                el('td', { class: 'mono' }, p.birthDate || '—'),
+                el('td', {}, p.gender || '—'),
+                el('td', { class: 'mono', style: 'font-size:11px;color:var(--text-faint);' }, p.identifier_value || '—'),
+                el('td', {}, docBadges(p.id)),
+                el('td', {}, el('a', { href: `#/p/${p.id}`, class: 'btn-ghost', style: 'padding:3px 10px;font-size:11px;' }, 'open →')),
+            );
+        })),
+    );
+    return tbl;
+}
+
+function filterPatientRows(q) {
     const needle = q.toLowerCase().trim();
-    document.querySelectorAll('.patient-card').forEach((card) => {
-        card.style.display = !needle || card.dataset.search.includes(needle) ? '' : 'none';
+    document.querySelectorAll('.patient-row').forEach((row) => {
+        row.style.display = !needle || (row.dataset.search || '').includes(needle) ? '' : 'none';
     });
 }
 
@@ -951,14 +1046,491 @@ function renderMatchResults(out, bundle, ms, requestBody) {
     out.appendChild(view);
 }
 
+// ---------- home page ----------
+async function renderHomePage() {
+    setLoading();
+    try {
+        const info = await api('/ui/api/server-info');
+        const hero = el('section', { class: 'hero-home' },
+            el('h1', {}, 'EHDS Demo · EU Health Data API'),
+            el('p', { class: 'tagline' },
+                'Open-source reference FHIR R4 server implementing the ',
+                el('a', { href: 'https://build.fhir.org/ig/euridice-org/eu-health-data-api/en/', target: '_blank', rel: 'noopener' }, 'EU Health Data API IG'),
+                ' end-to-end. Synthetic data only. Built to demonstrate the wire-level shape of cross-border health data exchange — SMART backend services auth, PDQm patient discovery, IPA resource access, ITI-67/68/105 document exchange, and on-demand FHIR document bundles for the four EU priority categories.',
+            ),
+            el('div', { class: 'hero-stats' },
+                statCard('Patients', info.patients, 'EU panel'),
+                statCard('Total resources', info.total_resources, 'across compartments'),
+                statCard('Resource types', Object.keys(info.by_type).length, 'first-class'),
+                statCard('Priority categories', info.categories.length, 'compiled on demand'),
+            ),
+        );
+        const cards = el('div', { class: 'capability-grid' },
+            capCard('🔐', 'Authorization',     'SMART backend services — JWT client assertion → bearer token. RS256/ES256.', '#/authorization'),
+            capCard('🩺', 'Resource exchange', 'IPA + PDQm $match — read patients & dependent resources.',                  '#/resources'),
+            capCard('📄', 'Document exchange', 'ITI-67/68/105 — search, retrieve, submit Bundle documents.',                 '#/documents'),
+            capCard('▶️', 'Consumer demo',     'Live end-to-end walkthrough of the API as a real client.',                    '#/demo'),
+            capCard('👥', 'Patient browser',   'Browse the 10 EU synthetic patients and their compartments.',                 '#/patients'),
+            capCard('📐', 'Endpoints',         'Every URL the server exposes, with copy-paste cURL.',                         '#/endpoints'),
+            capCard('📡', 'Server info',       'Capability statement, SMART config, build details.',                          '#/server'),
+            capCard('📱', 'Share via QR',      'Scan QR codes for demo URLs from a phone or tablet.',                         '#/qr'),
+        );
+        const note = el('section', { class: 'note-block' },
+            el('h3', {}, 'No real patient data'),
+            el('p', {},
+                'Every resource on this server is synthesised. The 10 patients are EU-flavoured composites (Vienna, Berlin, Rome, Paris, Madrid, Lisbon, Amsterdam, Warsaw, Stockholm, Helsinki). Re-seed deterministically with ',
+                el('code', {}, 'python -m scripts.seed --clean'),
+                '. The compiled document bundles are produced on demand and pass base FHIR R4 validation.',
+            ),
+        );
+        app.innerHTML = '';
+        app.append(hero, cards, note);
+    } catch (e) {
+        renderError(e.message);
+    }
+}
+
+function capCard(icon, title, desc, href) {
+    return el('a', { class: 'cap-card', href },
+        el('div', { class: 'cap-head' },
+            el('span', { class: 'cap-icon' }, icon),
+            el('span', { class: 'cap-title' }, title),
+        ),
+        el('div', { class: 'cap-desc' }, desc),
+        el('div', { class: 'cap-go' }, 'open →'),
+    );
+}
+
+// ---------- authorization page ----------
+async function renderAuthorizationPage() {
+    setLoading();
+    try {
+        const [smart, token] = await Promise.all([
+            api('/.well-known/smart-configuration'),
+            fetch('/ui/api/dev-token', { method: 'POST' }).then(r => r.json()),
+        ]);
+        const head = el('div', { class: 'page-head' },
+            el('h1', {}, 'Authorization'),
+            el('div', { class: 'meta' },
+                'SMART App Launch · Backend Services profile. Asymmetric ',
+                el('code', {}, 'private_key_jwt'),
+                ' client assertion → short-lived bearer.',
+            ),
+        );
+
+        const flow = el('section', { class: 'doc-block' },
+            el('h3', {}, 'Flow (server → server)'),
+            el('ol', { class: 'flow-list' },
+                el('li', {}, 'Client builds a JWT with ',
+                    el('code', {}, 'iss=sub=client_id'),
+                    ', ',
+                    el('code', {}, `aud=${smart.token_endpoint}`),
+                    ', short ',
+                    el('code', {}, 'exp'),
+                    ', and signs it with the private key whose JWK was registered with the server.',
+                ),
+                el('li', {}, 'Client POSTs to ',
+                    urlChip('POST', new URL(smart.token_endpoint).pathname),
+                    ' with ',
+                    el('code', {}, 'grant_type=client_credentials'),
+                    ', ',
+                    el('code', {}, 'client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer'),
+                    ', ',
+                    el('code', {}, 'client_assertion=$JWT'),
+                    ', and ',
+                    el('code', {}, 'scope=…'),
+                    '.',
+                ),
+                el('li', {}, 'Server validates the assertion against the registered JWK, returns an RS256-signed bearer (5 min TTL).'),
+                el('li', {}, 'Client sends ',
+                    el('code', {}, 'Authorization: Bearer <token>'),
+                    ' on subsequent FHIR REST requests.',
+                ),
+            ),
+        );
+
+        const config = el('section', { class: 'tech-block' },
+            el('h3', {}, 'SMART configuration (live)'),
+            techRow('Issuer', el('span', { class: 'mono' }, smart.issuer)),
+            techRow('Token endpoint', urlChip('POST', new URL(smart.token_endpoint).pathname)),
+            techRow('Server JWKS', urlChip('GET', new URL(smart.jwks_uri).pathname)),
+            techRow('Grant types', el('span', {}, smart.grant_types_supported.join(', '))),
+            techRow('Auth methods', el('span', {}, smart.token_endpoint_auth_methods_supported.join(', '))),
+            techRow('Signing algs', el('span', {}, smart.token_endpoint_auth_signing_alg_values_supported.join(', '))),
+            techRow('Scopes', el('span', {},
+                ...smart.scopes_supported.map(s => el('code', { style: 'margin:0 4px 4px 0;display:inline-block;background:var(--surface-3);padding:1px 6px;border-radius:4px;' }, s)),
+            )),
+        );
+
+        const tokenCard = el('section', { class: 'token-card' },
+            el('div', { class: 'head' },
+                el('h2', {}, 'Dev bearer'),
+                el('div', { class: 'btn-group' },
+                    el('button', { class: 'btn-ghost', onclick: () => copyText(token.access_token) }, 'Copy token'),
+                    el('button', { class: 'btn-ghost', onclick: () => copyText(`export TOKEN=${token.access_token}`) }, 'Copy export TOKEN=…'),
+                    el('button', { class: 'btn-ghost', onclick: () => renderAuthorizationPage() }, 'Refresh'),
+                ),
+            ),
+            el('div', { class: 'meta' },
+                `scope: ${token.scope}  ·  type: ${token.token_type}  ·  expires in ${token.expires_in}s · `,
+                'minted by the server-side dev shortcut. In production a real client would mint this via the SMART flow above using its own private key.',
+            ),
+            el('div', { class: 'token-display' }, token.access_token),
+        );
+
+        const cli = el('section', { class: 'doc-block' },
+            el('h3', {}, 'Register a new client'),
+            el('p', { class: 'meta' }, 'On a client machine, generate a keypair and upload the public JWK:'),
+            el('pre', { class: 'code-snippet' },
+                '# on the client (do not put the private key on the server)\n' +
+                'python -m app.tools.register_client \\\n' +
+                '  --client-id my-app --generate --scope "system/*.read"',
+            ),
+            el('p', { class: 'meta' }, 'Or, on the server, register an inbound client by its public JWK:'),
+            el('pre', { class: 'code-snippet' },
+                'cd /srv/ehds-api && source .venv/bin/activate\n' +
+                'python -m app.tools.register_client \\\n' +
+                '  --client-id partner-a \\\n' +
+                '  --jwk-from-pem /tmp/partner-a-pubkey.pem \\\n' +
+                '  --scope "system/*.read" --scope "system/Bundle.write"\n' +
+                'sudo systemctl restart ehds-api  # pick up the new registry',
+            ),
+        );
+
+        app.innerHTML = '';
+        app.append(head, flow, config, tokenCard, cli);
+    } catch (e) {
+        renderError(e.message);
+    }
+}
+
+// ---------- document exchange page ----------
+async function renderDocumentsPage() {
+    setLoading();
+    try {
+        const token = await fetch('/ui/api/dev-token', { method: 'POST' }).then(r => r.json());
+        const head = el('div', { class: 'page-head' },
+            el('h1', {}, 'Document exchange'),
+            el('div', { class: 'meta' },
+                'IHE MHD-on-FHIR transactions. EU IG mandates four priority categories — Patient Summary (EPS), Laboratory Report (Lab), Hospital Discharge Report (HDR), Imaging Report.',
+            ),
+        );
+
+        const ti = el('section', { class: 'doc-block' },
+            el('h3', {}, 'Transactions implemented'),
+            el('table', { class: 'endpoints-table' },
+                el('thead', {}, el('tr', {},
+                    el('th', {}, 'Transaction'),
+                    el('th', {}, 'Method'),
+                    el('th', {}, 'URL'),
+                    el('th', {}, 'What it does'),
+                )),
+                el('tbody', {},
+                    el('tr', {},
+                        el('td', { class: 'mono' }, 'ITI-67'),
+                        el('td', {}, el('span', { class: 'method-badge get' }, 'GET')),
+                        el('td', {}, urlChip('GET', '/DocumentReference?patient=p-001')),
+                        el('td', {}, 'Find documents by patient. Returns a searchset of DocumentReferences with category + LOINC type + Binary URL.'),
+                    ),
+                    el('tr', {},
+                        el('td', { class: 'mono' }, 'ITI-68'),
+                        el('td', {}, el('span', { class: 'method-badge get' }, 'GET')),
+                        el('td', {}, urlChip('GET', '/Binary/doc-p-001-patient-summary')),
+                        el('td', {}, 'Retrieve a compiled FHIR Bundle document on demand from atomic resources in the patient compartment.'),
+                    ),
+                    el('tr', {},
+                        el('td', { class: 'mono' }, 'ITI-105'),
+                        el('td', {}, el('span', { class: 'method-badge post' }, 'POST')),
+                        el('td', {}, urlChip('POST', '/', { noLink: true })),
+                        el('td', {}, 'Submit a Bundle.type=transaction containing one or more DocumentReferences (+ optional Binary), which the server validates and persists.'),
+                    ),
+                ),
+            ),
+        );
+
+        const cats = el('section', { class: 'doc-block' },
+            el('h3', {}, 'Four priority categories'),
+            el('div', { class: 'capability-grid' },
+                ...Object.entries(CATEGORY_LABELS).map(([cat, meta]) =>
+                    el('a', { class: 'cap-card', href: `#/p/p-001/doc/${cat}` },
+                        el('div', { class: 'cap-head' },
+                            el('span', { class: 'cap-icon' }, meta.icon),
+                            el('span', { class: 'cap-title' }, meta.label),
+                        ),
+                        el('div', { class: 'cap-desc' },
+                            'Profile: ',
+                            el('code', { style: 'font-size:10px;' }, meta.profile),
+                        ),
+                        el('div', { class: 'cap-go' }, 'open Bundle for p-001 →'),
+                    ),
+                ),
+            ),
+        );
+
+        const submit = buildSubmissionDemo(token.access_token);
+
+        app.innerHTML = '';
+        app.append(head, ti, cats, submit);
+    } catch (e) {
+        renderError(e.message);
+    }
+}
+
+// ---------- resource exchange page ----------
+async function renderResourcesPage() {
+    setLoading();
+    try {
+        const [token, cap] = await Promise.all([
+            fetch('/ui/api/dev-token', { method: 'POST' }).then(r => r.json()),
+            api('/metadata'),
+        ]);
+        const head = el('div', { class: 'page-head' },
+            el('h1', {}, 'Resource exchange'),
+            el('div', { class: 'meta' },
+                'IPA (International Patient Access) + PDQm — direct REST access to atomic FHIR resources in a patient compartment.',
+            ),
+        );
+
+        const direct = el('section', { class: 'doc-block' },
+            el('h3', {}, 'Direct REST access'),
+            el('table', { class: 'endpoints-table' },
+                el('thead', {}, el('tr', {},
+                    el('th', {}, 'Pattern'),
+                    el('th', {}, 'Example'),
+                    el('th', {}, 'Notes'),
+                )),
+                el('tbody', {},
+                    el('tr', {},
+                        el('td', { class: 'mono' }, 'Read'),
+                        el('td', {}, urlChip('GET', '/Patient/p-001')),
+                        el('td', {}, 'Single resource read.'),
+                    ),
+                    el('tr', {},
+                        el('td', { class: 'mono' }, 'Compartment'),
+                        el('td', {}, urlChip('GET', '/Observation?patient=p-001')),
+                        el('td', {}, 'All resources of a type for a patient.'),
+                    ),
+                    el('tr', {},
+                        el('td', { class: 'mono' }, '$everything'),
+                        el('td', {}, urlChip('GET', '/Patient/p-001/$everything')),
+                        el('td', {}, 'Bundle of every resource referencing this patient.'),
+                    ),
+                    el('tr', {},
+                        el('td', { class: 'mono' }, 'PDQm search'),
+                        el('td', {}, urlChip('GET', '/Patient?family=Rossi&birthdate=1981-11-02')),
+                        el('td', {}, 'Demographic search across the panel.'),
+                    ),
+                    el('tr', {},
+                        el('td', { class: 'mono' }, 'PDQm $match'),
+                        el('td', {}, urlChip('POST', '/Patient/$match', { noLink: true })),
+                        el('td', {}, 'Weighted scoring; returns match-grade per candidate.'),
+                    ),
+                ),
+            ),
+        );
+
+        const support = el('section', { class: 'doc-block' },
+            el('h3', {}, 'Supported resource types'),
+            el('table', { class: 'endpoints-table' },
+                el('thead', {}, el('tr', {},
+                    el('th', {}, 'Type'),
+                    el('th', {}, 'Interactions'),
+                    el('th', {}, 'Search params'),
+                )),
+                el('tbody', {}, ...(cap.rest?.[0]?.resource || []).map((r) => el('tr', {},
+                    el('td', {}, el('code', {}, r.type)),
+                    el('td', { style: 'font-size:11px;color:var(--text-muted);' }, (r.interaction || []).map((i) => i.code).join(', ')),
+                    el('td', { style: 'font-size:11px;color:var(--text-faint);' }, (r.searchParam || []).map((p) => p.name).join(', ')),
+                ))),
+            ),
+        );
+
+        const match = buildMatchPlayground(token.access_token);
+
+        app.innerHTML = '';
+        app.append(head, direct, support, match);
+    } catch (e) {
+        renderError(e.message);
+    }
+}
+
+// ---------- demo page (end-to-end walkthrough) ----------
+async function renderDemoPage() {
+    setLoading();
+    try {
+        const head = el('div', { class: 'page-head' },
+            el('h1', {}, 'Consumer demo · end-to-end'),
+            el('div', { class: 'meta' },
+                'Walk through the API as a real client would: authorize → discover patient → read compartment → fetch compiled document. Each step shows the actual HTTP request and response.',
+            ),
+        );
+        const steps = el('div', { class: 'demo-steps', id: 'demo-steps' });
+        app.innerHTML = '';
+        app.append(head, steps);
+        const state = { token: null, pid: null };
+        steps.appendChild(demoStep(1, 'Mint a bearer token',
+            'In production the client signs a JWT with its private key and exchanges it at the token endpoint. For this demo we use the server-side dev shortcut, which returns the same shape of bearer.',
+            'POST /ui/api/dev-token',
+            async (out) => {
+                const r = await fetch('/ui/api/dev-token', { method: 'POST' });
+                const body = await r.json();
+                state.token = body.access_token;
+                return { request: 'POST /ui/api/dev-token', status: r.status, response: body };
+            },
+        ));
+        steps.appendChild(demoStep(2, 'Discover a patient (PDQm)',
+            'Search the patient registry by demographics. Returns a searchset Bundle.',
+            "GET /Patient?family=Rossi&birthdate=1981-11-02",
+            async () => {
+                if (!state.token) throw new Error('run step 1 first');
+                const r = await fetch('/Patient?family=Rossi&birthdate=1981-11-02', {
+                    headers: { 'Authorization': `Bearer ${state.token}` },
+                });
+                const body = await r.json();
+                state.pid = body?.entry?.[0]?.resource?.id || null;
+                return { request: 'GET /Patient?family=Rossi&birthdate=1981-11-02 (Authorization: Bearer …)', status: r.status, response: body };
+            },
+        ));
+        steps.appendChild(demoStep(3, 'Read the patient resource',
+            'A full read by FHIR id. Uses the id discovered in step 2.',
+            'GET /Patient/{id}',
+            async () => {
+                if (!state.token || !state.pid) throw new Error('run steps 1-2 first');
+                const r = await fetch(`/Patient/${state.pid}`, { headers: { 'Authorization': `Bearer ${state.token}` } });
+                return { request: `GET /Patient/${state.pid}`, status: r.status, response: await r.json() };
+            },
+        ));
+        steps.appendChild(demoStep(4, 'List documents for the patient (ITI-67)',
+            'DocumentReference search filtered to a patient. Each entry includes the priority category, LOINC type, and a Binary URL for retrieval.',
+            'GET /DocumentReference?patient={id}',
+            async () => {
+                if (!state.token || !state.pid) throw new Error('run steps 1-2 first');
+                const r = await fetch(`/DocumentReference?patient=${state.pid}`, { headers: { 'Authorization': `Bearer ${state.token}` } });
+                return { request: `GET /DocumentReference?patient=${state.pid}`, status: r.status, response: await r.json() };
+            },
+        ));
+        steps.appendChild(demoStep(5, 'Retrieve a compiled Patient Summary (ITI-68)',
+            'The Binary endpoint compiles a FHIR Bundle.type=document on demand from atomic resources in the patient compartment. Bundle entries use absolute fullUrls so references resolve.',
+            'GET /Binary/doc-{id}-patient-summary',
+            async () => {
+                if (!state.token || !state.pid) throw new Error('run steps 1-2 first');
+                const r = await fetch(`/Binary/doc-${state.pid}-patient-summary`, { headers: { 'Authorization': `Bearer ${state.token}` } });
+                const body = await r.json();
+                return {
+                    request: `GET /Binary/doc-${state.pid}-patient-summary`,
+                    status: r.status,
+                    response: body,
+                    summary: `${body.entry?.length || 0} entries · type=${body.type} · profile=${body.meta?.profile?.[0] || '?'}`,
+                };
+            },
+        ));
+        steps.appendChild(el('div', { class: 'demo-actions' },
+            el('button', { class: 'btn-primary', onclick: () => runAllSteps() }, 'Run all steps →'),
+        ));
+        async function runAllSteps() {
+            const btns = steps.querySelectorAll('.demo-run-btn');
+            for (const b of btns) {
+                b.click();
+                // small pause so the user can see each step happen
+                await new Promise(r => setTimeout(r, 400));
+            }
+        }
+    } catch (e) {
+        renderError(e.message);
+    }
+}
+
+function demoStep(n, title, narrative, url, run) {
+    const out = el('div', { class: 'demo-out' });
+    const card = el('section', { class: 'demo-step' },
+        el('div', { class: 'demo-head' },
+            el('span', { class: 'demo-n' }, String(n)),
+            el('h3', {}, title),
+            el('button', {
+                class: 'btn-primary demo-run-btn',
+                onclick: async () => {
+                    out.innerHTML = '';
+                    out.appendChild(el('div', { class: 'meta' }, 'running…'));
+                    try {
+                        const res = await run(out);
+                        out.innerHTML = '';
+                        const statusOk = res.status >= 200 && res.status < 300;
+                        const head = el('div', { class: 'demo-result-head' },
+                            el('span', { class: 'mono' }, res.request),
+                            el('span', { style: `font-weight:600;color:${statusOk ? 'var(--accent)' : 'var(--danger)'};` }, `HTTP ${res.status}`),
+                        );
+                        out.appendChild(head);
+                        if (res.summary) out.appendChild(el('div', { class: 'meta' }, res.summary));
+                        out.appendChild(el('pre', { class: 'json-dump', html: colorizeJson(JSON.stringify(res.response, null, 2).slice(0, 6000)) }));
+                    } catch (e) {
+                        out.innerHTML = '';
+                        out.appendChild(el('div', { class: 'error' }, e.message));
+                    }
+                },
+            }, 'Run ▶'),
+        ),
+        el('div', { class: 'demo-narrative' }, narrative),
+        el('div', { class: 'demo-url mono' }, url),
+        out,
+    );
+    return card;
+}
+
+// ---------- QR page ----------
+async function renderQrPage() {
+    setLoading();
+    try {
+        const info = await api('/ui/api/server-info');
+        const base = info.base_url;
+        const urls = [
+            { label: 'Demo home',                     path: '/ui/' },
+            { label: 'Patient list',                  path: '/ui/#/patients' },
+            { label: 'End-to-end demo',               path: '/ui/#/demo' },
+            { label: 'Authorization',                 path: '/ui/#/authorization' },
+            { label: 'Documents capability',          path: '/ui/#/documents' },
+            { label: 'Resources capability',          path: '/ui/#/resources' },
+            { label: 'CapabilityStatement',           path: '/metadata' },
+            { label: 'SMART configuration',           path: '/.well-known/smart-configuration' },
+            { label: 'Server JWKS',                   path: '/.well-known/jwks.json' },
+        ];
+        const head = el('div', { class: 'page-head' },
+            el('h1', {}, 'QR codes'),
+            el('div', { class: 'meta' },
+                `Scan any of these to open the URL on a phone or tablet. Base: `,
+                el('span', { class: 'mono' }, base),
+            ),
+        );
+        const grid = el('div', { class: 'qr-grid' });
+        for (const u of urls) {
+            const full = base + u.path;
+            grid.appendChild(el('div', { class: 'qr-card' },
+                el('div', { class: 'qr-title' }, u.label),
+                el('img', {
+                    class: 'qr-img',
+                    src: `/ui/api/qr?text=${encodeURIComponent(full)}`,
+                    alt: `QR for ${u.label}`,
+                    loading: 'lazy',
+                }),
+                el('div', { class: 'qr-url mono' },
+                    el('a', { href: full, target: '_blank', rel: 'noopener' }, full),
+                ),
+                el('button', { class: 'btn-ghost', onclick: () => copyText(full) }, 'Copy URL'),
+            ));
+        }
+        app.innerHTML = '';
+        app.append(head, grid);
+    } catch (e) {
+        renderError(e.message);
+    }
+}
+
 // ---------- router ----------
 function highlightNav(hash) {
+    // map sub-routes to their canonical nav item
+    let active = hash;
+    if (hash.startsWith('#/p/')) active = '#/patients';
     document.querySelectorAll('[data-nav]').forEach((a) => {
-        const target = a.getAttribute('href');
-        a.classList.toggle('active',
-            (hash === '#/' && target === '#/')
-            || (hash === target),
-        );
+        a.classList.toggle('active', a.getAttribute('href') === active);
     });
 }
 
@@ -970,9 +1542,15 @@ async function route() {
     const m_pat = hash.match(/^#\/p\/([^/]+)$/);
     if (m_doc) return renderDocument(m_doc[1], m_doc[2]);
     if (m_pat) return renderPatientDetail(m_pat[1]);
+    if (hash === '#/patients') return renderPatientList();
     if (hash === '#/server') return renderServerPage();
     if (hash === '#/endpoints') return renderEndpointsPage();
-    return renderPatientList();
+    if (hash === '#/demo') return renderDemoPage();
+    if (hash === '#/authorization') return renderAuthorizationPage();
+    if (hash === '#/documents') return renderDocumentsPage();
+    if (hash === '#/resources') return renderResourcesPage();
+    if (hash === '#/qr') return renderQrPage();
+    return renderHomePage();
 }
 
 // ---------- boot ----------
