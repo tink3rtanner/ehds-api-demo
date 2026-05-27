@@ -288,6 +288,17 @@ async function renderPatientDetail(pid) {
         const ident = (p.identifier || [{}])[0] || {};
         const lang = p.communication?.[0]?.language?.coding?.[0]?.code;
 
+        const counts = data.buckets;
+        const activeConditions = (counts.Condition || []).filter(c =>
+            c.clinicalStatus?.coding?.some(s => s.code === 'active')).length;
+        const activeMeds = (counts.MedicationStatement || []).filter(m => m.status === 'active').length;
+        const lastEncounter = (counts.Encounter || [])
+            .map(e => e.period?.start || e.period?.end)
+            .filter(Boolean)
+            .sort()
+            .pop();
+        const totalRes = Object.values(counts).reduce((a, b) => a + b.length, 0);
+
         const crumbs = el('div', { class: 'crumbs' },
             el('a', { href: '#/' }, 'Patients'),
             el('span', { class: 'sep' }, '/'),
@@ -300,6 +311,21 @@ async function renderPatientDetail(pid) {
             ),
             el('div', { class: 'meta-row' },
                 `${p.gender || '—'} · born ${p.birthDate || '—'} · ${addr.city || ''}${addr.country ? `, ${addr.country}` : ''}${lang ? ` · speaks ${lang}` : ''}`,
+            ),
+            el('div', { class: 'entry-bar', style: 'margin-top:12px;' },
+                el('span', { class: 'chip' }, el('span', { class: 'n' }, String(totalRes)), ' resources'),
+                el('span', { class: 'chip' }, el('span', { class: 'n' }, String((counts.Condition || []).length)),
+                    ' conditions',
+                    activeConditions ? el('span', { style: 'color:var(--accent);margin-left:4px;' }, `(${activeConditions} active)`) : null,
+                ),
+                el('span', { class: 'chip' }, el('span', { class: 'n' }, String((counts.MedicationStatement || []).length)),
+                    ' med statements',
+                    activeMeds ? el('span', { style: 'color:var(--accent);margin-left:4px;' }, `(${activeMeds} active)`) : null,
+                ),
+                el('span', { class: 'chip' }, el('span', { class: 'n' }, String((counts.AllergyIntolerance || []).length)), ' allergies'),
+                el('span', { class: 'chip' }, el('span', { class: 'n' }, String((counts.Immunization || []).length)), ' immunizations'),
+                el('span', { class: 'chip' }, el('span', { class: 'n' }, String((counts.Observation || []).length)), ' observations'),
+                lastEncounter ? el('span', { class: 'chip' }, 'last encounter ', el('span', { class: 'n' }, lastEncounter.slice(0,10))) : null,
             ),
             el('div', { class: 'hero-grid' },
                 fieldBlock('FHIR id',  el('span', { class: 'mono' }, `Patient/${p.id}`)),
@@ -365,12 +391,11 @@ async function renderPatientDetail(pid) {
             const list = el('div', { class: 'resource-list' });
             for (const r of items) {
                 const coding = pickCoding(r);
-                list.appendChild(el('div', { class: 'resource-row' },
-                    el('a', {
-                        class: 'rid',
-                        href: 'javascript:void(0)',
-                        onclick: () => openResourceModal(rtype, r.id),
-                    }, `${rtype}/${r.id}`),
+                list.appendChild(el('div', { class: 'resource-row', onclick: () => openResourceModal(rtype, r.id) },
+                    el('div', { class: 'rid', title: 'view raw JSON' },
+                        el('span', { style: 'color:var(--text-faint);margin-right:6px;' }, '{ }'),
+                        `${rtype}/${r.id}`,
+                    ),
                     el('div', { class: 'display' },
                         pickName(r) || el('em', { style: 'color:var(--text-faint)' }, '(no display)'),
                         coding ? codingChip(coding) : null,
@@ -407,7 +432,11 @@ function techRow(label, value) {
 async function renderDocument(pid, category) {
     setLoading();
     try {
+        const t0 = performance.now();
         const bundle = await api(`/ui/api/patients/${pid}/doc/${category}`);
+        const compileMs = Math.round(performance.now() - t0);
+        const bundleJson = JSON.stringify(bundle);
+        const sizeKb = (bundleJson.length / 1024).toFixed(1);
         const meta = CATEGORY_LABELS[category];
         const composition = bundle.entry?.[0]?.resource;
         const entries = bundle.entry || [];
@@ -439,6 +468,8 @@ async function renderDocument(pid, category) {
                 ),
                 summaryItem('Bundle.identifier',
                     el('span', { class: 'val mono' }, bundle.identifier?.value || '—')),
+                summaryItem('Size · compile time',
+                    el('span', { class: 'val mono' }, `${sizeKb} KB · ${compileMs} ms`)),
             ),
         );
 
