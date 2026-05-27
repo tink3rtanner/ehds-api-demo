@@ -1,13 +1,24 @@
 // ehds-api viewer — hash-routed SPA, no build step, vanilla JS.
+// shows the underlying FHIR REST URLs + identifier systems + profile URLs +
+// terminology codes + curl snippets so a connectathon attendee can see the
+// wire-level shape behind the pretty UI.
 
 const app = document.getElementById('app');
-const envPill = document.getElementById('env-pill');
+const footerTags = document.getElementById('footer-tags');
 
 const CATEGORY_LABELS = {
-    'patient-summary':   { label: 'Patient Summary', color: '#2a6f6b', icon: '📋' },
-    'laboratory-report': { label: 'Laboratory Report', color: '#1a5a8c', icon: '🧪' },
-    'discharge-report':  { label: 'Discharge Report', color: '#8c5a1a', icon: '🏥' },
-    'imaging-report':    { label: 'Imaging Report', color: '#7c2a8c', icon: '🩻' },
+    'patient-summary':   { label: 'Patient Summary',     icon: '📋',
+                           profile: 'http://hl7.eu/fhir/ig/eps/StructureDefinition/Bundle-eu-eps',
+                           ig: 'https://build.fhir.org/ig/hl7-eu/eps/' },
+    'laboratory-report': { label: 'Laboratory Report',   icon: '🧪',
+                           profile: 'http://hl7.eu/fhir/ig/laboratory/StructureDefinition/Bundle-eu-lab',
+                           ig: 'https://build.fhir.org/ig/hl7-eu/laboratory/' },
+    'discharge-report':  { label: 'Discharge Report',    icon: '🏥',
+                           profile: 'http://hl7.eu/fhir/ig/hdr/StructureDefinition/Bundle-eu-hdr',
+                           ig: 'https://build.fhir.org/ig/hl7-eu/hdr/' },
+    'imaging-report':    { label: 'Imaging Report',      icon: '🩻',
+                           profile: 'http://hl7.eu/fhir/ig/imaging/StructureDefinition/Bundle-eu-imaging',
+                           ig: 'https://build.fhir.org/ig/hl7-eu/imaging-r4/' },
 };
 
 const COUNTRY_NAMES = {
@@ -15,11 +26,20 @@ const COUNTRY_NAMES = {
     PT: 'Portugal', NL: 'Netherlands', PL: 'Poland', SE: 'Sweden', FI: 'Finland',
 };
 
-// ---------- helpers ----------
-const $ = (sel) => document.querySelector(sel);
+// known systems we link out to
+const SYSTEM_LINKS = {
+    'http://loinc.org': (code) => `https://loinc.org/${encodeURIComponent(code)}/`,
+    'http://snomed.info/sct': (code) => `https://browser.ihtsdotools.org/?perspective=full&conceptId1=${encodeURIComponent(code)}`,
+    'http://hl7.org/fhir/sid/cvx': (code) => `https://www2a.cdc.gov/vaccines/iis/iisstandards/vaccines.asp?rpt=cvx`,
+    'http://hl7.org/fhir/sid/ndc': (code) => `https://dailymed.nlm.nih.gov/dailymed/search.cfm?query=${encodeURIComponent(code)}`,
+    'http://dicom.nema.org/resources/ontology/DCM': (code) => `https://dicom.nema.org/medical/dicom/current/output/chtml/part16/sect_CID_29.html`,
+};
+
+// ---------- tiny helpers ----------
 const el = (tag, attrs = {}, ...children) => {
     const node = document.createElement(tag);
     for (const [k, v] of Object.entries(attrs)) {
+        if (v === null || v === undefined || v === false) continue;
         if (k === 'class') node.className = v;
         else if (k === 'style') node.style.cssText = v;
         else if (k.startsWith('on')) node.addEventListener(k.slice(2).toLowerCase(), v);
@@ -28,18 +48,39 @@ const el = (tag, attrs = {}, ...children) => {
     }
     for (const c of children.flat()) {
         if (c == null || c === false) continue;
-        node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+        node.appendChild(typeof c === 'string' || typeof c === 'number' ? document.createTextNode(String(c)) : c);
     }
     return node;
 };
 
 async function api(path) {
     const r = await fetch(path);
-    if (!r.ok) {
-        const text = await r.text();
-        throw new Error(`${path}: ${r.status} ${text.slice(0, 200)}`);
-    }
+    if (!r.ok) throw new Error(`${path}: ${r.status} ${(await r.text()).slice(0, 200)}`);
     return r.json();
+}
+
+function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.hidden = false;
+    clearTimeout(toast._h);
+    toast._h = setTimeout(() => { t.hidden = true; }, 1700);
+}
+
+async function copyText(text) {
+    try {
+        await navigator.clipboard.writeText(text);
+        toast('copied');
+    } catch {
+        // fallback
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+        toast('copied');
+    }
 }
 
 function renderError(message) {
@@ -52,19 +93,116 @@ function setLoading() {
     app.appendChild(el('div', { class: 'loading' }, 'loading…'));
 }
 
+// ---------- URL chips ----------
+function urlChip(method, path, opts = {}) {
+    const display = `${method} ${path}`;
+    const chip = el('span', { class: 'url-chip with-copy' },
+        el('span', { class: 'verb' }, method),
+        el('span', {}, ` ${path}`),
+        el('button', {
+            class: 'copy-btn', title: 'copy URL',
+            onclick: (e) => { e.stopPropagation(); copyText(opts.toCopy || display); },
+        }, '⧉'),
+    );
+    return chip;
+}
+
+// ---------- JSON modal ----------
+const modal = document.getElementById('json-modal');
+const modalTitle = document.getElementById('modal-title-text');
+const modalUrl = document.getElementById('modal-url');
+const modalBody = document.getElementById('modal-body');
+document.getElementById('modal-close').addEventListener('click', closeModal);
+document.getElementById('modal-copy').addEventListener('click', () => {
+    copyText(modalBody.textContent);
+});
+modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+function openModalText(title, urlLabel, text) {
+    modalTitle.textContent = title;
+    modalUrl.textContent = urlLabel || '';
+    modalBody.innerHTML = colorizeJson(text);
+    modal.hidden = false;
+}
+
+async function openResourceModal(rtype, rid) {
+    try {
+        const json = await api(`/ui/api/raw/${rtype}/${rid}`);
+        openModalText(`${rtype}/${rid}`, `GET /${rtype}/${rid}  →  application/fhir+json`, JSON.stringify(json, null, 2));
+    } catch (e) {
+        openModalText(`error`, '', `// ${e.message}`);
+    }
+}
+
+function openBundleModal(pid, category, bundle) {
+    openModalText(
+        `Bundle/${bundle.id}`,
+        `GET /Binary/doc-${pid}-${category}  →  Bundle.type=document  (${bundle.entry?.length || 0} entries)`,
+        JSON.stringify(bundle, null, 2),
+    );
+}
+
+function closeModal() { modal.hidden = true; }
+
+function escapeHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function colorizeJson(text) {
+    const escaped = escapeHtml(text);
+    return escaped.replace(
+        /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?)/g,
+        (m) => {
+            let cls = 'json-number';
+            if (/^"/.test(m)) cls = /:$/.test(m) ? 'json-key' : 'json-string';
+            else if (m === 'true' || m === 'false') cls = 'json-boolean';
+            else if (m === 'null') cls = 'json-null';
+            return `<span class="${cls}">${m}</span>`;
+        },
+    );
+}
+
+// ---------- coding helpers ----------
+function codingLink(coding) {
+    if (!coding || !coding.system || !coding.code) return null;
+    const linkFn = SYSTEM_LINKS[coding.system];
+    if (!linkFn) return null;
+    return linkFn(coding.code);
+}
+
+function codingChip(coding) {
+    const href = codingLink(coding);
+    const label = `${shortSystem(coding.system)} ${coding.code}`;
+    if (href) {
+        return el('a', { class: 'code-chip', href, target: '_blank', rel: 'noopener', title: coding.display || '' }, label);
+    }
+    return el('span', { class: 'code-chip', title: coding.display || '' }, label);
+}
+
+function shortSystem(sys) {
+    if (!sys) return '';
+    if (sys.includes('loinc')) return 'LOINC';
+    if (sys.includes('snomed')) return 'SNOMED';
+    if (sys.includes('cvx')) return 'CVX';
+    if (sys.includes('ndc')) return 'NDC';
+    if (sys.includes('dicom')) return 'DCM';
+    if (sys.includes('terminology.hl7.org')) return 'HL7';
+    return sys.replace(/^https?:\/\//, '').slice(0, 18);
+}
+
 function pickName(resource) {
-    const code = resource?.code?.text || resource?.code?.coding?.[0]?.display
-              || resource?.vaccineCode?.text || resource?.vaccineCode?.coding?.[0]?.display
-              || resource?.type?.text || resource?.type?.coding?.[0]?.display
-              || resource?.medicationReference?.display
-              || resource?.medicationCodeableConcept?.text
-              || resource?.medicationCodeableConcept?.coding?.[0]?.display
-              || resource?.description
-              || resource?.modality?.[0]?.display
-              || resource?.series?.[0]?.bodySite?.display
-              || (resource?.resourceType === 'ImagingStudy' ? 'Imaging study' : '')
-              || '';
-    return code;
+    return resource?.code?.text || resource?.code?.coding?.[0]?.display
+        || resource?.vaccineCode?.text || resource?.vaccineCode?.coding?.[0]?.display
+        || resource?.type?.text || resource?.type?.coding?.[0]?.display
+        || resource?.medicationReference?.display
+        || resource?.medicationCodeableConcept?.text
+        || resource?.medicationCodeableConcept?.coding?.[0]?.display
+        || resource?.description
+        || resource?.modality?.[0]?.display
+        || resource?.series?.[0]?.bodySite?.display
+        || (resource?.resourceType === 'ImagingStudy' ? 'Imaging study' : '')
+        || '';
 }
 
 function pickDate(resource) {
@@ -75,6 +213,14 @@ function pickDate(resource) {
         || resource?.date || '';
 }
 
+function pickCoding(resource) {
+    return resource?.code?.coding?.[0]
+        || resource?.vaccineCode?.coding?.[0]
+        || resource?.type?.coding?.[0]
+        || resource?.medicationCodeableConcept?.coding?.[0]
+        || null;
+}
+
 // ---------- patient list ----------
 async function renderPatientList() {
     setLoading();
@@ -82,11 +228,11 @@ async function renderPatientList() {
         const patients = await api('/ui/api/patients');
         const head = el('div', { class: 'page-head' },
             el('h1', {}, 'Patients'),
-            el('div', { class: 'meta' }, `${patients.length} synthetic patients across the EU`),
+            el('div', { class: 'meta' }, `${patients.length} synthetic patients · ITI-78-style PDQm + IPA · all read-only`),
         );
         const search = el('div', { class: 'search-box' },
             el('input', {
-                placeholder: 'filter by name, country, id…',
+                placeholder: 'filter by name, country, city, id…',
                 'aria-label': 'filter patients',
                 oninput: (e) => filterCards(e.target.value),
             }),
@@ -98,9 +244,9 @@ async function renderPatientList() {
             const card = el('a', {
                 class: 'patient-card',
                 href: `#/p/${p.id}`,
-                'data-search': `${fullName} ${p.family} ${p.country} ${p.id} ${p.city || ''}`.toLowerCase(),
+                'data-search': `${fullName} ${p.family} ${p.country} ${COUNTRY_NAMES[p.country] || ''} ${p.id} ${p.city || ''}`.toLowerCase(),
             },
-                el('div', { class: 'name' }, fullName, ' ',
+                el('div', { class: 'name' }, fullName,
                     el('span', { class: 'country-pill', title: COUNTRY_NAMES[p.country] || p.country }, p.country),
                 ),
                 el('div', { class: 'meta' },
@@ -108,7 +254,10 @@ async function renderPatientList() {
                     el('span', {}, `born ${p.birthDate || '—'}`),
                     el('span', {}, p.city || ''),
                 ),
-                el('div', { class: 'id' }, `Patient/${p.id}`),
+                el('div', { class: 'ident' },
+                    el('span', { class: 'id' }, `Patient/${p.id}`),
+                    el('span', {}, '→'),
+                ),
             );
             grid.appendChild(card);
         }
@@ -135,41 +284,72 @@ async function renderPatientDetail(pid) {
         const p = data.patient;
         const name = (p.name || [{}])[0];
         const fullName = `${(name.given || []).join(' ')} ${name.family || ''}`.trim() || pid;
+        const addr = (p.address || [{}])[0] || {};
+        const ident = (p.identifier || [{}])[0] || {};
+        const lang = p.communication?.[0]?.language?.coding?.[0]?.code;
 
         const crumbs = el('div', { class: 'crumbs' },
-            el('a', { href: '#/' }, '← Patients'),
-            ' / ',
+            el('a', { href: '#/' }, 'Patients'),
+            el('span', { class: 'sep' }, '/'),
             el('span', {}, fullName),
         );
 
-        const ident = (p.identifier || [{}])[0];
-
         const hero = el('section', { class: 'patient-hero' },
-            el('h1', {},
-                fullName, ' ',
-                el('span', { class: 'country-pill' }, (p.address || [{}])[0]?.country || ''),
+            el('h1', {}, fullName,
+                addr.country ? el('span', { class: 'country-pill', title: COUNTRY_NAMES[addr.country] || addr.country }, addr.country) : null,
             ),
             el('div', { class: 'meta-row' },
-                `${p.gender || '—'} · born ${p.birthDate || '—'} · ${(p.address || [{}])[0]?.city || ''}, ${(p.address || [{}])[0]?.country || ''}`,
+                `${p.gender || '—'} · born ${p.birthDate || '—'} · ${addr.city || ''}${addr.country ? `, ${addr.country}` : ''}${lang ? ` · speaks ${lang}` : ''}`,
             ),
-            el('div', { class: 'ids' },
-                `Patient/${pid}`,
-                ident?.system ? ` · identifier: ${ident.value} (${ident.system})` : '',
+            el('div', { class: 'hero-grid' },
+                fieldBlock('FHIR id',  el('span', { class: 'mono' }, `Patient/${p.id}`)),
+                fieldBlock('Identifier system', el('span', { class: 'mono' }, ident.system || '—')),
+                fieldBlock('Identifier value', el('span', { class: 'mono' }, ident.value || '—')),
+                fieldBlock('Address',
+                    el('span', {}, [(addr.line || []).join(' '), addr.postalCode, addr.city, addr.country].filter(Boolean).join(', ') || '—')),
+                fieldBlock('Telecom', el('span', {}, (p.telecom || []).map(t => `${t.system}:${t.value}`).join(' · ') || '—')),
+                fieldBlock('Languages', el('span', {}, (p.communication || []).map(c => c.language?.coding?.[0]?.code).filter(Boolean).join(', ') || '—')),
             ),
         );
 
-        const docHeader = el('h2', { style: 'font-size:16px;margin:16px 0 10px 0;' }, 'Compiled documents');
+        const tech = el('section', { class: 'tech-block' },
+            el('h3', {}, 'Behind the scenes · raw FHIR endpoints'),
+            techRow('Read Patient',                urlChip('GET',  `/Patient/${pid}`)),
+            techRow('All resources in compartment', urlChip('GET',  `/Patient/${pid}/$everything`)),
+            techRow('DocumentReferences',           urlChip('GET',  `/DocumentReference?patient=${pid}`)),
+            techRow('PDQm $match (example)',        urlChip('POST', `/Patient/$match`)),
+            techRow('Compiled FHIR documents',
+                el('span', { class: 'btn-group' },
+                    ...Object.entries(CATEGORY_LABELS).map(([cat, meta]) =>
+                        el('a', { class: 'btn-ghost', href: `#/p/${pid}/doc/${cat}` }, `${meta.icon} ${cat}`),
+                    ),
+                ),
+            ),
+            techRow('Open Patient JSON',
+                el('button', { class: 'btn-ghost', onclick: () => openResourceModal('Patient', pid) }, '{ } view raw JSON'),
+            ),
+        );
+
+        const docHeader = el('section', { class: 'section-title' },
+            el('span', {}, 'Compiled documents (on demand)'),
+            el('span', { style: 'font-weight:500;color:var(--text-muted);text-transform:none;letter-spacing:normal;font-size:11px;' },
+                'click a category → Bundle compiled from the resources below'),
+        );
         const docRow = el('div', { class: 'doc-row' });
         for (const d of data.documents) {
             const meta = CATEGORY_LABELS[d.category];
             docRow.appendChild(el('a', { class: 'doc-card', href: `#/p/${pid}/doc/${d.category}` },
                 el('div', { class: 'label' }, `${meta.icon}  ${meta.label}`),
-                el('div', { class: 'sub' }, `Binary/${d.binary}`),
+                el('div', { class: 'sub' }, `GET /Binary/${d.binary}`),
                 el('div', { class: 'open' }, 'open document →'),
             ));
         }
 
-        const resHeader = el('h2', { style: 'font-size:16px;margin:24px 0 10px 0;' }, 'All resources in this patient compartment');
+        const resHeader = el('section', { class: 'section-title' },
+            el('span', {}, 'Patient compartment resources'),
+            el('span', { style: 'font-weight:500;color:var(--text-muted);text-transform:none;letter-spacing:normal;font-size:11px;' },
+                'click a resource id → raw JSON'),
+        );
         const buckets = data.buckets;
         const bucketsContainer = el('div', {});
         const sortedTypes = Object.keys(buckets).sort();
@@ -177,14 +357,24 @@ async function renderPatientDetail(pid) {
             const items = buckets[rtype];
             const det = el('details', { class: 'resource-bucket' });
             det.appendChild(el('summary', {},
-                el('span', {}, rtype),
+                el('span', {}, rtype,
+                    el('span', { style: 'color:var(--text-faint);font-weight:500;margin-left:8px;font-family:ui-monospace,monospace;font-size:11px;' }, `GET /${rtype}?patient=${pid}`),
+                ),
                 el('span', { class: 'count' }, String(items.length)),
             ));
             const list = el('div', { class: 'resource-list' });
             for (const r of items) {
+                const coding = pickCoding(r);
                 list.appendChild(el('div', { class: 'resource-row' },
-                    el('div', { class: 'rid' }, `${rtype}/${r.id}`),
-                    el('div', { class: 'display' }, pickName(r) || el('em', { style: 'color:#9c9c93' }, '(no display)')),
+                    el('a', {
+                        class: 'rid',
+                        href: 'javascript:void(0)',
+                        onclick: () => openResourceModal(rtype, r.id),
+                    }, `${rtype}/${r.id}`),
+                    el('div', { class: 'display' },
+                        pickName(r) || el('em', { style: 'color:var(--text-faint)' }, '(no display)'),
+                        coding ? codingChip(coding) : null,
+                    ),
                     el('div', { class: 'ts' }, pickDate(r) || ''),
                 ));
             }
@@ -193,10 +383,24 @@ async function renderPatientDetail(pid) {
         }
 
         app.innerHTML = '';
-        app.append(crumbs, hero, docHeader, docRow, resHeader, bucketsContainer);
+        app.append(crumbs, hero, tech, docHeader, docRow, resHeader, bucketsContainer);
     } catch (e) {
         renderError(e.message);
     }
+}
+
+function fieldBlock(label, value) {
+    return el('div', {},
+        el('div', { class: 'field-label' }, label),
+        el('div', { class: 'field-value' }, value),
+    );
+}
+
+function techRow(label, value) {
+    return el('div', { class: 'row' },
+        el('div', { class: 'lbl' }, label),
+        el('div', {}, value),
+    );
 }
 
 // ---------- document viewer ----------
@@ -210,23 +414,44 @@ async function renderDocument(pid, category) {
 
         const crumbs = el('div', { class: 'crumbs' },
             el('a', { href: '#/' }, 'Patients'),
-            ' / ',
+            el('span', { class: 'sep' }, '/'),
             el('a', { href: `#/p/${pid}` }, `Patient/${pid}`),
-            ' / ',
+            el('span', { class: 'sep' }, '/'),
             el('span', {}, meta.label),
         );
 
         const header = el('section', { class: 'doc-header' },
-            el('h1', {}, `${meta.icon}  ${meta.label}`),
+            el('h1', {}, meta.icon, el('span', {}, meta.label)),
+            el('div', { class: 'meta-row' }, `On-demand FHIR document Bundle (type=document) for Patient/${pid}`),
             el('div', { class: 'summary' },
-                el('span', {}, el('strong', {}, 'Bundle.id: '), bundle.id),
-                el('span', {}, el('strong', {}, 'Entries: '), String(entries.length)),
-                el('span', {}, el('strong', {}, 'Profile: '), (bundle.meta?.profile || [''])[0]),
-                el('span', {}, el('strong', {}, 'Timestamp: '), bundle.timestamp || ''),
+                summaryItem('FHIR REST', urlChip('GET', `/Binary/doc-${pid}-${category}`)),
+                summaryItem('Bundle.id', el('span', { class: 'val mono' }, bundle.id || '—')),
+                summaryItem('Composition.id', el('span', { class: 'val mono' }, composition?.id || '—')),
+                summaryItem('Entries', el('span', { class: 'val' }, String(entries.length))),
+                summaryItem('Profile',
+                    el('a', { class: 'val mono', href: meta.ig, target: '_blank', rel: 'noopener' }, meta.profile),
+                ),
+                summaryItem('Timestamp', el('span', { class: 'val mono' }, bundle.timestamp || '—')),
+                summaryItem('Document type (LOINC)',
+                    composition?.type?.coding?.[0]
+                        ? codingChip(composition.type.coding[0])
+                        : el('span', { class: 'val' }, '—'),
+                ),
+                summaryItem('Bundle.identifier',
+                    el('span', { class: 'val mono' }, bundle.identifier?.value || '—')),
             ),
         );
 
-        // sections from the Composition
+        const types = entries.reduce((acc, e) => {
+            const t = e?.resource?.resourceType || '?';
+            acc[t] = (acc[t] || 0) + 1;
+            return acc;
+        }, {});
+        const entryBar = el('div', { class: 'entry-bar' });
+        for (const [t, n] of Object.entries(types).sort((a, b) => b[1] - a[1])) {
+            entryBar.appendChild(el('span', { class: 'chip' }, el('span', { class: 'n' }, n), ' ', t));
+        }
+
         const sectionsBlock = el('div');
         if (composition?.section) {
             for (const sec of composition.section) {
@@ -234,17 +459,37 @@ async function renderDocument(pid, category) {
                 const block = el('section', { class: 'section-block' },
                     el('h3', {},
                         el('span', {}, sec.title || code?.display || 'Section'),
-                        el('span', { class: 'count' }, `LOINC ${code?.code || ''} · ${(sec.entry || []).length} entries`),
+                        el('div', { class: 'meta-right' },
+                            code ? el('a', {
+                                class: 'loinc-pill',
+                                href: codingLink(code) || '#',
+                                target: '_blank', rel: 'noopener',
+                                title: code.display || '',
+                            }, `LOINC ${code.code}`) : null,
+                            el('span', {}, `${(sec.entry || []).length} entries`),
+                        ),
                     ),
                 );
                 const entriesBlock = el('div', { class: 'entries' });
                 for (const ent of sec.entry || []) {
-                    const target = entries.find((e) => e.fullUrl === ent.reference || e.resource && `${e.resource.resourceType}/${e.resource.id}` === ent.reference);
+                    const target = entries.find((e) =>
+                        e.fullUrl === ent.reference
+                        || (e.resource && `${e.resource.resourceType}/${e.resource.id}` === ent.reference)
+                    );
                     const res = target?.resource;
+                    const refStr = ent.reference;
                     entriesBlock.appendChild(el('div', { class: 'entry-row' },
-                        el('div', { style: 'font-family:ui-monospace,monospace;font-size:11px;color:#6c6c63;margin-bottom:2px;' }, ent.reference),
-                        el('div', {}, res ? pickName(res) || '(no display)' : '(unresolved reference)'),
-                        res ? el('div', { style: 'font-size:11px;color:#6c6c63;' }, pickDate(res)) : null,
+                        el('div', { class: 'left' },
+                            el('div', {
+                                class: 'ref',
+                                onclick: () => res && openResourceModal(res.resourceType, res.id),
+                            }, refStr),
+                            el('div', { class: 'display' },
+                                res ? (pickName(res) || el('em', { style: 'color:var(--text-faint)' }, '(no display)')) : '(unresolved reference)',
+                                res && pickCoding(res) ? codingChip(pickCoding(res)) : null,
+                            ),
+                        ),
+                        el('div', { class: 'right' }, res ? pickDate(res) || '' : ''),
                     ));
                 }
                 block.appendChild(entriesBlock);
@@ -252,83 +497,184 @@ async function renderDocument(pid, category) {
             }
         }
 
-        // raw json toggle
-        const rawWrapper = el('div', { style: 'margin-top:18px' });
-        const toggle = el('button', { class: 'raw-toggle' }, 'View raw FHIR Bundle');
-        const pre = el('pre', { class: 'json-dump', style: 'display:none;' }, JSON.stringify(bundle, null, 2));
-        toggle.addEventListener('click', () => {
-            const showing = pre.style.display !== 'none';
-            pre.style.display = showing ? 'none' : 'block';
-            toggle.textContent = showing ? 'View raw FHIR Bundle' : 'Hide raw FHIR Bundle';
-        });
-        rawWrapper.append(toggle, pre);
+        const actionRow = el('div', { class: 'btn-group', style: 'margin-top:18px;' },
+            el('button', { class: 'btn-primary', onclick: () => openBundleModal(pid, category, bundle) },
+                '{ } view raw FHIR Bundle'),
+            el('a', { class: 'btn', href: `/ui/api/patients/${pid}/doc/${category}`, target: '_blank', rel: 'noopener' },
+                'open Bundle JSON in new tab ↗'),
+            el('button', { class: 'btn', onclick: () => copyText(JSON.stringify(bundle, null, 2)) },
+                'copy Bundle JSON'),
+            el('a', { class: 'btn', href: meta.ig, target: '_blank', rel: 'noopener' },
+                'EU IG ↗'),
+        );
 
         app.innerHTML = '';
-        app.append(crumbs, header, sectionsBlock, rawWrapper);
+        app.append(crumbs, header, entryBar, sectionsBlock, actionRow);
     } catch (e) {
         renderError(e.message);
     }
+}
+
+function summaryItem(label, value) {
+    return el('div', {},
+        el('div', { class: 'lbl' }, label),
+        value,
+    );
 }
 
 // ---------- server page ----------
 async function renderServerPage() {
     setLoading();
     try {
-        const [info, cap] = await Promise.all([
+        const [info, build, cap, smart] = await Promise.all([
             api('/ui/api/server-info'),
+            api('/ui/api/build-info'),
             api('/metadata'),
+            api('/.well-known/smart-configuration'),
         ]);
         const head = el('div', { class: 'page-head' },
             el('h1', {}, 'Server'),
-            el('div', { class: 'meta' }, `${info.base_url} · ${cap.fhirVersion}`),
+            el('div', { class: 'meta' }, `${info.base_url} · FHIR R4 · synthetic data`),
         );
         const stats = el('div', { class: 'stats-grid' },
-            el('div', { class: 'stat-card' },
-                el('div', { class: 'label' }, 'Patients'),
-                el('div', { class: 'value' }, String(info.patients)),
-            ),
-            el('div', { class: 'stat-card' },
-                el('div', { class: 'label' }, 'Total atomic resources'),
-                el('div', { class: 'value' }, String(info.total_resources)),
-            ),
-            el('div', { class: 'stat-card' },
-                el('div', { class: 'label' }, 'Resource types served'),
-                el('div', { class: 'value' }, String(Object.keys(info.by_type).length)),
-            ),
-            el('div', { class: 'stat-card' },
-                el('div', { class: 'label' }, 'Priority categories'),
-                el('div', { class: 'value' }, String(info.categories.length)),
-            ),
-            el('div', { class: 'stat-card' },
-                el('div', { class: 'label' }, 'Implementation Guides'),
-                el('div', { class: 'value' }, String(cap.implementationGuide?.length || 0)),
-            ),
+            statCard('Patients', info.patients, 'PDQm-searchable'),
+            statCard('Total atomic resources', info.total_resources, 'across compartments'),
+            statCard('Resource types', Object.keys(info.by_type).length, 'first-class'),
+            statCard('Priority categories', info.categories.length, 'compiled on demand'),
+            statCard('Implementation Guides', cap.implementationGuide?.length || 0, 'referenced'),
+            statCard('Token TTL', `${build.token_ttl_seconds}s`, 'short-lived JWT bearers'),
         );
 
-        const supportedH = el('h2', { style: 'font-size:16px;margin:24px 0 10px 0;' }, 'Supported resources');
+        // SMART config
+        const smartBlock = el('section', { class: 'tech-block' },
+            el('h3', {}, 'SMART backend services configuration'),
+            techRow('Issuer', el('span', { class: 'mono' }, smart.issuer)),
+            techRow('Token endpoint', urlChip('POST', new URL(smart.token_endpoint).pathname)),
+            techRow('JWKS', urlChip('GET', new URL(smart.jwks_uri).pathname)),
+            techRow('Grant types', el('span', {}, smart.grant_types_supported.join(', '))),
+            techRow('Auth methods', el('span', {}, smart.token_endpoint_auth_methods_supported.join(', '))),
+            techRow('Signing algs', el('span', {}, smart.token_endpoint_auth_signing_alg_values_supported.join(', '))),
+            techRow('Supported scopes', el('span', {},
+                smart.scopes_supported.map(s => el('code', { style: 'margin:0 4px 4px 0;display:inline-block;background:var(--surface-3);padding:1px 6px;border-radius:4px;' }, s)),
+            )),
+        );
+
+        // Build info
+        const buildBlock = el('section', { class: 'tech-block' },
+            el('h3', {}, 'Build & runtime'),
+            techRow('Git', el('span', { class: 'mono' }, build.git_sha || 'untracked')),
+            techRow('Python', el('span', { class: 'mono' }, build.python)),
+            techRow('FastAPI', el('span', { class: 'mono' }, build.fastapi)),
+            techRow('fhir.resources', el('span', { class: 'mono' }, build.fhir_resources)),
+            techRow('HL7 validator jar',
+                build.validator_jar_present
+                    ? el('span', {}, '✓ cached', el('span', { style: 'color:var(--text-faint);margin-left:8px;' }, `${build.validator_jar_size_mb} MB`))
+                    : el('span', { style: 'color:var(--warn);' }, '✗ not cached (run ./fetch_validator.sh)'),
+            ),
+            techRow('Data directory', el('span', { class: 'mono' }, build.data_dir)),
+            techRow('Rate limit', el('span', {}, `${build.rate_limit_per_min} req/min/client`)),
+            techRow('Body cap', el('span', {}, `${(build.body_max_bytes / 1_048_576).toFixed(1)} MB`)),
+        );
+
+        // IGs cloned
+        const igBlock = el('section', { class: 'tech-block' },
+            el('h3', {}, 'HL7 Europe IG packages on disk'),
+            ...(build.ig_packages.length
+                ? build.ig_packages.map(ig => techRow(ig.name, el('span', { class: 'mono' }, ig.path)))
+                : [el('div', { style: 'font-size:12px;color:var(--text-faint);' }, '(none — run ./download_igs.sh)')]),
+        );
+
+        // supported resources table
+        const supportedH = el('section', { class: 'section-title' }, 'Supported resources');
         const tbl = el('table', { class: 'endpoints-table' },
             el('thead', {}, el('tr', {},
                 el('th', {}, 'Type'),
                 el('th', {}, 'Interactions'),
                 el('th', {}, 'Search params'),
-                el('th', {}, 'Stored'),
+                el('th', { style: 'text-align:right;' }, 'Stored'),
             )),
             el('tbody', {}, ...(cap.rest?.[0]?.resource || []).map((r) => el('tr', {},
                 el('td', {}, el('code', {}, r.type)),
-                el('td', {}, (r.interaction || []).map((i) => i.code).join(', ')),
-                el('td', { style: 'font-size:12px;color:#6c6c63;' }, (r.searchParam || []).map((p) => p.name).join(', ')),
-                el('td', {}, String(info.by_type[r.type] || 0)),
+                el('td', { style: 'font-size:11px;color:var(--text-muted);' }, (r.interaction || []).map((i) => i.code).join(', ')),
+                el('td', { style: 'font-size:11px;color:var(--text-faint);' }, (r.searchParam || []).map((p) => p.name).join(', ')),
+                el('td', { style: 'text-align:right;font-family:ui-monospace,monospace;' }, String(info.by_type[r.type] || 0)),
             ))),
         );
 
-        const igH = el('h2', { style: 'font-size:16px;margin:24px 0 10px 0;' }, 'Implementation Guides referenced');
-        const igList = el('ul', { style: 'list-style:none;padding:0;' });
+        // IG list
+        const igH = el('section', { class: 'section-title' }, 'Implementation Guides referenced');
+        const igList = el('div', { style: 'background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:6px 14px;' });
         for (const ig of cap.implementationGuide || []) {
-            igList.appendChild(el('li', { style: 'padding:6px 0;font-family:ui-monospace,monospace;font-size:12px;color:#6c6c63;' }, ig));
+            igList.appendChild(el('div', { style: 'padding:6px 0;font-family:ui-monospace,monospace;font-size:12px;color:var(--text-muted);border-bottom:1px solid var(--border-soft);display:flex;justify-content:space-between;gap:10px;' },
+                el('span', {}, ig),
+                el('button', { class: 'copy-btn', style: 'background:transparent;border:none;color:var(--text-faint);cursor:pointer;', onclick: () => copyText(ig) }, '⧉'),
+            ));
         }
 
         app.innerHTML = '';
-        app.append(head, stats, supportedH, tbl, igH, igList);
+        app.append(head, stats, smartBlock, buildBlock, igBlock, supportedH, tbl, igH, igList);
+    } catch (e) {
+        renderError(e.message);
+    }
+}
+
+function statCard(label, value, sub) {
+    return el('div', { class: 'stat-card' },
+        el('div', { class: 'label' }, label),
+        el('div', { class: 'value' }, String(value)),
+        sub ? el('div', { class: 'sub' }, sub) : null,
+    );
+}
+
+// ---------- endpoints page (with live dev token) ----------
+async function renderEndpointsPage() {
+    setLoading();
+    try {
+        const [endpoints, token] = await Promise.all([
+            api('/ui/api/endpoints'),
+            fetch('/ui/api/dev-token', { method: 'POST' }).then(r => r.json()),
+        ]);
+        const head = el('div', { class: 'page-head' },
+            el('h1', {}, 'Endpoints'),
+            el('div', { class: 'meta' }, 'every demo-relevant route + a fresh dev bearer for copy-paste cURL'),
+        );
+
+        const tokenCard = el('section', { class: 'token-card' },
+            el('div', { class: 'head' },
+                el('h2', {}, 'Dev bearer (5 min TTL)'),
+                el('div', { class: 'btn-group' },
+                    el('button', { class: 'btn-ghost', onclick: () => copyText(token.access_token) }, 'Copy token'),
+                    el('button', { class: 'btn-ghost', onclick: () => copyText(`export TOKEN=${token.access_token}`) }, 'Copy export TOKEN=…'),
+                    el('button', { class: 'btn-ghost', onclick: () => renderEndpointsPage() }, 'Refresh'),
+                ),
+            ),
+            el('div', { class: 'meta' }, `scope: ${token.scope}  ·  type: ${token.token_type}  ·  expires in ${token.expires_in}s`),
+            el('div', { class: 'token-display' }, token.access_token),
+            el('div', { class: 'meta' }, 'Signed by the server key (RS256). Verifiable via ',
+                el('a', { href: '/.well-known/jwks.json', target: '_blank', rel: 'noopener' }, '/.well-known/jwks.json'),
+                '. In production this bearer would be minted via /token after sending a JWT client assertion.',
+            ),
+        );
+
+        const list = el('div', {});
+        for (const ep of endpoints) {
+            const fullCurl = ep.curl.replace(/\$TOKEN/g, token.access_token);
+            list.appendChild(el('section', { class: 'endpoint-card' },
+                el('div', { class: 'head' },
+                    el('span', { class: `method-badge ${ep.method.toLowerCase()}` }, ep.method),
+                    el('span', { class: 'path mono' }, ep.path),
+                    el('span', { class: `auth-badge ${ep.auth === 'none' ? 'none' : ''}` }, ep.auth),
+                    el('span', { class: 'label', style: 'margin-left:auto;color:var(--text-muted);font-weight:500;font-size:12px;' }, ep.label),
+                ),
+                el('pre', {}, fullCurl),
+                el('div', { class: 'copy-row' },
+                    el('button', { class: 'btn-ghost', onclick: () => copyText(fullCurl) }, 'Copy curl'),
+                ),
+            ));
+        }
+
+        app.innerHTML = '';
+        app.append(head, tokenCard, list);
     } catch (e) {
         renderError(e.message);
     }
@@ -337,14 +683,16 @@ async function renderServerPage() {
 // ---------- router ----------
 function highlightNav(hash) {
     document.querySelectorAll('[data-nav]').forEach((a) => {
+        const target = a.getAttribute('href');
         a.classList.toggle('active',
-            (hash === '#/' && a.getAttribute('href') === '#/')
-            || (hash === '#/server' && a.getAttribute('href') === '#/server')
+            (hash === '#/' && target === '#/')
+            || (hash === target),
         );
     });
 }
 
 async function route() {
+    closeModal();
     const hash = location.hash || '#/';
     highlightNav(hash);
     const m_doc = hash.match(/^#\/p\/([^/]+)\/doc\/([^/]+)$/);
@@ -352,16 +700,24 @@ async function route() {
     if (m_doc) return renderDocument(m_doc[1], m_doc[2]);
     if (m_pat) return renderPatientDetail(m_pat[1]);
     if (hash === '#/server') return renderServerPage();
+    if (hash === '#/endpoints') return renderEndpointsPage();
     return renderPatientList();
 }
 
 // ---------- boot ----------
 (async () => {
     try {
-        const info = await api('/ui/api/server-info');
-        envPill.textContent = `env: ${info.env}`;
-    } catch (e) {
-        envPill.textContent = 'env: ?';
+        const [info, build] = await Promise.all([
+            api('/ui/api/server-info'),
+            api('/ui/api/build-info'),
+        ]);
+        footerTags.innerHTML = '';
+        footerTags.appendChild(el('span', { class: 'pill' }, `env: ${info.env}`));
+        if (build.git_sha) footerTags.appendChild(el('span', { class: 'pill' }, `git: ${build.git_sha}`));
+        footerTags.appendChild(el('span', { class: 'pill' }, `FHIR R4`));
+    } catch {
+        footerTags.innerHTML = '';
+        footerTags.appendChild(el('span', { class: 'pill' }, 'env: ?'));
     }
 })();
 

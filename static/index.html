@@ -11,23 +11,48 @@
     <header class="app-header">
         <div class="brand">
             <span class="dot"></span>
-            <span class="title">EHDS Demo</span>
-            <span class="subtitle">EU Health Data API · synthetic data</span>
+            <div>
+                <div class="title">EHDS Demo</div>
+                <div class="subtitle">EU Health Data API · FHIR R4 · synthetic data</div>
+            </div>
         </div>
         <nav>
             <a href="#/" data-nav>Patients</a>
             <a href="#/server" data-nav>Server</a>
-            <a href="/metadata" target="_blank" rel="noopener">CapabilityStatement &rarr;</a>
-            <a href="/.well-known/smart-configuration" target="_blank" rel="noopener">SMART config &rarr;</a>
+            <a href="#/endpoints" data-nav>Endpoints</a>
+            <a href="/metadata" target="_blank" rel="noopener" class="ext">CapabilityStatement&nbsp;↗</a>
+            <a href="/.well-known/smart-configuration" target="_blank" rel="noopener" class="ext">SMART&nbsp;↗</a>
+            <a href="https://build.fhir.org/ig/euridice-org/eu-health-data-api/en/" target="_blank" rel="noopener" class="ext">IG&nbsp;↗</a>
         </nav>
     </header>
     <main id="app">
         <div class="loading">loading…</div>
     </main>
     <footer>
-        <span>read-only viewer · open-source · Apache-2.0</span>
-        <span class="env-pill" id="env-pill">env: ?</span>
+        <span>EHDS Demo · open-source · Apache-2.0</span>
+        <span class="footer-tags" id="footer-tags"></span>
     </footer>
+
+    <!-- JSON viewer modal -->
+    <div id="json-modal" class="modal-overlay" hidden>
+        <div class="modal">
+            <div class="modal-head">
+                <div class="modal-title">
+                    <span id="modal-title-text">FHIR resource</span>
+                    <span class="muted" id="modal-url"></span>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-ghost" id="modal-copy">Copy JSON</button>
+                    <button class="btn-ghost" id="modal-close" aria-label="close">✕</button>
+                </div>
+            </div>
+            <pre class="json-dump" id="modal-body"></pre>
+        </div>
+    </div>
+
+    <!-- toast -->
+    <div id="toast" class="toast" hidden></div>
+
     <script src="/ui/main.js"></script>
 </body>
 </html>
