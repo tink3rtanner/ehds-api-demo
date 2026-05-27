@@ -688,6 +688,7 @@ async function renderEndpointsPage() {
         );
 
         const matchCard = buildMatchPlayground(token.access_token);
+        const submitCard = buildSubmissionDemo(token.access_token);
 
         const list = el('div', {});
         for (const ep of endpoints) {
@@ -707,7 +708,7 @@ async function renderEndpointsPage() {
         }
 
         app.innerHTML = '';
-        app.append(head, tokenCard, matchCard, list);
+        app.append(head, tokenCard, matchCard, submitCard, list);
     } catch (e) {
         renderError(e.message);
     }
@@ -801,6 +802,98 @@ function buildMatchPlayground(bearer) {
             out.appendChild(el('div', { class: 'error' }, e.message));
         }
     }
+
+    return card;
+}
+
+function buildSubmissionDemo(bearer) {
+    const card = el('section', { class: 'token-card' });
+    const out = el('div', { style: 'margin-top:12px;' });
+
+    function exampleBundle() {
+        const submissionId = `demo-${Date.now().toString(36)}`;
+        return {
+            resourceType: 'Bundle',
+            type: 'transaction',
+            entry: [{
+                fullUrl: `DocumentReference/${submissionId}`,
+                resource: {
+                    resourceType: 'DocumentReference',
+                    id: submissionId,
+                    status: 'current',
+                    type: { coding: [{ system: 'http://loinc.org', code: '60591-5', display: 'Patient summary' }] },
+                    category: [{ coding: [{
+                        system: 'http://hl7.eu/fhir/ig/eu-health-data-api/CodeSystem/eehrxf-document-priority-category',
+                        code: 'patient-summary',
+                    }] }],
+                    subject: { reference: 'Patient/p-001' },
+                    description: 'Demo ITI-105 submission from /ui#/endpoints',
+                    content: [{
+                        attachment: { contentType: 'application/fhir+json', url: `Binary/${submissionId}` },
+                    }],
+                },
+                request: { method: 'POST', url: 'DocumentReference' },
+            }],
+        };
+    }
+
+    let currentBundle = exampleBundle();
+
+    const bodyView = el('pre', {
+        style: 'background:var(--code-bg);color:var(--code-text);border-radius:var(--radius-sm);padding:10px 14px;font-size:11px;margin-top:8px;overflow:auto;max-height:200px;',
+        html: colorizeJson(JSON.stringify(currentBundle, null, 2)),
+    });
+
+    async function submit() {
+        out.innerHTML = '';
+        out.appendChild(el('div', { class: 'meta' }, 'POST / (ITI-105)…'));
+        try {
+            const t0 = performance.now();
+            const r = await fetch('/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/fhir+json',
+                    'Authorization': `Bearer ${bearer}`,
+                },
+                body: JSON.stringify(currentBundle),
+            });
+            const ms = Math.round(performance.now() - t0);
+            const body = await r.json();
+            out.innerHTML = '';
+            const statusColor = r.ok ? 'var(--accent)' : 'var(--danger)';
+            out.appendChild(el('div', { class: 'meta' },
+                el('span', { style: `font-weight:600;color:${statusColor};` }, `HTTP ${r.status}`),
+                ` · ${ms} ms · Location: `,
+                el('span', { class: 'mono', style: 'font-size:11px;' }, r.headers.get('Location') || '—'),
+            ));
+            out.appendChild(el('pre', {
+                style: 'background:var(--code-bg);color:var(--code-text);border-radius:var(--radius-sm);padding:10px 14px;font-size:11px;margin-top:8px;overflow:auto;max-height:200px;',
+                html: colorizeJson(JSON.stringify(body, null, 2)),
+            }));
+            // refresh example for next submission so the id is unique
+            currentBundle = exampleBundle();
+            bodyView.innerHTML = colorizeJson(JSON.stringify(currentBundle, null, 2));
+        } catch (e) {
+            out.innerHTML = '';
+            out.appendChild(el('div', { class: 'error' }, e.message));
+        }
+    }
+
+    card.appendChild(el('div', { class: 'head' },
+        el('h2', {}, 'ITI-105 document submission'),
+        el('div', { class: 'btn-group' },
+            el('button', { class: 'btn-ghost', onclick: () => { currentBundle = exampleBundle(); bodyView.innerHTML = colorizeJson(JSON.stringify(currentBundle, null, 2)); } }, 'Regenerate'),
+            el('button', { class: 'btn-primary', onclick: () => submit() }, 'POST submission →'),
+        ),
+    ));
+    card.appendChild(el('div', { class: 'meta' },
+        'Submits a small Bundle.type=transaction containing a DocumentReference for Patient/p-001 to /. Server validates structurally, persists into data/inbox/, mirrors into the store so it surfaces in subsequent searches.',
+    ));
+    card.appendChild(el('details', { style: 'margin-top:10px;' },
+        el('summary', { style: 'cursor:pointer;color:var(--text-muted);font-size:12px;' }, 'show request bundle'),
+        bodyView,
+    ));
+    card.appendChild(out);
 
     return card;
 }

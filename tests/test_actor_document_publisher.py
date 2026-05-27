@@ -19,8 +19,9 @@ async def test_publisher_emits_docref_with_eu_profile(client, auth_headers, cate
                          params={"patient": "p-001", "category": category})
     assert r.status_code == 200
     body = r.json()
-    assert body["total"] == 1
-    docref = body["entry"][0]["resource"]
+    seed = [e for e in body["entry"] if e["resource"]["id"].startswith("dr-p-")]
+    assert len(seed) == 1
+    docref = seed[0]["resource"]
     profiles = docref.get("meta", {}).get("profile", [])
     assert any("eu-health-data-api" in p for p in profiles), profiles
 
