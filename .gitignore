@@ -1,0 +1,26 @@
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+build/
+dist/
+
+# project
+.cache/
+ig/
+*.log
+config/clients.local.json
+config/server_keys/
+.env
+.env.*
+!.env.example
+
+# os
+.DS_Store
+Thumbs.db
