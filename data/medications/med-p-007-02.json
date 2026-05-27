@@ -1,0 +1,14 @@
+{
+  "code": {
+    "coding": [
+      {
+        "code": "00378-0014",
+        "display": "Albuterol 0.83 MG/ML Inhalation Solution",
+        "system": "http://hl7.org/fhir/sid/ndc"
+      }
+    ],
+    "text": "Albuterol 0.83 MG/ML Inhalation Solution"
+  },
+  "id": "med-p-007-02",
+  "resourceType": "Medication"
+}

@@ -1,0 +1,18 @@
+{
+  "authoredOn": "2024-02-10",
+  "dosageInstruction": [
+    {
+      "text": "1 tablet daily by mouth"
+    }
+  ],
+  "id": "medrq-p-008-04",
+  "intent": "order",
+  "medicationReference": {
+    "reference": "Medication/med-p-008-04"
+  },
+  "resourceType": "MedicationRequest",
+  "status": "active",
+  "subject": {
+    "reference": "Patient/p-008"
+  }
+}

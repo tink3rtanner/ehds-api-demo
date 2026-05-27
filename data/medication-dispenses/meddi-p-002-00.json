@@ -1,0 +1,16 @@
+{
+  "id": "meddi-p-002-00",
+  "medicationReference": {
+    "reference": "Medication/med-p-002-00"
+  },
+  "quantity": {
+    "unit": "tablet",
+    "value": 30
+  },
+  "resourceType": "MedicationDispense",
+  "status": "completed",
+  "subject": {
+    "reference": "Patient/p-002"
+  },
+  "whenHandedOver": "2024-02-12"
+}

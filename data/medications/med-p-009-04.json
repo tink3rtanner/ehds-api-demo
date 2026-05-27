@@ -1,0 +1,14 @@
+{
+  "code": {
+    "coding": [
+      {
+        "code": "00071-0156",
+        "display": "Amlodipine 5 MG Oral Tablet",
+        "system": "http://hl7.org/fhir/sid/ndc"
+      }
+    ],
+    "text": "Amlodipine 5 MG Oral Tablet"
+  },
+  "id": "med-p-009-04",
+  "resourceType": "Medication"
+}

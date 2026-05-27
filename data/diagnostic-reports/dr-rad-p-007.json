@@ -1,0 +1,41 @@
+{
+  "category": [
+    {
+      "coding": [
+        {
+          "code": "RAD",
+          "display": "Radiology",
+          "system": "http://terminology.hl7.org/CodeSystem/v2-0074"
+        }
+      ]
+    }
+  ],
+  "code": {
+    "coding": [
+      {
+        "code": "30746-2",
+        "display": "Chest X-ray report",
+        "system": "http://loinc.org"
+      }
+    ]
+  },
+  "conclusion": "Normal chest radiograph.",
+  "effectiveDateTime": "2024-04-11",
+  "id": "dr-rad-p-007",
+  "imagingStudy": [
+    {
+      "reference": "ImagingStudy/img-p-007"
+    }
+  ],
+  "issued": "2024-04-11T15:00:00+02:00",
+  "performer": [
+    {
+      "reference": "Practitioner/pract-007"
+    }
+  ],
+  "resourceType": "DiagnosticReport",
+  "status": "final",
+  "subject": {
+    "reference": "Patient/p-007"
+  }
+}

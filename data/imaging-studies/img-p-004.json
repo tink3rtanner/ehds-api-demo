@@ -1,0 +1,34 @@
+{
+  "id": "img-p-004",
+  "modality": [
+    {
+      "code": "CR",
+      "display": "Computed Radiography",
+      "system": "http://dicom.nema.org/resources/ontology/DCM"
+    }
+  ],
+  "numberOfInstances": 2,
+  "numberOfSeries": 1,
+  "resourceType": "ImagingStudy",
+  "series": [
+    {
+      "bodySite": {
+        "code": "51185008",
+        "display": "Thoracic structure",
+        "system": "http://snomed.info/sct"
+      },
+      "modality": {
+        "code": "CR",
+        "system": "http://dicom.nema.org/resources/ontology/DCM"
+      },
+      "number": 1,
+      "numberOfInstances": 2,
+      "uid": "1.2.840.113619.2.55.3.604688119.971.1392812862.p-004"
+    }
+  ],
+  "started": "2024-04-11T14:30:00+02:00",
+  "status": "available",
+  "subject": {
+    "reference": "Patient/p-004"
+  }
+}

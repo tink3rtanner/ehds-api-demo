@@ -1,0 +1,55 @@
+# docker-compose stack for ehds-api.
+# usage:
+#   docker compose -f deploy/docker-compose.yml up -d --build
+# expects an .env file alongside (see ../.env.example).
+
+services:
+  ehds-api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: ehds-api
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      ENV: prod
+      EHDS_BASE_URL: ${EHDS_BASE_URL}
+      EHDS_ISSUER: ${EHDS_ISSUER}
+      EHDS_DATA_DIR: /data
+      EHDS_CLIENT_REGISTRY: /etc/ehds-api/clients.json
+      EHDS_JWKS_PATH: /etc/ehds-api/keys
+      EHDS_VALIDATOR_JAR: /opt/validator_cli.jar
+      PORT: "8000"
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ../data:/data:rw
+      - ./clients.json:/etc/ehds-api/clients.json:ro
+      - ehds-keys:/etc/ehds-api/keys:rw
+      - ../.cache/validator_cli.jar:/opt/validator_cli.jar:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O- http://127.0.0.1:8000/healthz | grep -q ok"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  caddy:
+    image: caddy:2
+    container_name: ehds-caddy
+    restart: unless-stopped
+    depends_on:
+      - ehds-api
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  ehds-keys:
+  caddy-data:
+  caddy-config:

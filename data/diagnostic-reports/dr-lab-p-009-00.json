@@ -1,0 +1,57 @@
+{
+  "category": [
+    {
+      "coding": [
+        {
+          "code": "LAB",
+          "display": "Laboratory",
+          "system": "http://terminology.hl7.org/CodeSystem/v2-0074"
+        }
+      ]
+    }
+  ],
+  "code": {
+    "coding": [
+      {
+        "code": "11502-2",
+        "display": "Laboratory report",
+        "system": "http://loinc.org"
+      }
+    ]
+  },
+  "effectiveDateTime": "2024-03-01",
+  "id": "dr-lab-p-009-00",
+  "issued": "2024-03-01T12:00:00+01:00",
+  "performer": [
+    {
+      "reference": "Practitioner/pract-009"
+    }
+  ],
+  "resourceType": "DiagnosticReport",
+  "result": [
+    {
+      "reference": "Observation/obs-p-009-00"
+    },
+    {
+      "reference": "Observation/obs-p-009-02"
+    },
+    {
+      "reference": "Observation/obs-p-009-04"
+    },
+    {
+      "reference": "Observation/obs-p-009-06"
+    },
+    {
+      "reference": "Observation/obs-p-009-08"
+    }
+  ],
+  "specimen": [
+    {
+      "reference": "Specimen/spec-p-009-00"
+    }
+  ],
+  "status": "final",
+  "subject": {
+    "reference": "Patient/p-009"
+  }
+}

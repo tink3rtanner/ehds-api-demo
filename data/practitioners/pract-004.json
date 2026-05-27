@@ -1,0 +1,27 @@
+{
+  "id": "pract-004",
+  "identifier": [
+    {
+      "system": "urn:oid:1.2.3.4.5",
+      "value": "DOC-00004"
+    }
+  ],
+  "name": [
+    {
+      "family": "Petrov",
+      "given": [
+        "Ivan"
+      ],
+      "prefix": [
+        "Dr."
+      ]
+    }
+  ],
+  "resourceType": "Practitioner",
+  "telecom": [
+    {
+      "system": "phone",
+      "value": "+49 30 99999"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "address": [
+    {
+      "city": "Berlin",
+      "country": "DE"
+    }
+  ],
+  "id": "org-003",
+  "identifier": [
+    {
+      "system": "urn:oid:1.2.3.4.5",
+      "value": "ORG-0003"
+    }
+  ],
+  "name": "EHDS Demo University Hospital",
+  "resourceType": "Organization",
+  "telecom": [
+    {
+      "system": "phone",
+      "value": "+49 30 11111"
+    }
+  ]
+}

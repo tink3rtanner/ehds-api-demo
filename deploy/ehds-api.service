@@ -1,0 +1,36 @@
+[Unit]
+Description=EHDS Demo FHIR Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=deploy
+Group=deploy
+WorkingDirectory=/srv/ehds-api
+EnvironmentFile=/etc/ehds-api/env
+ExecStart=/srv/ehds-api/.venv/bin/gunicorn \
+    -k uvicorn.workers.UvicornWorker \
+    --workers 2 \
+    --bind 127.0.0.1:8000 \
+    --access-logfile - \
+    --error-logfile - \
+    app.main:app
+Restart=on-failure
+RestartSec=5s
+
+# hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+ReadWritePaths=/srv/ehds-api/data /var/log/ehds-api
+
+[Install]
+WantedBy=multi-user.target

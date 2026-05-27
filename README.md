@@ -13,12 +13,24 @@ resources.
 
 ```bash
 ./download_igs.sh        # clones HL7 EU IG repos into ig/
-./fetch_validator.sh     # caches the HL7 java validator jar
-python -m venv .venv && . .venv/bin/activate
-pip install -e .[dev]
+./fetch_validator.sh     # caches the HL7 java validator jar (~70 MB)
+python3.11 -m venv .venv && . .venv/bin/activate
+pip install -e ".[dev]"
 python -m scripts.seed   # writes 10 patients + dependent resources into data/
-./run.sh                 # dev server on :8000
-pytest -v                # full test suite (requires java for profile validation)
+./run.sh                 # dev server on :8000  (PORT=8088 ./run.sh for a different port)
+pytest -q                # full test suite (~30s; profile-validation layer skipped if no JRE)
+```
+
+### Try it
+
+```bash
+# register a client and mint a keypair locally
+python -m app.tools.register_client --client-id me --generate --scope "system/*.read"
+
+# mint a JWT client assertion and exchange for a bearer
+# (or use the e2e snippet in tests/conftest.py as a reference)
+curl http://localhost:8000/metadata | jq .resourceType                # CapabilityStatement
+curl http://localhost:8000/.well-known/smart-configuration | jq .     # SMART config
 ```
 
 ## What it implements

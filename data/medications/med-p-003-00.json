@@ -1,0 +1,14 @@
+{
+  "code": {
+    "coding": [
+      {
+        "code": "00069-1085",
+        "display": "Lisinopril 10 MG Oral Tablet",
+        "system": "http://hl7.org/fhir/sid/ndc"
+      }
+    ],
+    "text": "Lisinopril 10 MG Oral Tablet"
+  },
+  "id": "med-p-003-00",
+  "resourceType": "Medication"
+}

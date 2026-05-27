@@ -1,0 +1,14 @@
+{
+  "code": {
+    "coding": [
+      {
+        "code": "00074-3368",
+        "display": "Atorvastatin 20 MG Oral Tablet",
+        "system": "http://hl7.org/fhir/sid/ndc"
+      }
+    ],
+    "text": "Atorvastatin 20 MG Oral Tablet"
+  },
+  "id": "med-p-009-03",
+  "resourceType": "Medication"
+}

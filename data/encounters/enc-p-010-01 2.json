@@ -1,0 +1,22 @@
+{
+  "class": {
+    "code": "AMB",
+    "display": "ambulatory",
+    "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode"
+  },
+  "id": "enc-p-010-01",
+  "period": {
+    "end": "2024-04-12T16:00:00+02:00",
+    "start": "2024-04-10T09:00:00+02:00"
+  },
+  "reasonCode": [
+    {
+      "text": "Routine check-up"
+    }
+  ],
+  "resourceType": "Encounter",
+  "status": "finished",
+  "subject": {
+    "reference": "Patient/p-010"
+  }
+}
