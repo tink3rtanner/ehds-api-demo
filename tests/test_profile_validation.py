@@ -56,7 +56,7 @@ async def test_compiled_documents_pass_r4_validation(client, auth_headers, pid, 
     ok, issues = _run_validator(bundle)
     errs = [i for i in issues if i.get("severity") in ("error", "fatal")]
     assert ok, f"validation errors for {pid}/{category}:\n" + "\n".join(
-        f"  {i.get('severity')}: {i.get('diagnostics')}" for i in errs[:10]
+        f"  {i.get('severity')}: {_issue_text(i)}" for i in errs[:10]
     )
 
 
@@ -67,4 +67,10 @@ async def test_patient_resources_pass_r4_validation(client, auth_headers, pid):
     assert r.status_code == 200
     ok, issues = _run_validator(r.json())
     errs = [i for i in issues if i.get("severity") in ("error", "fatal")]
-    assert ok, f"errors for {pid}: " + "; ".join(i.get("diagnostics", "") for i in errs[:3])
+    assert ok, f"errors for {pid}: " + "; ".join(_issue_text(i) for i in errs[:3])
+
+
+def _issue_text(issue: dict) -> str:
+    """recent validator builds put the message under details.text; older
+    ones use diagnostics. read whichever is populated."""
+    return (issue.get("details") or {}).get("text") or issue.get("diagnostics") or "(no text)"

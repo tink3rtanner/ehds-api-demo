@@ -14,8 +14,8 @@ import uuid
 from pathlib import Path
 
 import jwt as _jwt
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import FileResponse, JSONResponse, Response
 
 from app.auth.jwks import server_kid, server_private_key
 from app.config import settings
@@ -88,12 +88,17 @@ async def api_patient_detail(pid: str) -> JSONResponse:
     p = store.read("Patient", pid)
     if p is None:
         raise HTTPException(status_code=404)
-    # bucket all linked resources by type
+    # bucket linked resources by type. DocumentReference and Composition are
+    # excluded — those are surfaced separately via the four priority-category
+    # compiled-document cards, and duplicating them in the resource list was
+    # confusing.
+    hidden = {"Patient", "DocumentReference", "Composition"}
     buckets: dict[str, list] = {}
     for r in store.all_referenced_resources_for_patient(pid):
-        if r["resourceType"] == "Patient":
+        rt = r["resourceType"]
+        if rt in hidden:
             continue
-        buckets.setdefault(r["resourceType"], []).append(r)
+        buckets.setdefault(rt, []).append(r)
     return JSONResponse({"patient": p, "buckets": buckets,
                          "documents": [{"category": c, "binary": f"doc-{pid}-{c}"} for c in CATEGORIES]})
 
@@ -238,6 +243,55 @@ async def api_build_info() -> JSONResponse:
         "rate_limit_per_min": settings.rate_limit_per_min,
         "body_max_bytes": settings.body_max_bytes,
     })
+
+
+@router.get("/api/proxy")
+async def api_proxy(path: str, request: Request) -> Response:
+    """proxy a GET against the live FHIR REST surface so a browser click
+    can show the actual JSON without the user having to mint a bearer.
+
+    used by the URL chips in the UI: chip displays e.g. 'GET /Patient/p-001',
+    click goes to /ui/api/proxy?path=/Patient/p-001 which fetches the FHIR
+    endpoint with an internally-minted dev token and streams the response back.
+    pretty-prints JSON for browser readability.
+    """
+    _gate()
+    if not path.startswith("/"):
+        raise HTTPException(status_code=400, detail="path must start with /")
+    # only proxy our own server; never an external URL
+    if path.startswith("//") or "://" in path:
+        raise HTTPException(status_code=400, detail="absolute URLs are not proxied")
+    # mint an internal dev bearer
+    now = int(time.time())
+    bearer = _jwt.encode(
+        {
+            "iss": settings.issuer,
+            "sub": "ui-proxy",
+            "aud": settings.base_url,
+            "iat": now,
+            "exp": now + 120,
+            "jti": str(uuid.uuid4()),
+            "scope": "system/*.read",
+            "client_id": "ui-proxy",
+        },
+        server_private_key(),
+        algorithm="RS256",
+        headers={"kid": server_kid()},
+    )
+    # dispatch in-process via the ASGI app — no socket hop required (httpx 0.28+)
+    import httpx
+    transport = httpx.ASGITransport(app=request.app)
+    base_url = str(request.base_url).rstrip("/")
+    async with httpx.AsyncClient(transport=transport, base_url=base_url, timeout=10.0) as client:
+        r = await client.get(path, headers={"Authorization": f"Bearer {bearer}", "Accept": "application/fhir+json"})
+    ctype = r.headers.get("content-type", "application/json")
+    if "json" in ctype:
+        try:
+            pretty = json.dumps(r.json(), indent=2)
+            return Response(content=pretty, media_type="application/json", status_code=r.status_code)
+        except Exception:
+            pass
+    return Response(content=r.content, media_type=ctype, status_code=r.status_code)
 
 
 @router.get("/api/endpoints")

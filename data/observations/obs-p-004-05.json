@@ -13,11 +13,11 @@
     "coding": [
       {
         "code": "2339-0",
-        "display": "Glucose mass/volume in Blood",
+        "display": "Glucose [Mass/volume] in Blood",
         "system": "http://loinc.org"
       }
     ],
-    "text": "Glucose mass/volume in Blood"
+    "text": "Glucose [Mass/volume] in Blood"
   },
   "effectiveDateTime": "2024-03-01",
   "id": "obs-p-004-05",

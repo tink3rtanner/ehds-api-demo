@@ -13,11 +13,11 @@
     "coding": [
       {
         "code": "2160-0",
-        "display": "Creatinine [Mass/volume] in Serum",
+        "display": "Creatinine [Mass/volume] in Serum or Plasma",
         "system": "http://loinc.org"
       }
     ],
-    "text": "Creatinine [Mass/volume] in Serum"
+    "text": "Creatinine [Mass/volume] in Serum or Plasma"
   },
   "effectiveDateTime": "2024-03-01",
   "id": "obs-p-009-09",

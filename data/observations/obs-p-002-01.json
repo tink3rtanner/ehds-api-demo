@@ -12,12 +12,12 @@
   "code": {
     "coding": [
       {
-        "code": "8462-4",
-        "display": "Diastolic blood pressure",
+        "code": "8867-4",
+        "display": "Heart rate",
         "system": "http://loinc.org"
       }
     ],
-    "text": "Diastolic blood pressure"
+    "text": "Heart rate"
   },
   "effectiveDateTime": "2024-03-01",
   "id": "obs-p-002-01",
@@ -27,9 +27,9 @@
     "reference": "Patient/p-002"
   },
   "valueQuantity": {
-    "code": "mm[Hg]",
+    "code": "/min",
     "system": "http://unitsofmeasure.org",
-    "unit": "mm[Hg]",
-    "value": 81
+    "unit": "/min",
+    "value": 73
   }
 }

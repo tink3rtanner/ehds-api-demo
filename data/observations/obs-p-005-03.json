@@ -12,12 +12,12 @@
   "code": {
     "coding": [
       {
-        "code": "8310-5",
-        "display": "Body temperature",
+        "code": "9279-1",
+        "display": "Respiratory rate",
         "system": "http://loinc.org"
       }
     ],
-    "text": "Body temperature"
+    "text": "Respiratory rate"
   },
   "effectiveDateTime": "2024-03-01",
   "id": "obs-p-005-03",
@@ -27,9 +27,9 @@
     "reference": "Patient/p-005"
   },
   "valueQuantity": {
-    "code": "Cel",
+    "code": "/min",
     "system": "http://unitsofmeasure.org",
-    "unit": "Cel",
-    "value": 37
+    "unit": "/min",
+    "value": 19
   }
 }

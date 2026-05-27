@@ -176,18 +176,22 @@ def _condition(p: P, idx: int) -> dict:
 
 
 def _medication(p: P, idx: int) -> dict:
+    # RxNorm (RXCUI) codes — well-known, publicly resolvable, no licence
+    # restriction. coding[].display strings MUST match the canonical RxNorm
+    # text exactly (the HL7 validator cross-checks against tx.fhir.org). The
+    # human-friendly label lives in code.text.
     meds = [
-        ("00069-1085", "Lisinopril 10 MG Oral Tablet"),
-        ("00006-0277", "Metformin 500 MG Oral Tablet"),
-        ("00378-0014", "Albuterol 0.83 MG/ML Inhalation Solution"),
-        ("00074-3368", "Atorvastatin 20 MG Oral Tablet"),
-        ("00071-0156", "Amlodipine 5 MG Oral Tablet"),
+        ("314076", "Lisinopril 10 MG Oral Tablet",                   "Lisinopril 10 mg tablet"),
+        ("860974", "metformin hydrochloride 500 MG",                 "Metformin HCl 500 mg"),
+        ("630208", "Albuterol 0.83 MG/ML Inhalation Solution",       "Albuterol 0.83 mg/mL inhalation solution"),
+        ("617312", "atorvastatin 10 MG Oral Tablet",                 "Atorvastatin 10 mg tablet"),
+        ("197361", "Amlodipine 5 MG Oral Tablet",                    "Amlodipine 5 mg tablet"),
     ]
-    code, disp = meds[idx % 5]
+    code, disp, text = meds[idx % 5]
     return {
         "resourceType": "Medication",
         "id": f"med-{p.pid}-{idx:02d}",
-        "code": {"coding": [{"system": "http://hl7.org/fhir/sid/ndc", "code": code, "display": disp}], "text": disp},
+        "code": {"coding": [{"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": code, "display": disp}], "text": text},
     }
 
 
@@ -229,11 +233,13 @@ def _med_dispense(p: P, idx: int, med_ref: str) -> dict:
 
 
 def _immunization(p: P, idx: int) -> dict:
+    # CVX display strings must match CDC IIS canonical text or the HL7
+    # validator emits Wrong-Display-Name errors against the terminology server.
     vaxes = [
-        ("207", "COVID-19, mRNA, LNP-S, PF, 100 mcg/0.5mL"),
-        ("140", "Influenza, seasonal, injectable"),
+        ("207", "COVID-19, mRNA, LNP-S, PF, 100 mcg/0.5mL dose or 50 mcg/0.25mL dose"),
+        ("140", "Influenza, split virus, trivalent, PF"),
         ("115", "Tdap"),
-        ("83",  "Hepatitis A vaccine"),
+        ("83",  "Hep A, ped/adol, 2 dose"),
     ]
     code, disp = vaxes[idx % 4]
     return {
@@ -263,21 +269,56 @@ def _procedure(p: P, idx: int) -> dict:
     }
 
 
+def _bp_panel(p: P, idx: int) -> dict:
+    """proper R4 BP panel (LOINC 85354-9) with systolic+diastolic components.
+
+    Using standalone 8480-6 triggers the http://hl7.org/fhir/StructureDefinition/bp
+    profile, which requires the panel layout with both components. So we emit the
+    panel directly instead.
+    """
+    return {
+        "resourceType": "Observation",
+        "id": f"obs-{p.pid}-{idx:02d}",
+        "status": "final",
+        "category": [{"coding": [{"system": "http://terminology.hl7.org/CodeSystem/observation-category", "code": "vital-signs"}]}],
+        "code": {"coding": [{"system": "http://loinc.org", "code": "85354-9", "display": "Blood pressure panel with all children optional"}], "text": "Blood pressure"},
+        "subject": {"reference": f"Patient/{p.pid}"},
+        "effectiveDateTime": "2024-03-01",
+        "component": [
+            {
+                "code": {"coding": [{"system": "http://loinc.org", "code": "8480-6", "display": "Systolic blood pressure"}]},
+                "valueQuantity": {"value": 120 + idx, "unit": "mm[Hg]", "system": "http://unitsofmeasure.org", "code": "mm[Hg]"},
+            },
+            {
+                "code": {"coding": [{"system": "http://loinc.org", "code": "8462-4", "display": "Diastolic blood pressure"}]},
+                "valueQuantity": {"value": 80 + idx, "unit": "mm[Hg]", "system": "http://unitsofmeasure.org", "code": "mm[Hg]"},
+            },
+        ],
+    }
+
+
 def _observation(p: P, idx: int) -> dict:
+    # LOINC display strings must match the official en-US text (validator
+    # cross-checks the LOINC terminology server). One observation per patient
+    # (idx == 0) is rendered as a proper BP panel via _bp_panel().
+    if idx == 0:
+        return _bp_panel(p, idx)
+
     obs_specs = [
-        # (loinc, display, unit, value, category)
-        ("8480-6",  "Systolic blood pressure",          "mm[Hg]", 120 + idx, "vital-signs"),
-        ("8462-4",  "Diastolic blood pressure",         "mm[Hg]", 80 + idx,  "vital-signs"),
-        ("8867-4",  "Heart rate",                       "/min",   72 + idx,  "vital-signs"),
-        ("8310-5",  "Body temperature",                 "Cel",    36 + (idx % 2), "vital-signs"),
-        ("9279-1",  "Respiratory rate",                 "/min",   16 + (idx % 4), "vital-signs"),
-        ("2339-0",  "Glucose mass/volume in Blood",     "mg/dL",  90 + idx * 2, "laboratory"),
-        ("2093-3",  "Cholesterol [Mass/volume] Serum",  "mg/dL",  180 + idx,    "laboratory"),
-        ("4548-4",  "Hemoglobin A1c/Hemoglobin.total",  "%",      5.6 + (idx % 5) * 0.1, "laboratory"),
-        ("718-7",   "Hemoglobin [Mass/volume] in Blood","g/dL",   13.0 + (idx % 3) * 0.1, "laboratory"),
-        ("2160-0",  "Creatinine [Mass/volume] in Serum","mg/dL",  0.9 + (idx % 3) * 0.1, "laboratory"),
+        # (loinc, display, unit, value, category) — 9 standalone observations
+        ("8867-4",  "Heart rate",                                      "/min",   72 + idx, "vital-signs"),
+        ("8310-5",  "Body temperature",                                "Cel",    36 + (idx % 2), "vital-signs"),
+        ("9279-1",  "Respiratory rate",                                "/min",   16 + (idx % 4), "vital-signs"),
+        # 2708-6 is the "magic" LOINC the oxygensat base profile requires.
+        # 59408-5 (pulse-oximetry variant) trips OxygenSatCode-1 invariant.
+        ("2708-6",  "Oxygen saturation in Arterial blood",            "%",      96 + (idx % 4), "vital-signs"),
+        ("2339-0",  "Glucose [Mass/volume] in Blood",                  "mg/dL",  90 + idx * 2, "laboratory"),
+        ("2093-3",  "Cholesterol [Mass/volume] in Serum or Plasma",    "mg/dL",  180 + idx,    "laboratory"),
+        ("4548-4",  "Hemoglobin A1c/Hemoglobin.total in Blood",        "%",      5.6 + (idx % 5) * 0.1, "laboratory"),
+        ("718-7",   "Hemoglobin [Mass/volume] in Blood",               "g/dL",   13.0 + (idx % 3) * 0.1, "laboratory"),
+        ("2160-0",  "Creatinine [Mass/volume] in Serum or Plasma",     "mg/dL",  0.9 + (idx % 3) * 0.1, "laboratory"),
     ]
-    code, disp, unit, val, cat = obs_specs[idx % len(obs_specs)]
+    code, disp, unit, val, cat = obs_specs[(idx - 1) % len(obs_specs)]
     return {
         "resourceType": "Observation",
         "id": f"obs-{p.pid}-{idx:02d}",
@@ -343,7 +384,7 @@ def _diag_rad(p: P, imaging_ref: str, practitioner_ref: str) -> dict:
         "id": f"dr-rad-{p.pid}",
         "status": "final",
         "category": [{"coding": [{"system": "http://terminology.hl7.org/CodeSystem/v2-0074", "code": "RAD", "display": "Radiology"}]}],
-        "code": {"coding": [{"system": "http://loinc.org", "code": "30746-2", "display": "Chest X-ray report"}]},
+        "code": {"coding": [{"system": "http://loinc.org", "code": "30746-2", "display": "Portable XR Chest Views"}], "text": "Chest X-ray report"},
         "subject": {"reference": f"Patient/{p.pid}"},
         "effectiveDateTime": "2024-04-11",
         "issued": "2024-04-11T15:00:00+02:00",

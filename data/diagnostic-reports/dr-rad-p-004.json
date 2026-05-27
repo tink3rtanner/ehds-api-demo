@@ -14,10 +14,11 @@
     "coding": [
       {
         "code": "30746-2",
-        "display": "Chest X-ray report",
+        "display": "Portable XR Chest Views",
         "system": "http://loinc.org"
       }
-    ]
+    ],
+    "text": "Chest X-ray report"
   },
   "conclusion": "Normal chest radiograph.",
   "effectiveDateTime": "2024-04-11",

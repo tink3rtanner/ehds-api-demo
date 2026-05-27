@@ -13,11 +13,11 @@
     "coding": [
       {
         "code": "4548-4",
-        "display": "Hemoglobin A1c/Hemoglobin.total",
+        "display": "Hemoglobin A1c/Hemoglobin.total in Blood",
         "system": "http://loinc.org"
       }
     ],
-    "text": "Hemoglobin A1c/Hemoglobin.total"
+    "text": "Hemoglobin A1c/Hemoglobin.total in Blood"
   },
   "effectiveDateTime": "2024-03-01",
   "id": "obs-p-002-07",

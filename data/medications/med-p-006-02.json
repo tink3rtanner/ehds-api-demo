@@ -2,12 +2,12 @@
   "code": {
     "coding": [
       {
-        "code": "00378-0014",
+        "code": "630208",
         "display": "Albuterol 0.83 MG/ML Inhalation Solution",
-        "system": "http://hl7.org/fhir/sid/ndc"
+        "system": "http://www.nlm.nih.gov/research/umls/rxnorm"
       }
     ],
-    "text": "Albuterol 0.83 MG/ML Inhalation Solution"
+    "text": "Albuterol 0.83 mg/mL inhalation solution"
   },
   "id": "med-p-006-02",
   "resourceType": "Medication"

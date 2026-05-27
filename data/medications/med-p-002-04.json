@@ -2,12 +2,12 @@
   "code": {
     "coding": [
       {
-        "code": "00071-0156",
+        "code": "197361",
         "display": "Amlodipine 5 MG Oral Tablet",
-        "system": "http://hl7.org/fhir/sid/ndc"
+        "system": "http://www.nlm.nih.gov/research/umls/rxnorm"
       }
     ],
-    "text": "Amlodipine 5 MG Oral Tablet"
+    "text": "Amlodipine 5 mg tablet"
   },
   "id": "med-p-002-04",
   "resourceType": "Medication"

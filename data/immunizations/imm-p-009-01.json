@@ -10,10 +10,10 @@
     "coding": [
       {
         "code": "140",
-        "display": "Influenza, seasonal, injectable",
+        "display": "Influenza, split virus, trivalent, PF",
         "system": "http://hl7.org/fhir/sid/cvx"
       }
     ],
-    "text": "Influenza, seasonal, injectable"
+    "text": "Influenza, split virus, trivalent, PF"
   }
 }

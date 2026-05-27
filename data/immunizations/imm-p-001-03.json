@@ -10,10 +10,10 @@
     "coding": [
       {
         "code": "83",
-        "display": "Hepatitis A vaccine",
+        "display": "Hep A, ped/adol, 2 dose",
         "system": "http://hl7.org/fhir/sid/cvx"
       }
     ],
-    "text": "Hepatitis A vaccine"
+    "text": "Hep A, ped/adol, 2 dose"
   }
 }

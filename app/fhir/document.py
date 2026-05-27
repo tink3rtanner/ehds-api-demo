@@ -22,8 +22,9 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import Any
-from uuid import uuid4
+from uuid import NAMESPACE_URL, uuid4, uuid5  # noqa: F401  (uuid4 retained for callers)
 
+from app.config import settings
 from app.fhir import store
 from app.fhir.capability import PROFILE_EU_BUNDLE
 
@@ -34,19 +35,21 @@ CATEGORY_TO_DOC_TYPE = {
     "imaging-report":    {"system": "http://loinc.org", "code": "18748-4", "display": "Diagnostic imaging study"},
 }
 
-# section default LOINC codes used when we auto-build a Composition
+# section default LOINC codes used when we auto-build a Composition.
+# display strings MUST match LOINC's canonical en-US text or the HL7 validator
+# warns (Wrong Display Name). codes verified against loinc.org 2024-09 release.
 SECTION_CODES = {
     "AllergyIntolerance": ("48765-2", "Allergies and adverse reactions Document"),
     "Condition":          ("11450-4", "Problem list - Reported"),
     "MedicationStatement":("10160-0", "History of Medication use Narrative"),
     "MedicationRequest":  ("57828-6", "Prescription list"),
     "MedicationDispense": ("60590-7", "Medication dispense list"),
-    "Immunization":       ("11369-6", "History of Immunization Narrative"),
+    "Immunization":       ("11369-6", "History of Immunization note"),
     "Procedure":          ("47519-4", "History of Procedures Document"),
-    "Observation":        ("30954-2", "Relevant diagnostic tests/laboratory data Narrative"),
+    "Observation":        ("30954-2", "Relevant diagnostic tests/laboratory data note"),
     "DiagnosticReport":   ("11502-2", "Laboratory report"),
     "ImagingStudy":       ("18748-4", "Diagnostic imaging study"),
-    "Encounter":          ("46240-8", "History of Hospitalizations + History of Outpatient visits Narrative"),
+    "Encounter":          ("46240-8", "History of Hospitalizations+Outpatient visits Narrative"),
 }
 
 # per-category preferred section types in order
@@ -218,16 +221,31 @@ def compile_document(patient_id: str, category: str) -> dict[str, Any]:
     # always include the patient
     included[_ref(patient)] = patient
 
-    # bundle assembly: Composition first, then patient, then everything else
+    # bundle assembly: Composition first, then patient, then everything else.
+    # R4 requires Bundle.entry.fullUrl to be absolute (or urn:uuid:). All
+    # entries here use absolute URLs from the server base so internal
+    # references like "Patient/p-001" resolve via the R4 rule "fullUrl ends
+    # with /Type/id matches a Type/id relative reference". The Composition is
+    # not REST-persisted but we still mint a stable absolute fullUrl for it
+    # (compiled-on-demand id) so its own internal references can resolve.
+    base = settings.base_url.rstrip("/")
+
+    def _full(res: dict) -> str:
+        return f"{base}/{res['resourceType']}/{res['id']}"
+
     bundle_entries: list[dict[str, Any]] = []
-    bundle_entries.append({"fullUrl": f"urn:uuid:{uuid4()}", "resource": composition})
-    bundle_entries.append({"fullUrl": f"Patient/{patient_id}", "resource": patient})
+    bundle_entries.append({"fullUrl": _full(composition), "resource": composition})
+    bundle_entries.append({"fullUrl": _full(patient), "resource": patient})
     seen_refs = {_ref(composition), _ref(patient)}
     for ref, r in included.items():
         if ref in seen_refs:
             continue
         seen_refs.add(ref)
-        bundle_entries.append({"fullUrl": ref, "resource": r})
+        bundle_entries.append({"fullUrl": _full(r), "resource": r})
+
+    # bundle identifier: stable per (patient, category) so identical inputs
+    # produce identical bundles (matches the comment at the top of this file).
+    bundle_uuid = uuid5(NAMESPACE_URL, f"{base}/doc/{patient_id}/{category}")
 
     return {
         "resourceType": "Bundle",
@@ -237,7 +255,7 @@ def compile_document(patient_id: str, category: str) -> dict[str, Any]:
         "timestamp": composition["date"],
         "identifier": {
             "system": "urn:ietf:rfc:3986",
-            "value": f"urn:uuid:{uuid4()}",
+            "value": f"urn:uuid:{bundle_uuid}",
         },
         "entry": bundle_entries,
     }

@@ -10,10 +10,10 @@
     "coding": [
       {
         "code": "207",
-        "display": "COVID-19, mRNA, LNP-S, PF, 100 mcg/0.5mL",
+        "display": "COVID-19, mRNA, LNP-S, PF, 100 mcg/0.5mL dose or 50 mcg/0.25mL dose",
         "system": "http://hl7.org/fhir/sid/cvx"
       }
     ],
-    "text": "COVID-19, mRNA, LNP-S, PF, 100 mcg/0.5mL"
+    "text": "COVID-19, mRNA, LNP-S, PF, 100 mcg/0.5mL dose or 50 mcg/0.25mL dose"
   }
 }

@@ -2,12 +2,12 @@
   "code": {
     "coding": [
       {
-        "code": "00006-0277",
-        "display": "Metformin 500 MG Oral Tablet",
-        "system": "http://hl7.org/fhir/sid/ndc"
+        "code": "860974",
+        "display": "metformin hydrochloride 500 MG",
+        "system": "http://www.nlm.nih.gov/research/umls/rxnorm"
       }
     ],
-    "text": "Metformin 500 MG Oral Tablet"
+    "text": "Metformin HCl 500 mg"
   },
   "id": "med-p-010-01",
   "resourceType": "Medication"

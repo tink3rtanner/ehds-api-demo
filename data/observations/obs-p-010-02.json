@@ -12,12 +12,12 @@
   "code": {
     "coding": [
       {
-        "code": "8867-4",
-        "display": "Heart rate",
+        "code": "8310-5",
+        "display": "Body temperature",
         "system": "http://loinc.org"
       }
     ],
-    "text": "Heart rate"
+    "text": "Body temperature"
   },
   "effectiveDateTime": "2024-03-01",
   "id": "obs-p-010-02",
@@ -27,9 +27,9 @@
     "reference": "Patient/p-010"
   },
   "valueQuantity": {
-    "code": "/min",
+    "code": "Cel",
     "system": "http://unitsofmeasure.org",
-    "unit": "/min",
-    "value": 74
+    "unit": "Cel",
+    "value": 36
   }
 }
