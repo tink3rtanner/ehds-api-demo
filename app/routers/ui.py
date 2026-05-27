@@ -109,6 +109,24 @@ async def api_patient_doc(pid: str, category: str) -> JSONResponse:
     return JSONResponse(bundle)
 
 
+@router.get("/api/validate/{pid}/{category}")
+async def api_validate(pid: str, category: str) -> JSONResponse:
+    """fast structural validation via fhir.resources pydantic. used by the
+    document viewer to render an inline OK/issues badge."""
+    _gate()
+    from app.fhir.validate import structural_validate
+    if category not in CATEGORIES:
+        raise HTTPException(status_code=404)
+    if store.read("Patient", pid) is None:
+        raise HTTPException(status_code=404)
+    try:
+        bundle = doc_compile.compile_document(pid, category)
+    except doc_compile.MissingResources as e:
+        return JSONResponse({"ok": False, "stage": "compile", "issues": [str(e)]})
+    ok, problems = structural_validate(bundle)
+    return JSONResponse({"ok": ok, "stage": "pydantic", "issues": problems})
+
+
 @router.get("/api/server-info")
 async def api_server_info() -> JSONResponse:
     _gate()

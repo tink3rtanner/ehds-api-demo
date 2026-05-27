@@ -495,7 +495,11 @@ section.section-title {
     font-size: 11px;
     font-weight: 600;
     text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
 }
+.section-block h3 .loinc-pill::after { content: '↗'; font-size: 10px; opacity: 0.7; }
 .section-block h3 .loinc-pill:hover { text-decoration: underline; }
 
 .section-block .entries .entry-row {

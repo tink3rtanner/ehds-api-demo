@@ -479,9 +479,24 @@ async function renderDocument(pid, category) {
             return acc;
         }, {});
         const entryBar = el('div', { class: 'entry-bar' });
+        const validationChip = el('span', { class: 'chip' }, '… validating');
+        entryBar.appendChild(validationChip);
         for (const [t, n] of Object.entries(types).sort((a, b) => b[1] - a[1])) {
             entryBar.appendChild(el('span', { class: 'chip' }, el('span', { class: 'n' }, n), ' ', t));
         }
+        // fire-and-forget validation, update chip when done
+        api(`/ui/api/validate/${pid}/${category}`).then((res) => {
+            validationChip.innerHTML = '';
+            const ok = res.ok;
+            validationChip.style.background = ok ? 'var(--accent-soft)' : 'var(--danger-soft)';
+            validationChip.style.color = ok ? 'var(--accent)' : 'var(--danger)';
+            validationChip.style.borderColor = ok ? 'var(--accent-soft)' : '#fbcaca';
+            validationChip.append(ok ? '✓ structurally valid' : '✗ ' + (res.issues?.[0] || 'validation failed').slice(0, 70));
+            validationChip.title = ok ? 'fhir.resources pydantic R4 validation passed'
+                                      : (res.issues || []).join('\n');
+        }).catch(() => {
+            validationChip.textContent = 'validation skipped';
+        });
 
         const sectionsBlock = el('div');
         if (composition?.section) {
