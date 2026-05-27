@@ -687,6 +687,8 @@ async function renderEndpointsPage() {
             ),
         );
 
+        const matchCard = buildMatchPlayground(token.access_token);
+
         const list = el('div', {});
         for (const ep of endpoints) {
             const fullCurl = ep.curl.replace(/\$TOKEN/g, token.access_token);
@@ -705,10 +707,136 @@ async function renderEndpointsPage() {
         }
 
         app.innerHTML = '';
-        app.append(head, tokenCard, list);
+        app.append(head, tokenCard, matchCard, list);
     } catch (e) {
         renderError(e.message);
     }
+}
+
+function buildMatchPlayground(bearer) {
+    const card = el('section', { class: 'token-card' });
+    card.appendChild(el('div', { class: 'head' },
+        el('h2', {}, 'Patient $match playground (PDQm)'),
+        el('div', { class: 'btn-group' },
+            el('button', { class: 'btn-ghost', onclick: () => prefillExample() }, 'Prefill example'),
+            el('button', { class: 'btn-ghost', onclick: () => runMatch() }, 'Run $match →'),
+        ),
+    ));
+    card.appendChild(el('div', { class: 'meta' },
+        'POST /Patient/$match with a Parameters resource. Weighted scoring over the 10-patient panel; returns match-grade.',
+    ));
+
+    const formGrid = el('div', {
+        style: 'display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:12px;',
+    });
+    const inputs = {};
+    for (const f of [
+        ['family',     'Family name',  'Müller'],
+        ['given',      'Given name',   'Anna'],
+        ['birthdate',  'Birthdate',    '1968-03-14'],
+        ['identifier', 'Identifier',   ''],
+        ['gender',     'Gender',       'female'],
+    ]) {
+        const id = `match-${f[0]}`;
+        const input = el('input', {
+            id, placeholder: f[2] || '',
+            'data-key': f[0],
+            style: 'padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;font-size:13px;background:var(--surface);',
+        });
+        inputs[f[0]] = input;
+        formGrid.appendChild(el('div', {},
+            el('div', { class: 'field-label' }, f[1]),
+            input,
+        ));
+    }
+    card.appendChild(formGrid);
+
+    const out = el('div', { style: 'margin-top:12px;' });
+    card.appendChild(out);
+
+    function prefillExample() {
+        inputs.family.value = 'Rossi';
+        inputs.given.value = 'Giulia';
+        inputs.birthdate.value = '1981-11-02';
+        inputs.gender.value = 'female';
+    }
+
+    async function runMatch() {
+        out.innerHTML = '';
+        out.appendChild(el('div', { class: 'meta' }, 'sending POST /Patient/$match…'));
+        const resource = { resourceType: 'Patient' };
+        if (inputs.family.value || inputs.given.value) {
+            resource.name = [{
+                ...(inputs.family.value ? { family: inputs.family.value } : {}),
+                ...(inputs.given.value ? { given: [inputs.given.value] } : {}),
+            }];
+        }
+        if (inputs.birthdate.value) resource.birthDate = inputs.birthdate.value;
+        if (inputs.gender.value) resource.gender = inputs.gender.value;
+        if (inputs.identifier.value) resource.identifier = [{ value: inputs.identifier.value }];
+        const body = {
+            resourceType: 'Parameters',
+            parameter: [{ name: 'resource', resource }, { name: 'count', valueInteger: 5 }],
+        };
+        try {
+            const t0 = performance.now();
+            const r = await fetch('/Patient/$match', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/fhir+json',
+                    'Authorization': `Bearer ${bearer}`,
+                },
+                body: JSON.stringify(body),
+            });
+            const ms = Math.round(performance.now() - t0);
+            if (!r.ok) {
+                out.innerHTML = '';
+                out.appendChild(el('div', { class: 'error' }, `${r.status}: ${await r.text()}`));
+                return;
+            }
+            const bundle = await r.json();
+            renderMatchResults(out, bundle, ms, body);
+        } catch (e) {
+            out.innerHTML = '';
+            out.appendChild(el('div', { class: 'error' }, e.message));
+        }
+    }
+
+    return card;
+}
+
+function renderMatchResults(out, bundle, ms, requestBody) {
+    out.innerHTML = '';
+    out.appendChild(el('div', { class: 'meta' },
+        `${bundle.total} candidates · ${ms} ms · click a row to view the candidate JSON`,
+    ));
+    const grid = el('div', { style: 'margin-top:8px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface);' });
+    for (const e of (bundle.entry || [])) {
+        const r = e.resource;
+        const grade = e.search?.extension?.find(x => x.url.endsWith('match-grade'))?.valueCode || '—';
+        const score = e.search?.score ?? '—';
+        const gradeColor = grade === 'certain' ? 'var(--accent)'
+                        : grade === 'probable' ? 'var(--info)'
+                        : grade === 'possible' ? 'var(--warn)'
+                        : 'var(--text-faint)';
+        grid.appendChild(el('div', {
+            style: 'padding:10px 14px;border-bottom:1px solid var(--border-soft);display:grid;grid-template-columns:auto 110px 110px 1fr;gap:14px;align-items:center;cursor:pointer;',
+            onclick: () => openResourceModal('Patient', r.id),
+        },
+            el('span', { class: 'mono', style: 'font-size:12px;' }, `Patient/${r.id}`),
+            el('span', { style: `font-weight:600;color:${gradeColor};font-size:13px;` }, grade),
+            el('span', { class: 'mono', style: 'font-size:12px;' }, `score ${score}`),
+            el('span', { style: 'font-size:13px;' }, `${r.name?.[0]?.given?.[0] || ''} ${r.name?.[0]?.family || ''} · born ${r.birthDate || '—'}`),
+        ));
+    }
+    out.appendChild(grid);
+
+    const reqPretty = JSON.stringify(requestBody, null, 2);
+    const view = el('details', { style: 'margin-top:10px;' },
+        el('summary', { style: 'cursor:pointer;color:var(--text-muted);font-size:12px;' }, 'show request body'),
+        el('pre', { style: 'background:var(--code-bg);color:var(--code-text);border-radius:var(--radius-sm);padding:10px 14px;font-size:11px;margin-top:6px;overflow:auto;' }, reqPretty),
+    );
+    out.appendChild(view);
 }
 
 // ---------- router ----------
