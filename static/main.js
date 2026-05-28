@@ -2061,8 +2061,8 @@ async function renderImplementPage() {
                 supported_scopes: smart.scopes_supported,
                 allowed_algs: smart.token_endpoint_auth_signing_alg_values_supported,
                 example_patient_lookup: {
-                    note: 'patient.id is a uuid; slot labels live in Patient.identifier',
-                    by_slot_identifier_search: base + '/Patient?identifier=p-001',
+                    note: 'patient.id is a uuid; slot labels live in Patient.identifier — always qualify the identifier with system|value to avoid cross-system collisions',
+                    by_slot_identifier_search: base + '/Patient?identifier=urn:ehds-demo:slot|p-001',
                     slot_identifier_system: 'urn:ehds-demo:slot',
                     slot_values: ['p-001', 'p-002', 'p-003', 'p-004', 'p-005',
                                   'p-006', 'p-007', 'p-008', 'p-009', 'p-010'],

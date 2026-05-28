@@ -190,13 +190,21 @@ def search(rtype: str, params: dict[str, list[str]]) -> list[dict[str, Any]]:
             return []
         results = [r for r in results if _resource_refs_patient(r) == canonical]
 
-    # generic identifier (Patient + Practitioner + Organization)
+    # FHIR identifier search — `system|value` form preferred (system-qualified).
+    # bare `value` is accepted but a recipe for collisions; we still match it
+    # against any identifier with that value regardless of system.
     if (ident := take("identifier")):
-        wanted = ident.split("|")[-1]
+        if "|" in ident:
+            wanted_system, wanted_value = ident.split("|", 1)
+        else:
+            wanted_system, wanted_value = None, ident
         def has_ident(r):
             for i in r.get("identifier", []) or []:
-                if i.get("value") == wanted:
-                    return True
+                if i.get("value") != wanted_value:
+                    continue
+                if wanted_system and i.get("system") != wanted_system:
+                    continue
+                return True
             return False
         results = [r for r in results if has_ident(r)]
 

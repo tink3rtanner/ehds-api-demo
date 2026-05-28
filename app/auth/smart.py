@@ -144,28 +144,32 @@ def smart_configuration() -> JSONResponse:
         "openapi_endpoint": base + "/openapi.json",
         "documentation_url": base + "/ui/#/implement",
         # every example URL here is a real working URL — paste it in a browser
-        # (in ENV=dev) and you get JSON back. resource ids are uuids (Patient,
-        # Observation, MedicationRequest etc. — everything). The slot label
-        # `p-001` is preserved in Patient.identifier; see example_patient_lookup.
+        # (in ENV=dev) and you get JSON back. resource ids are uuids
+        # (Patient, Observation, MedicationRequest etc. — everything).
+        # The slot label `p-001` is only referenced once, by the lookup
+        # endpoint that explicitly demonstrates the slot->uuid translation.
         "example_endpoints": {
-            "lookup_patient_by_slot":    base + "/Patient?identifier=p-001",
+            "lookup_patient_by_slot":    base + "/Patient?identifier=urn:ehds-demo:slot|p-001",
             "read_patient":              base + f"/Patient/{example_pid}",
             "patient_summary_operation": base + f"/Patient/{example_pid}/$summary",
             "patient_everything":        base + f"/Patient/{example_pid}/$everything",
-            "observations_for_patient":  base + "/Observation?patient=p-001",
-            "document_search":           base + "/DocumentReference?patient=p-001",
+            "observations_for_patient":  base + f"/Observation?patient={example_pid}",
+            "document_search":           base + f"/DocumentReference?patient={example_pid}",
             "all_bundle_uuids":          base + "/spec/all-bundle-ids",
             "submit_iti105":             base + "/  (POST Bundle.type=transaction, requires system/Bundle.write)",
         },
         # patient.id is a uuid; the demo panel slot labels (p-001 etc.) are
         # preserved as Patient.identifier with system 'urn:ehds-demo:slot' so
-        # callers can resolve a slot to its uuid via PDQm identifier-search:
-        #   GET /Patient?identifier=p-001  -> Bundle with the canonical Patient
+        # callers can resolve a slot to its uuid via PDQm identifier-search.
+        # ALWAYS qualify the identifier with its system (the `system|value`
+        # form below) — searching by value alone is brittle and collides
+        # across systems.
         "example_patient_lookup": {
             "slot_identifier_system": "urn:ehds-demo:slot",
             "slot_values":            ["p-001", "p-002", "p-003", "p-004", "p-005",
                                        "p-006", "p-007", "p-008", "p-009", "p-010"],
-            "resolve_via":            base + "/Patient?identifier=p-001",
+            "resolve_via":            base + "/Patient?identifier=urn:ehds-demo:slot|p-001",
+            "form":                   "?identifier={system}|{value}",
         },
         "priority_categories": ["patient-summary", "laboratory-report", "discharge-report",
                                 "imaging-report", "prescription"],
