@@ -1,0 +1,26 @@
+{
+  "clients": [
+    {
+      "client_id": "demo-client",
+      "jwks": {
+        "keys": [
+          {
+            "alg": "RS256",
+            "e": "AQAB",
+            "key_ops": [
+              "verify"
+            ],
+            "kid": "demo-key-1",
+            "kty": "RSA",
+            "n": "37LOp5iHa5YP3x2mx_4vYtTjDhJK_N1-z3S76UGKKjJ6mS_ZZAHhWhq7AQLHQPxUFABaAXlNKxXWZCIzhjgks82y7yZZBY-1zUNbzLKyaAXYU2-nFabJLzx4P0InizkBR_270u1eeyuoXLcXRJEHS4qqfr3ggu7a0uluTJ9Z3k76KWUdSbt-AWzFbw9JHYoYIIaSLwDXpQFQDj6TL6bhywMdrPfbKuzZZdHNUEFbe8RVYGbiGftObGI9W3j6nCuvrm1bZwTDgVhQWHcI_gmg8f1nlBagTwgf9SBqhDRfNYiTRvmMnB1lL7btutzZRj4gRKEr_tMT3bp6Ywg2w-nmDw",
+            "use": "sig"
+          }
+        ]
+      },
+      "scopes": [
+        "system/*.read",
+        "system/Bundle.write"
+      ]
+    }
+  ]
+}

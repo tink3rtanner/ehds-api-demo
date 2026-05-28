@@ -245,6 +245,108 @@ async def api_build_info() -> JSONResponse:
     })
 
 
+@router.get("/api/clients")
+async def api_list_clients() -> JSONResponse:
+    """list registered clients (public JWKS only, no private material)."""
+    _gate()
+    from app.auth.jwks import load_clients
+    clients = load_clients()
+    out = []
+    for c in clients.values():
+        out.append({
+            "client_id": c.client_id,
+            "scopes": list(c.scopes),
+            "kids": [k.get("kid") for k in c.jwks.get("keys", []) if k.get("kid")],
+            "key_count": len(c.jwks.get("keys", [])),
+        })
+    return JSONResponse({"clients": sorted(out, key=lambda r: r["client_id"])})
+
+
+# scopes we'll grant via the public registration UI (no Bundle.write etc.)
+_ALLOWED_REG_SCOPES = (
+    "system/*.read",
+    "system/Patient.read",
+    "system/DocumentReference.read",
+    "system/Binary.read",
+)
+_CLIENT_ID_RE = __import__("re").compile(r"^[a-z0-9][a-z0-9\-_]{1,62}[a-z0-9]$")
+
+
+@router.post("/api/register-client")
+async def api_register_client(payload: dict) -> JSONResponse:
+    """register or update a SMART backend services client.
+
+    body shape (one of jwk / public_key_pem required):
+      {
+        "client_id": "my-app",
+        "scopes": ["system/*.read"],
+        "jwk": { ... single JWK ... }    # OR
+        "public_key_pem": "-----BEGIN PUBLIC KEY-----\\n..."
+      }
+
+    returns the registered client, including the kid the server will accept
+    in the JWT client assertion header. takes effect on the very next /token
+    call (no restart needed; load_clients reads the registry on each request).
+    """
+    _gate()
+    from app.auth.jwks import load_clients, upsert_client
+
+    cid = (payload.get("client_id") or "").strip()
+    if not _CLIENT_ID_RE.match(cid):
+        raise HTTPException(status_code=400, detail="client_id must match [a-z0-9][a-z0-9-_]{1,62}[a-z0-9]")
+    scopes = payload.get("scopes") or ["system/*.read"]
+    if not isinstance(scopes, list) or not all(isinstance(s, str) for s in scopes):
+        raise HTTPException(status_code=400, detail="scopes must be a list of strings")
+    bad = [s for s in scopes if s not in _ALLOWED_REG_SCOPES]
+    if bad:
+        raise HTTPException(status_code=400, detail=f"scopes not allowed via UI: {bad}. allowed: {list(_ALLOWED_REG_SCOPES)}")
+
+    # build a JWKS
+    if payload.get("jwk"):
+        jwk = dict(payload["jwk"])
+        if not jwk.get("kty"):
+            raise HTTPException(status_code=400, detail="jwk.kty missing")
+        jwk.setdefault("use", "sig")
+        jwk.setdefault("alg", "RS256")
+        jwk.setdefault("kid", f"{cid}-key-1")
+        jwks = {"keys": [jwk]}
+    elif payload.get("public_key_pem"):
+        try:
+            from jwt.algorithms import RSAAlgorithm
+            from cryptography.hazmat.primitives import serialization
+            pub = serialization.load_pem_public_key(payload["public_key_pem"].encode())
+            jwk = json.loads(RSAAlgorithm.to_jwk(pub))
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"bad PEM: {e}")
+        jwk["kid"] = f"{cid}-key-1"
+        jwk["use"] = "sig"
+        jwk["alg"] = "RS256"
+        jwks = {"keys": [jwk]}
+    else:
+        raise HTTPException(status_code=400, detail="provide either jwk or public_key_pem")
+
+    try:
+        upsert_client(cid, jwks, scopes)
+    except (OSError, PermissionError) as e:
+        raise HTTPException(status_code=500, detail=f"could not persist client: {e}")
+
+    # verify it round-trips
+    loaded = load_clients().get(cid)
+    return JSONResponse({
+        "client_id": cid,
+        "scopes": list(scopes),
+        "jwks": jwks,
+        "registered": bool(loaded),
+        "next_steps": {
+            "token_endpoint": settings.token_endpoint,
+            "client_assertion_kid": jwks["keys"][0]["kid"],
+            "audience": settings.token_endpoint,
+            "algorithm": "RS256",
+            "expires_in_seconds": settings.token_ttl_seconds,
+        },
+    })
+
+
 @router.get("/api/qr")
 async def api_qr(text: str) -> Response:
     """SVG QR code for arbitrary text — used by the /ui#/qr sharing page.

@@ -370,16 +370,57 @@ function renderPatientTable(patients) {
 
 function filterPatientRows(q) {
     const needle = q.toLowerCase().trim();
+    let shown = 0;
     document.querySelectorAll('.patient-row').forEach((row) => {
-        row.style.display = !needle || (row.dataset.search || '').includes(needle) ? '' : 'none';
+        const visible = !needle || (row.dataset.search || '').includes(needle);
+        row.style.display = visible ? '' : 'none';
+        if (visible) shown++;
     });
+    // empty-state message
+    let empty = document.getElementById('patient-empty');
+    if (shown === 0 && needle) {
+        if (!empty) {
+            empty = el('div', { id: 'patient-empty', class: 'empty-state' },
+                el('div', { class: 'empty-icon' }, '∅'),
+                el('div', { class: 'empty-title' }, 'No patients match this filter'),
+                el('div', { class: 'empty-sub' }, `Searched ${document.querySelectorAll('.patient-row').length} patients for `,
+                    el('code', { id: 'patient-empty-q' }, needle),
+                    '. Try clearing the filter or matching by family name, country (ISO-2), city, or FHIR id.'),
+            );
+            const host = document.querySelector('.patients-table') || document.getElementById('patient-grid');
+            host?.parentNode?.appendChild(empty);
+        } else {
+            document.getElementById('patient-empty-q').textContent = needle;
+            empty.style.display = '';
+        }
+    } else if (empty) {
+        empty.style.display = 'none';
+    }
 }
 
 // ---------- patient detail ----------
 async function renderPatientDetail(pid) {
     setLoading();
+    let data;
     try {
-        const data = await api(`/ui/api/patients/${pid}`);
+        data = await api(`/ui/api/patients/${pid}`);
+    } catch (e) {
+        // friendly 404 vs raw API error
+        const is404 = /:\s*404\b/.test(e.message);
+        app.innerHTML = '';
+        app.appendChild(el('section', { class: 'not-found' },
+            el('h1', {}, is404 ? `Patient/${pid} not found` : 'Could not load patient'),
+            el('p', {}, is404
+                ? `No synthetic patient with id ${pid}. The demo panel has 10 patients (p-001 … p-010).`
+                : el('span', {}, e.message)),
+            el('div', { class: 'btn-group', style: 'margin-top:14px;' },
+                el('a', { class: 'btn-primary', href: '#/patients' }, '← Back to patient list'),
+                el('a', { class: 'btn', href: '#/' }, 'Home'),
+            ),
+        ));
+        return;
+    }
+    try {
         const p = data.patient;
         const name = (p.name || [{}])[0];
         const fullName = `${(name.given || []).join(' ')} ${name.family || ''}`.trim() || pid;
@@ -721,13 +762,14 @@ async function renderServerPage() {
             techRow('Body cap', el('span', {}, `${(build.body_max_bytes / 1_048_576).toFixed(1)} MB`)),
         );
 
-        // IGs cloned
-        const igBlock = el('section', { class: 'tech-block' },
-            el('h3', {}, 'HL7 Europe IG packages on disk'),
-            ...(build.ig_packages.length
-                ? build.ig_packages.map(ig => techRow(ig.name, el('span', { class: 'mono' }, ig.path)))
-                : [el('div', { style: 'font-size:12px;color:var(--text-faint);' }, '(none — run ./download_igs.sh)')]),
-        );
+        // IGs cloned — only show when there's something to show (no point
+        // leaking an admin-side instruction to public-demo viewers)
+        const igBlock = build.ig_packages.length
+            ? el('section', { class: 'tech-block' },
+                el('h3', {}, 'HL7 Europe IG packages on disk'),
+                ...build.ig_packages.map(ig => techRow(ig.name, el('span', { class: 'mono' }, ig.path))),
+              )
+            : el('div');
 
         // supported resources table
         const supportedH = el('section', { class: 'section-title' }, 'Supported resources');
@@ -738,12 +780,19 @@ async function renderServerPage() {
                 el('th', {}, 'Search params'),
                 el('th', { style: 'text-align:right;' }, 'Stored'),
             )),
-            el('tbody', {}, ...(cap.rest?.[0]?.resource || []).map((r) => el('tr', {},
-                el('td', {}, el('code', {}, r.type)),
-                el('td', { style: 'font-size:11px;color:var(--text-muted);' }, (r.interaction || []).map((i) => i.code).join(', ')),
-                el('td', { style: 'font-size:11px;color:var(--text-faint);' }, (r.searchParam || []).map((p) => p.name).join(', ')),
-                el('td', { style: 'text-align:right;font-family:ui-monospace,monospace;' }, String(info.by_type[r.type] || 0)),
-            ))),
+            el('tbody', {}, ...(cap.rest?.[0]?.resource || []).map((r) => {
+                const stored = info.by_type[r.type] || 0;
+                return el('tr', { class: stored === 0 ? 'empty-row' : '' },
+                    el('td', {}, el('code', {}, r.type)),
+                    el('td', { style: 'font-size:11px;color:var(--text-muted);' }, (r.interaction || []).map((i) => i.code).join(', ')),
+                    el('td', { style: 'font-size:11px;color:var(--text-faint);' }, (r.searchParam || []).map((p) => p.name).join(', ')),
+                    el('td', { style: 'text-align:right;font-family:ui-monospace,monospace;' },
+                        stored === 0
+                            ? el('span', { style: 'color:var(--text-faint);' }, '0')
+                            : String(stored),
+                    ),
+                );
+            })),
         );
 
         // IG list
@@ -844,17 +893,30 @@ function buildMatchPlayground(bearer) {
     const formGrid = el('div', {
         style: 'display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-top:12px;',
     });
+    // sample identities the form rotates through. the form starts populated
+    // with the first sample so clicking "Run $match" with no edits returns
+    // a real result (was: empty Patient → 0 candidates).
+    const SAMPLES = [
+        { family: 'Müller',   given: 'Anna',    birthdate: '1968-03-14', gender: 'female', identifier: '' },
+        { family: 'Rossi',    given: 'Giulia',  birthdate: '1981-11-02', gender: 'female', identifier: '' },
+        { family: 'Schmidt',  given: 'Hans',    birthdate: '1955-07-29', gender: 'male',   identifier: '' },
+        { family: 'García',   given: 'Sofía',   birthdate: '1990-09-21', gender: 'female', identifier: '' },
+    ];
+    let sampleIdx = 0;
     const inputs = {};
-    for (const f of [
-        ['family',     'Family name',  'Müller'],
-        ['given',      'Given name',   'Anna'],
-        ['birthdate',  'Birthdate',    '1968-03-14'],
-        ['identifier', 'Identifier',   ''],
-        ['gender',     'Gender',       'female'],
-    ]) {
+    const FIELDS = [
+        ['family',     'Family name',  'e.g. Müller'],
+        ['given',      'Given name',   'e.g. Anna'],
+        ['birthdate',  'Birthdate',    'YYYY-MM-DD'],
+        ['identifier', 'Identifier',   '(optional)'],
+        ['gender',     'Gender',       'male|female|other'],
+    ];
+    for (const f of FIELDS) {
         const id = `match-${f[0]}`;
         const input = el('input', {
-            id, placeholder: f[2] || '',
+            id,
+            value: SAMPLES[0][f[0]] || '',
+            placeholder: f[2] || '',
             'data-key': f[0],
             style: 'padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;font-size:13px;background:var(--surface);',
         });
@@ -870,10 +932,9 @@ function buildMatchPlayground(bearer) {
     card.appendChild(out);
 
     function prefillExample() {
-        inputs.family.value = 'Rossi';
-        inputs.given.value = 'Giulia';
-        inputs.birthdate.value = '1981-11-02';
-        inputs.gender.value = 'female';
+        sampleIdx = (sampleIdx + 1) % SAMPLES.length;
+        const s = SAMPLES[sampleIdx];
+        for (const [k] of FIELDS) inputs[k].value = s[k] || '';
     }
 
     async function runMatch() {
@@ -1001,7 +1062,9 @@ function buildSubmissionDemo(bearer) {
         ),
     ));
     card.appendChild(el('div', { class: 'meta' },
-        'Submits a small Bundle.type=transaction containing a DocumentReference for Patient/p-001 to /. Server validates structurally, persists into data/inbox/, mirrors into the store so it surfaces in subsequent searches.',
+        'POST to the FHIR base (',
+        el('code', {}, 'POST /'),
+        ') with a Bundle.type=transaction containing a DocumentReference for Patient/p-001. Server validates structurally, persists into data/inbox/, mirrors into the store so subsequent searches see it.',
     ));
     card.appendChild(el('details', { style: 'margin-top:10px;' },
         el('summary', { style: 'cursor:pointer;color:var(--text-muted);font-size:12px;' }, 'show request bundle'),
@@ -1066,14 +1129,16 @@ async function renderHomePage() {
             ),
         );
         const cards = el('div', { class: 'capability-grid' },
-            capCard('🔐', 'Authorization',     'SMART backend services — JWT client assertion → bearer token. RS256/ES256.', '#/authorization'),
-            capCard('🩺', 'Resource exchange', 'IPA + PDQm $match — read patients & dependent resources.',                  '#/resources'),
-            capCard('📄', 'Document exchange', 'ITI-67/68/105 — search, retrieve, submit Bundle documents.',                 '#/documents'),
-            capCard('▶️', 'Consumer demo',     'Live end-to-end walkthrough of the API as a real client.',                    '#/demo'),
-            capCard('👥', 'Patient browser',   'Browse the 10 EU synthetic patients and their compartments.',                 '#/patients'),
-            capCard('📐', 'Endpoints',         'Every URL the server exposes, with copy-paste cURL.',                         '#/endpoints'),
-            capCard('📡', 'Server info',       'Capability statement, SMART config, build details.',                          '#/server'),
-            capCard('📱', 'Share via QR',      'Scan QR codes for demo URLs from a phone or tablet.',                         '#/qr'),
+            capCard('🤖', 'Implement a client', 'Point your agent here. Quickstart + Python sample + curl + AI-native CLI.',  '#/implement'),
+            capCard('🔑', 'Register a client',  'Generate a keypair in the browser or paste your public PEM/JWK.',            '#/register'),
+            capCard('▶️', 'Consumer demo',      'Live end-to-end walkthrough of the API as a real client.',                    '#/demo'),
+            capCard('🔐', 'Authorization',      'SMART backend services — JWT client assertion → bearer token. RS256/ES256.',  '#/authorization'),
+            capCard('🩺', 'Resource exchange',  'IPA + PDQm $match — read patients & dependent resources.',                    '#/resources'),
+            capCard('📄', 'Document exchange',  'ITI-67/68/105 — search, retrieve, submit Bundle documents.',                  '#/documents'),
+            capCard('👥', 'Patient browser',    'Browse the 10 EU synthetic patients and their compartments.',                 '#/patients'),
+            capCard('📐', 'Endpoints',          'Every URL the server exposes, with copy-paste cURL.',                         '#/endpoints'),
+            capCard('📡', 'Server info',        'Capability statement, SMART config, build details.',                          '#/server'),
+            capCard('📱', 'Share via QR',       'Scan QR codes for demo URLs from a phone or tablet.',                         '#/qr'),
         );
         const note = el('section', { class: 'note-block' },
             el('h3', {}, 'No real patient data'),
@@ -1524,6 +1589,370 @@ async function renderQrPage() {
     }
 }
 
+// ---------- implementation guide ----------
+async function renderImplementPage() {
+    setLoading();
+    try {
+        const [info, smart] = await Promise.all([
+            api('/ui/api/server-info'),
+            api('/.well-known/smart-configuration'),
+        ]);
+        const base = info.base_url;
+        const head = el('div', { class: 'page-head' },
+            el('h1', {}, 'Implementation guide'),
+            el('div', { class: 'meta' },
+                'Quickstart for an implementer (or an AI agent) building a consumer client against this server. ',
+                'Point an agent at this page and it has everything it needs to register a client, mint a bearer, and start reading FHIR resources.',
+            ),
+        );
+
+        const machine = el('section', { class: 'doc-block', id: 'agent-spec' },
+            el('h3', {}, 'Server facts (machine-readable)'),
+            el('p', { class: 'meta' }, 'Copy this block to give an agent the exact URLs and parameters to target.'),
+            el('pre', { class: 'code-snippet' }, JSON.stringify({
+                fhir_base_url: base,
+                fhir_version: '4.0.1',
+                issuer: smart.issuer,
+                token_endpoint: smart.token_endpoint,
+                jwks_uri: smart.jwks_uri,
+                metadata: base + '/metadata',
+                smart_configuration: base + '/.well-known/smart-configuration',
+                client_registration: { ui: base + '/ui/#/register', rest: base + '/ui/api/register-client', cli: 'python -m app.tools.register_client' },
+                supported_scopes: smart.scopes_supported,
+                allowed_algs: smart.token_endpoint_auth_signing_alg_values_supported,
+                example_patient_ids: ['p-001', 'p-002', 'p-003', 'p-004', 'p-005'],
+                example_endpoints: {
+                    read_patient: base + '/Patient/p-001',
+                    search_patient: base + '/Patient?family=Rossi&birthdate=1981-11-02',
+                    patient_match: base + '/Patient/$match (POST Parameters)',
+                    everything: base + '/Patient/p-001/$everything',
+                    document_search: base + '/DocumentReference?patient=p-001',
+                    compiled_document: base + '/Binary/doc-p-001-patient-summary',
+                    submit: base + '/ (POST Bundle.type=transaction)',
+                },
+            }, null, 2)),
+        );
+
+        const path = el('section', { class: 'doc-block' },
+            el('h3', {}, 'Three steps'),
+            el('ol', { class: 'flow-list' },
+                el('li', {},
+                    el('strong', {}, 'Register a client. '),
+                    'Generate an RSA keypair and submit the public half. Three options: ',
+                    el('a', { href: '#/register' }, 'web UI'),
+                    ', the REST endpoint ',
+                    urlChip('POST', '/ui/api/register-client', { noLink: true }),
+                    ', or the CLI: ',
+                    el('code', {}, 'python -m app.tools.register_client --client-id my-app --generate --scope "system/*.read"'),
+                    '.',
+                ),
+                el('li', {},
+                    el('strong', {}, 'Mint a bearer token. '),
+                    'Sign a short-lived JWT with your private key (',
+                    el('code', {}, 'iss = sub = client_id'),
+                    ', ',
+                    el('code', {}, `aud = ${smart.token_endpoint}`),
+                    ', ',
+                    el('code', {}, 'exp = now+60s'),
+                    ', ',
+                    el('code', {}, 'jti = uuid'),
+                    ') and POST it as the ',
+                    el('code', {}, 'client_assertion'),
+                    ' to ',
+                    urlChip('POST', new URL(smart.token_endpoint).pathname, { noLink: true }),
+                    '.',
+                ),
+                el('li', {},
+                    el('strong', {}, 'Call FHIR endpoints. '),
+                    'Send ',
+                    el('code', {}, 'Authorization: Bearer <token>'),
+                    ' on every request. Tokens last 300s; mint a new one when they expire.',
+                ),
+            ),
+        );
+
+        const py = el('section', { class: 'doc-block' },
+            el('h3', {}, 'Full Python client (≈30 lines)'),
+            el('p', { class: 'meta' },
+                'Drop into any script. Requires ',
+                el('code', {}, 'pip install requests pyjwt cryptography'),
+                '. Substitute your client id and private-key path.',
+            ),
+            el('pre', { class: 'code-snippet' },
+                `# ehds_client.py
+import time, uuid, jwt, requests
+from cryptography.hazmat.primitives import serialization
+
+CLIENT_ID    = "my-app"
+PRIVATE_KEY  = open("client-my-app.pem", "rb").read()
+TOKEN_URL    = "${smart.token_endpoint}"
+FHIR_BASE    = "${base}"
+
+priv = serialization.load_pem_private_key(PRIVATE_KEY, password=None)
+now  = int(time.time())
+assertion = jwt.encode({
+    "iss": CLIENT_ID, "sub": CLIENT_ID, "aud": TOKEN_URL,
+    "iat": now, "exp": now + 60, "jti": str(uuid.uuid4()),
+}, priv, algorithm="RS256", headers={"kid": f"{CLIENT_ID}-key-1"})
+
+tok = requests.post(TOKEN_URL, data={
+    "grant_type": "client_credentials",
+    "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+    "client_assertion": assertion,
+    "scope": "system/*.read",
+}).json()["access_token"]
+
+r = requests.get(f"{FHIR_BASE}/Patient/p-001",
+                 headers={"Authorization": f"Bearer {tok}"})
+print(r.status_code, r.json()["name"][0]["family"])
+`,
+            ),
+        );
+
+        const curl = el('section', { class: 'doc-block' },
+            el('h3', {}, 'Curl one-liner (after registration)'),
+            el('pre', { class: 'code-snippet' },
+                `# generate a private_key_jwt assertion in Python, then:
+TOKEN=$(curl -s -X POST ${smart.token_endpoint} \\
+  -d grant_type=client_credentials \\
+  -d client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer \\
+  -d client_assertion=$ASSERTION \\
+  -d 'scope=system/*.read' | jq -r .access_token)
+
+curl -s -H "Authorization: Bearer $TOKEN" ${base}/Patient/p-001 | jq`,
+            ),
+        );
+
+        const cli = el('section', { class: 'doc-block' },
+            el('h3', {}, 'AI-native CLI'),
+            el('p', { class: 'meta' },
+                'The repo ships an ',
+                el('code', {}, 'app.tools.register_client'),
+                ' module that does the whole keypair + registration dance in one command. Use ',
+                el('code', {}, '--out json'),
+                ' for machine-readable output an agent can parse:',
+            ),
+            el('pre', { class: 'code-snippet' },
+                `# generate, register, and print json:
+python -m app.tools.register_client \\
+  --client-id my-agent --generate \\
+  --scope "system/*.read" \\
+  --base-url ${base} \\
+  --out json`,
+            ),
+            el('p', { class: 'meta' },
+                'Or, for a fully remote AI-native flow (no local files needed), use the REST endpoint with a pre-generated JWK:',
+            ),
+            el('pre', { class: 'code-snippet' },
+                `curl -X POST ${base}/ui/api/register-client \\
+  -H 'Content-Type: application/json' \\
+  -d '{
+    "client_id": "my-agent",
+    "scopes": ["system/*.read"],
+    "public_key_pem": "-----BEGIN PUBLIC KEY-----\\n..."
+  }'`,
+            ),
+        );
+
+        const sandbox = el('section', { class: 'doc-block' },
+            el('h3', {}, 'Try it now (no install)'),
+            el('p', { class: 'meta' },
+                '→ ', el('a', { href: '#/register', class: 'btn-primary', style: 'text-decoration:none;' }, 'Open client registration UI'),
+                ' ',
+                el('a', { href: '#/demo', class: 'btn', style: 'text-decoration:none;' }, 'Run the live consumer demo'),
+            ),
+        );
+
+        app.innerHTML = '';
+        app.append(head, sandbox, path, machine, py, curl, cli);
+    } catch (e) {
+        renderError(e.message);
+    }
+}
+
+// ---------- client registration UI ----------
+async function renderRegisterPage() {
+    setLoading();
+    try {
+        const [info, smart, existing] = await Promise.all([
+            api('/ui/api/server-info'),
+            api('/.well-known/smart-configuration'),
+            api('/ui/api/clients'),
+        ]);
+        const head = el('div', { class: 'page-head' },
+            el('h1', {}, 'Client registration'),
+            el('div', { class: 'meta' },
+                'Register a SMART backend services client. Either generate a keypair right here in your browser (private key never leaves your machine), or paste your existing PEM/JWK.',
+            ),
+        );
+
+        const out = el('div', { id: 'register-result', class: 'register-result' });
+
+        // form
+        const cid = el('input', { value: '', placeholder: 'e.g. my-agent', style: 'width:100%;' });
+        const scope = el('select', { style: 'width:100%;' },
+            el('option', { value: 'system/*.read' }, 'system/*.read (all reads)'),
+            el('option', { value: 'system/Patient.read' }, 'system/Patient.read'),
+            el('option', { value: 'system/DocumentReference.read' }, 'system/DocumentReference.read'),
+            el('option', { value: 'system/Binary.read' }, 'system/Binary.read'),
+        );
+        const pem = el('textarea', { rows: 6, placeholder: '-----BEGIN PUBLIC KEY-----\\n…\\n-----END PUBLIC KEY-----', style: 'width:100%;font-family:ui-monospace,monospace;font-size:12px;' });
+
+        const form = el('section', { class: 'doc-block register-form' },
+            el('h3', {}, 'Register a client'),
+            fieldRow('Client id', cid, 'lowercase letters, numbers, hyphens. unique per client.'),
+            fieldRow('Scope', scope, 'public-UI registration is limited to read scopes. use the CLI for Bundle.write.'),
+            fieldRow('Public key (PEM)', pem,
+                el('span', {},
+                    'Or ',
+                    el('button', { class: 'btn-ghost', onclick: () => generateKeypair() }, 'generate a keypair in this browser'),
+                    ' (we never see the private half).',
+                ),
+            ),
+            el('div', { class: 'btn-group', style: 'margin-top:14px;' },
+                el('button', { class: 'btn-primary', onclick: () => submit() }, 'Register →'),
+                el('button', { class: 'btn-ghost', onclick: () => { cid.value=''; pem.value=''; out.innerHTML=''; } }, 'Reset'),
+            ),
+        );
+
+        async function generateKeypair() {
+            out.innerHTML = '';
+            out.appendChild(el('div', { class: 'meta' }, 'generating RSA-2048 in browser…'));
+            const kp = await crypto.subtle.generateKey(
+                { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1,0,1]), hash: 'SHA-256' },
+                true,
+                ['sign', 'verify'],
+            );
+            const pubSpki = await crypto.subtle.exportKey('spki', kp.publicKey);
+            const privPkcs8 = await crypto.subtle.exportKey('pkcs8', kp.privateKey);
+            pem.value = derToPem(pubSpki, 'PUBLIC KEY');
+            const privPem = derToPem(privPkcs8, 'PRIVATE KEY');
+            // offer the private key as a download immediately so the user has it
+            const filename = `client-${(cid.value || 'agent').replace(/[^a-z0-9-]/gi,'-')}.pem`;
+            downloadText(filename, privPem);
+            out.innerHTML = '';
+            out.appendChild(el('section', { class: 'demo-step' },
+                el('h3', {}, 'Keypair generated in your browser'),
+                el('p', { class: 'meta' },
+                    'Private key downloaded as ',
+                    el('code', {}, filename),
+                    '. Keep it on your client machine — the server only ever sees the public half. The textarea above has been filled with the public PEM.',
+                ),
+                el('pre', { class: 'code-snippet' }, privPem),
+            ));
+        }
+
+        async function submit() {
+            const body = {
+                client_id: cid.value.trim(),
+                scopes: [scope.value],
+                public_key_pem: pem.value.trim(),
+            };
+            if (!body.client_id) return out.replaceChildren(el('div', { class: 'error' }, 'client_id is required'));
+            if (!body.public_key_pem) return out.replaceChildren(el('div', { class: 'error' }, 'public_key_pem is required (generate one above or paste yours)'));
+            out.innerHTML = '';
+            out.appendChild(el('div', { class: 'meta' }, 'POSTing /ui/api/register-client…'));
+            try {
+                const r = await fetch('/ui/api/register-client', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                });
+                const reply = await r.json();
+                if (!r.ok) {
+                    out.replaceChildren(el('div', { class: 'error' }, `${r.status}: ${reply.detail || JSON.stringify(reply)}`));
+                    return;
+                }
+                renderRegisterResult(out, reply, info.base_url, smart.token_endpoint);
+                // refresh the registered-list table without losing the result panel
+                existingBlock.innerHTML = '';
+                existingBlock.appendChild(el('h3', {}, 'Refresh the page to see the updated client list.'));
+            } catch (e) {
+                out.replaceChildren(el('div', { class: 'error' }, e.message));
+            }
+        }
+
+        const existingBlock = el('section', { class: 'doc-block' },
+            el('h3', {}, `Already registered (${existing.clients.length})`),
+            existing.clients.length
+                ? el('table', { class: 'endpoints-table' },
+                    el('thead', {}, el('tr', {},
+                        el('th', {}, 'client_id'),
+                        el('th', {}, 'scopes'),
+                        el('th', {}, 'kids'),
+                    )),
+                    el('tbody', {}, ...existing.clients.map(c => el('tr', {},
+                        el('td', { class: 'mono' }, c.client_id),
+                        el('td', { class: 'mono', style: 'font-size:11px;' }, c.scopes.join(' ')),
+                        el('td', { class: 'mono', style: 'font-size:11px;color:var(--text-faint);' }, (c.kids || []).join(', ') || `(${c.key_count} keys)`),
+                    ))),
+                )
+                : el('div', { class: 'meta' }, '(no clients yet)'),
+        );
+
+        const cli = el('section', { class: 'doc-block' },
+            el('h3', {}, 'Or via CLI / REST'),
+            el('p', { class: 'meta' }, 'Local Python:'),
+            el('pre', { class: 'code-snippet' },
+                'python -m app.tools.register_client \\\n' +
+                '  --client-id my-agent --generate \\\n' +
+                '  --scope "system/*.read" --out json',
+            ),
+            el('p', { class: 'meta' }, 'Or with a remote curl (pass a PEM you generated locally):'),
+            el('pre', { class: 'code-snippet' },
+                `curl -X POST ${info.base_url}/ui/api/register-client \\\n  -H 'Content-Type: application/json' \\\n  -d @reg.json`,
+            ),
+        );
+
+        app.innerHTML = '';
+        app.append(head, form, out, existingBlock, cli);
+    } catch (e) {
+        renderError(e.message);
+    }
+}
+
+function fieldRow(label, input, hint) {
+    return el('div', { style: 'margin-bottom:12px;' },
+        el('div', { class: 'field-label' }, label),
+        input,
+        hint ? el('div', { class: 'meta', style: 'margin-top:4px;font-size:11px;' }, hint) : null,
+    );
+}
+
+function renderRegisterResult(out, reply, base, tokenEndpoint) {
+    out.innerHTML = '';
+    out.appendChild(el('section', { class: 'demo-step' },
+        el('div', { class: 'demo-head' },
+            el('span', { class: 'demo-n' }, '✓'),
+            el('h3', {}, `Client ${reply.client_id} registered`),
+        ),
+        el('p', { class: 'meta' },
+            'Effective immediately — the server reads the registry on every /token call. ',
+            `Next step: sign a JWT with kid="${reply.next_steps.client_assertion_kid}", aud="${reply.next_steps.audience}", and POST it as client_assertion.`,
+        ),
+        el('pre', { class: 'code-snippet' }, JSON.stringify(reply, null, 2)),
+    ));
+}
+
+function derToPem(buffer, label) {
+    const bytes = new Uint8Array(buffer);
+    let b64 = btoa(String.fromCharCode(...bytes));
+    const lines = b64.match(/.{1,64}/g).join('\n');
+    return `-----BEGIN ${label}-----\n${lines}\n-----END ${label}-----\n`;
+}
+
+function downloadText(filename, text) {
+    const blob = new Blob([text], { type: 'application/x-pem-file' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
 // ---------- router ----------
 function highlightNav(hash) {
     // map sub-routes to their canonical nav item
@@ -1538,10 +1967,13 @@ async function route() {
     closeModal();
     const hash = location.hash || '#/';
     highlightNav(hash);
-    const m_doc = hash.match(/^#\/p\/([^/]+)\/doc\/([^/]+)$/);
-    const m_pat = hash.match(/^#\/p\/([^/]+)$/);
+    // detail-view routes (also accept #/patients/{id} as an alias so the
+    // URL-shape on the patient card looks shareable)
+    const m_doc = hash.match(/^#\/(?:p|patients)\/([^/]+)\/doc\/([^/]+)$/);
+    const m_pat = hash.match(/^#\/(?:p|patients)\/([^/]+)$/);
     if (m_doc) return renderDocument(m_doc[1], m_doc[2]);
     if (m_pat) return renderPatientDetail(m_pat[1]);
+    if (hash === '#/' || hash === '#') return renderHomePage();
     if (hash === '#/patients') return renderPatientList();
     if (hash === '#/server') return renderServerPage();
     if (hash === '#/endpoints') return renderEndpointsPage();
@@ -1549,8 +1981,25 @@ async function route() {
     if (hash === '#/authorization') return renderAuthorizationPage();
     if (hash === '#/documents') return renderDocumentsPage();
     if (hash === '#/resources') return renderResourcesPage();
+    if (hash === '#/implement') return renderImplementPage();
+    if (hash === '#/register') return renderRegisterPage();
     if (hash === '#/qr') return renderQrPage();
-    return renderHomePage();
+    return renderNotFound(hash);
+}
+
+function renderNotFound(hash) {
+    app.innerHTML = '';
+    app.appendChild(el('section', { class: 'not-found' },
+        el('h1', {}, '404 · view not found'),
+        el('p', {}, 'No view matched ',
+            el('code', {}, hash),
+            '. Either the URL is mistyped or the page was removed.'),
+        el('div', { class: 'btn-group', style: 'margin-top:14px;' },
+            el('a', { class: 'btn-primary', href: '#/' }, 'Go to Home'),
+            el('a', { class: 'btn', href: '#/patients' }, 'Browse patients'),
+            el('a', { class: 'btn', href: '#/demo' }, 'Run the consumer demo'),
+        ),
+    ));
 }
 
 // ---------- boot ----------
