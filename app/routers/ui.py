@@ -277,12 +277,14 @@ async def api_documents() -> JSONResponse:
             "date": r.get("date", ""),
             "description": r.get("description", ""),
         })
-    # 2. on-demand compiled Bundles (one per patient × category)
+    # 2. on-demand compiled Bundles (one per patient × category).
+    # served via GET /Binary/{id} per IHE MHD convention — the Binary URL is
+    # the routing path, the response is a Bundle.type=document.
     patient_ids = sorted(p["id"] for p in store.list_all("Patient"))
     for pid in patient_ids:
         for cat in CATEGORIES:
             out.append({
-                "source": "Binary (compiled)",
+                "source": "Compiled Bundle",
                 "id": f"doc-{pid}-{cat}",
                 "fhir_path": f"/Binary/doc-{pid}-{cat}",
                 "binary_url": f"Binary/doc-{pid}-{cat}",
@@ -292,7 +294,7 @@ async def api_documents() -> JSONResponse:
                 "type_code": "",
                 "type_display": "",
                 "date": "",
-                "description": f"on-demand FHIR Bundle.type=document compiled from atomic resources",
+                "description": "on-demand FHIR Bundle.type=document compiled from atomic resources (served via /Binary/{id} per IHE MHD)",
             })
     return JSONResponse({"total": len(out), "documents": out})
 
