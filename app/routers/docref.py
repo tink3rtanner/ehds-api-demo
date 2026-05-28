@@ -46,7 +46,16 @@ async def search_docref(
 
     if (v := norm.get("_id")):
         results = [r for r in results if r.get("id") == v[0]]
-    if (v := norm.get("patient")):
+    # chained search: ?patient.identifier=system|value
+    if (v := norm.get("patient.identifier")):
+        matches = store.find_patient_ids_by_identifier(v[0])
+        if not matches:
+            results = []
+        else:
+            results = [r for r in results
+                       if any((r.get("subject", {}).get("reference", "")).endswith(f"Patient/{m}")
+                              for m in matches)]
+    elif (v := norm.get("patient")):
         canonical = store.resolve_patient_ref(v[0])
         if canonical is None:
             results = []

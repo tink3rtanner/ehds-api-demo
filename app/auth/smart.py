@@ -146,17 +146,20 @@ def smart_configuration() -> JSONResponse:
         # every example URL here is a real working URL — paste it in a browser
         # (in ENV=dev) and you get JSON back. resource ids are uuids
         # (Patient, Observation, MedicationRequest etc. — everything).
-        # The slot label `p-001` is only referenced once, by the lookup
-        # endpoint that explicitly demonstrates the slot->uuid translation.
+        # The slot label `p-001` is only referenced as the *value* of a
+        # FHIR token search (identifier=system|value or patient.identifier=
+        # system|value) — never as a resource id.
         "example_endpoints": {
-            "lookup_patient_by_slot":    base + "/Patient?identifier=urn:ehds-demo:slot|p-001",
-            "read_patient":              base + f"/Patient/{example_pid}",
-            "patient_summary_operation": base + f"/Patient/{example_pid}/$summary",
-            "patient_everything":        base + f"/Patient/{example_pid}/$everything",
-            "observations_for_patient":  base + f"/Observation?patient={example_pid}",
-            "document_search":           base + f"/DocumentReference?patient={example_pid}",
-            "all_bundle_uuids":          base + "/spec/all-bundle-ids",
-            "submit_iti105":             base + "/  (POST Bundle.type=transaction, requires system/Bundle.write)",
+            "lookup_patient_by_slot":              base + "/Patient?identifier=urn:ehds-demo:slot|p-001",
+            "read_patient":                        base + f"/Patient/{example_pid}",
+            "patient_summary_operation":           base + f"/Patient/{example_pid}/$summary",
+            "patient_everything":                  base + f"/Patient/{example_pid}/$everything",
+            "observations_for_patient":            base + f"/Observation?patient={example_pid}",
+            "observations_by_patient_identifier":  base + "/Observation?patient.identifier=urn:ehds-demo:slot|p-001",
+            "document_search":                     base + f"/DocumentReference?patient={example_pid}",
+            "document_search_by_identifier":       base + "/DocumentReference?patient.identifier=urn:ehds-demo:slot|p-001",
+            "all_bundle_uuids":                    base + "/spec/all-bundle-ids",
+            "submit_iti105":                       base + "/  (POST Bundle.type=transaction, requires system/Bundle.write)",
         },
         # patient.id is a uuid; the demo panel slot labels (p-001 etc.) are
         # preserved as Patient.identifier with system 'urn:ehds-demo:slot' so

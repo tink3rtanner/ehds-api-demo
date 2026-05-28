@@ -142,12 +142,36 @@ def resolve_patient_ref(value: str) -> str | None:
     p = read("Patient", value)
     if p is not None:
         return p["id"]
-    # then try Patient.identifier value lookup
+    # then try Patient.identifier value lookup (any system)
     for p in list_all("Patient"):
         for ident in p.get("identifier", []) or []:
             if ident.get("value") == value:
                 return p["id"]
     return None
+
+
+def find_patient_ids_by_identifier(value: str) -> set[str]:
+    """find Patient.ids whose identifier matches a FHIR token search value.
+
+    accepts the standard FHIR token form:
+      - ``system|value``  -> both must match (strict, recommended)
+      - ``|value``        -> system must be absent (rare)
+      - ``value``         -> bare match against any system (loose)
+    """
+    if "|" in value:
+        wanted_system, wanted_value = value.split("|", 1)
+    else:
+        wanted_system, wanted_value = None, value
+    out: set[str] = set()
+    for p in list_all("Patient"):
+        for ident in p.get("identifier", []) or []:
+            if ident.get("value") != wanted_value:
+                continue
+            if wanted_system is not None and ident.get("system") != wanted_system:
+                continue
+            out.add(p["id"])
+            break
+    return out
 
 
 def _match_token(res: dict[str, Any], field: str, value: str) -> bool:
@@ -181,10 +205,16 @@ def search(rtype: str, params: dict[str, list[str]]) -> list[dict[str, Any]]:
     if (rid := take("_id")):
         results = [r for r in results if r.get("id") == rid]
 
-    # patient compartment (works for any subject-based resource).
-    # the patient param can be a uuid, a slot identifier, or a Patient/<x>
-    # reference — we resolve to canonical id once and filter from there.
-    if (pat := take("patient")):
+    # patient compartment. supports three forms:
+    #   ?patient=<uuid|slot|Patient/x>      -> direct reference resolution
+    #   ?patient.identifier=<system|value>  -> FHIR chained search: filter
+    #     resources whose patient's identifier matches (no pre-resolve needed)
+    if (pat_ident := take("patient.identifier")):
+        matches = find_patient_ids_by_identifier(pat_ident)
+        if not matches:
+            return []
+        results = [r for r in results if _resource_refs_patient(r) in matches]
+    elif (pat := take("patient")):
         canonical = resolve_patient_ref(pat)
         if canonical is None:
             return []
