@@ -45,6 +45,32 @@ should run from this directory.
 - `docs/audit-recipes.md` — jq snippets against the JSONL audit log
 - `docs/runbook.md` — on-call for TLS expiry, disk full, systemd fail,
   Caddy syntax
+- `docs/epic-eu-bundling.md` — living doc on the Epic-on-FHIR sandbox →
+  HL7 EU document bundling pipeline. **The transformation log at the
+  bottom is a primary deliverable** — keep it current as new categories
+  validate clean.
+
+### Epic → EU transform pipeline
+
+Separate from the on-demand `compile_document` flow that turns *our
+seeded* synthetic data into FHIR documents, there's a pipeline that
+**pulls** clinical data from the Epic on FHIR R4 sandbox, repackages it
+into HL7 EU IG-conformant documents, and re-submits via ITI-105.
+
+- `app/sources/epic_client.py` — Epic OAuth + FHIR client
+- `app/sources/epic_ingest.py` — orchestration (pull → cache)
+- `app/sources/epic_transform.py` — Epic shape → EU shape (strip
+  proprietary extensions, fix LOINC displays, etc.)
+- `app/routers/epic_import.py` — `POST /Epic/$import` operation
+- `scripts/ingest_epic.py` / `scripts/submit_bundle.py` — CLI drivers
+- `tests/test_epic_transform.py` + `tests/test_epic_ingest_pipeline.py`
+
+Validator note: this pipeline validates against the **real EU IG
+packages** (eps, laboratory, hdr, imaging, mpd, base, extensions,
+health-data-api) downloaded into `.cache/eu-packages/`. The repo's
+prior `tests/test_profile_validation.py` only ran base-R4 validation.
+See `docs/epic-eu-bundling.md` for the package inventory + canonical
+URLs.
 
 ## Commands
 
