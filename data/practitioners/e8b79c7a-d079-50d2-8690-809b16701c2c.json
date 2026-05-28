@@ -1,0 +1,27 @@
+{
+  "id": "e8b79c7a-d079-50d2-8690-809b16701c2c",
+  "identifier": [
+    {
+      "system": "urn:oid:1.2.3.4.5",
+      "value": "DOC-00001"
+    }
+  ],
+  "name": [
+    {
+      "family": "Bianchi",
+      "given": [
+        "Marco"
+      ],
+      "prefix": [
+        "Dr."
+      ]
+    }
+  ],
+  "resourceType": "Practitioner",
+  "telecom": [
+    {
+      "system": "phone",
+      "value": "+49 30 99999"
+    }
+  ]
+}

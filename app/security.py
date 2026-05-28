@@ -106,7 +106,7 @@ class StructuredLogMiddleware(BaseHTTPMiddleware):
         self._cached_day = None
 
     def _todays_file(self):
-        from datetime import UTC, date, datetime
+        from datetime import date
         today = date.today().isoformat()
         if self._cached_day == today and self._cached_path is not None:
             return self._cached_path

@@ -1,0 +1,35 @@
+{
+  "category": [
+    {
+      "coding": [
+        {
+          "code": "laboratory",
+          "system": "http://terminology.hl7.org/CodeSystem/observation-category"
+        }
+      ]
+    }
+  ],
+  "code": {
+    "coding": [
+      {
+        "code": "2160-0",
+        "display": "Creatinine [Mass/volume] in Serum or Plasma",
+        "system": "http://loinc.org"
+      }
+    ],
+    "text": "Creatinine [Mass/volume] in Serum or Plasma"
+  },
+  "effectiveDateTime": "2024-03-01",
+  "id": "691ce8c8-2997-5d90-9d7a-b6ed3c2b4e6d",
+  "resourceType": "Observation",
+  "status": "final",
+  "subject": {
+    "reference": "Patient/ce4be6f8-848e-594f-b0f4-56a74971b854"
+  },
+  "valueQuantity": {
+    "code": "mg/dL",
+    "system": "http://unitsofmeasure.org",
+    "unit": "mg/dL",
+    "value": 0.9
+  }
+}

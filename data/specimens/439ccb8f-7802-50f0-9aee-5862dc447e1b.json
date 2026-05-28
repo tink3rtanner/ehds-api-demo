@@ -1,0 +1,21 @@
+{
+  "collection": {
+    "collectedDateTime": "2024-03-01T08:30:00+01:00"
+  },
+  "id": "439ccb8f-7802-50f0-9aee-5862dc447e1b",
+  "resourceType": "Specimen",
+  "status": "available",
+  "subject": {
+    "reference": "Patient/341dafb4-0ae4-5fe4-84c3-61c9ac871ebb"
+  },
+  "type": {
+    "coding": [
+      {
+        "code": "119297000",
+        "display": "Blood specimen",
+        "system": "http://snomed.info/sct"
+      }
+    ],
+    "text": "Blood specimen"
+  }
+}

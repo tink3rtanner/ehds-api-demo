@@ -1,0 +1,19 @@
+{
+  "code": {
+    "coding": [
+      {
+        "code": "387713003",
+        "display": "Surgical procedure",
+        "system": "http://snomed.info/sct"
+      }
+    ],
+    "text": "Surgical procedure"
+  },
+  "id": "dc1589ea-3fc0-5d2b-a39a-32f94cdc4d99",
+  "performedDateTime": "2023-08-22",
+  "resourceType": "Procedure",
+  "status": "completed",
+  "subject": {
+    "reference": "Patient/d0a3a011-53d6-5fe9-b5d6-03a597b9deac"
+  }
+}

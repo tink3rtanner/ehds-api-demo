@@ -6,8 +6,8 @@ import pytest
 pytestmark = pytest.mark.asyncio
 
 
-async def test_everything(client, auth_headers):
-    r = await client.get("/Patient/p-001/$everything", headers=auth_headers)
+async def test_everything(client, auth_headers, pid):
+    r = await client.get(f"/Patient/{pid}/$everything", headers=auth_headers)
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["resourceType"] == "Bundle"

@@ -1,0 +1,19 @@
+{
+  "id": "523789aa-1e43-5f72-9a17-fecf6972e79e",
+  "occurrenceDateTime": "2023-02-15",
+  "patient": {
+    "reference": "Patient/ce4be6f8-848e-594f-b0f4-56a74971b854"
+  },
+  "resourceType": "Immunization",
+  "status": "completed",
+  "vaccineCode": {
+    "coding": [
+      {
+        "code": "140",
+        "display": "Influenza, split virus, trivalent, PF",
+        "system": "http://hl7.org/fhir/sid/cvx"
+      }
+    ],
+    "text": "Influenza, split virus, trivalent, PF"
+  }
+}

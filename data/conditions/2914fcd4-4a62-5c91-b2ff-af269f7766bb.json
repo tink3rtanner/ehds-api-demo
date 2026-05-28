@@ -1,0 +1,44 @@
+{
+  "category": [
+    {
+      "coding": [
+        {
+          "code": "problem-list-item",
+          "system": "http://terminology.hl7.org/CodeSystem/condition-category"
+        }
+      ]
+    }
+  ],
+  "clinicalStatus": {
+    "coding": [
+      {
+        "code": "active",
+        "system": "http://terminology.hl7.org/CodeSystem/condition-clinical"
+      }
+    ]
+  },
+  "code": {
+    "coding": [
+      {
+        "code": "44054006",
+        "display": "Diabetes mellitus type 2",
+        "system": "http://snomed.info/sct"
+      }
+    ],
+    "text": "Diabetes mellitus type 2"
+  },
+  "id": "2914fcd4-4a62-5c91-b2ff-af269f7766bb",
+  "recordedDate": "2023-04-15",
+  "resourceType": "Condition",
+  "subject": {
+    "reference": "Patient/030a86fd-7316-5d7f-ba7b-68600010d27c"
+  },
+  "verificationStatus": {
+    "coding": [
+      {
+        "code": "confirmed",
+        "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status"
+      }
+    ]
+  }
+}

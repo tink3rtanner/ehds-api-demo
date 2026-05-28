@@ -1,0 +1,19 @@
+{
+  "id": "0ad1a3e0-cbbe-543c-a643-258e14b89200",
+  "occurrenceDateTime": "2023-01-15",
+  "patient": {
+    "reference": "Patient/bb60d799-64a9-5eb4-b57f-ee3e35c305ef"
+  },
+  "resourceType": "Immunization",
+  "status": "completed",
+  "vaccineCode": {
+    "coding": [
+      {
+        "code": "207",
+        "display": "COVID-19, mRNA, LNP-S, PF, 100 mcg/0.5mL dose or 50 mcg/0.25mL dose",
+        "system": "http://hl7.org/fhir/sid/cvx"
+      }
+    ],
+    "text": "COVID-19, mRNA, LNP-S, PF, 100 mcg/0.5mL dose or 50 mcg/0.25mL dose"
+  }
+}

@@ -12,6 +12,7 @@ pytestmark = pytest.mark.asyncio
 
 from app.fhir.document import CATEGORY_TO_DOC_TYPE
 from app.fhir.ids import bundle_id, docref_id
+
 CATEGORIES = list(CATEGORY_TO_DOC_TYPE.keys())
 
 # deterministic uuids for the seed DocumentReferences of every (patient, category)

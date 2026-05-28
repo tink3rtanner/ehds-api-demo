@@ -12,7 +12,7 @@ import pytest
 pytestmark = pytest.mark.asyncio
 
 
-async def test_round_trip_submission_then_access(client, auth_headers):
+async def test_round_trip_submission_then_access(client, auth_headers, pid):
     submission_id = f"st-{uuid.uuid4().hex[:8]}"
     docref_id = f"dr-{submission_id}"
     bundle = {
@@ -29,7 +29,7 @@ async def test_round_trip_submission_then_access(client, auth_headers):
                     "category": [{"coding": [{"system":
                         "http://hl7.eu/fhir/ig/eu-health-data-api/CodeSystem/eehrxf-document-priority-category",
                         "code": "laboratory-report"}]}],
-                    "subject": {"reference": "Patient/p-001"},
+                    "subject": {"reference": f"Patient/{pid}"},
                     "content": [{"attachment": {"contentType": "application/fhir+json",
                                                 "url": f"Binary/{submission_id}"}}],
                 },
@@ -47,6 +47,6 @@ async def test_round_trip_submission_then_access(client, auth_headers):
 
     # the access provider's category-filtered search now returns the new ref too
     search = await client.get("/DocumentReference", headers=auth_headers,
-                              params={"patient": "p-001", "category": "laboratory-report"})
+                              params={"patient": pid, "category": "laboratory-report"})
     ids = [e["resource"]["id"] for e in search.json()["entry"]]
     assert docref_id in ids

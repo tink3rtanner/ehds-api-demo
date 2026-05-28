@@ -1,0 +1,44 @@
+{
+  "category": [
+    {
+      "coding": [
+        {
+          "code": "problem-list-item",
+          "system": "http://terminology.hl7.org/CodeSystem/condition-category"
+        }
+      ]
+    }
+  ],
+  "clinicalStatus": {
+    "coding": [
+      {
+        "code": "active",
+        "system": "http://terminology.hl7.org/CodeSystem/condition-clinical"
+      }
+    ]
+  },
+  "code": {
+    "coding": [
+      {
+        "code": "13645005",
+        "display": "Chronic obstructive lung disease",
+        "system": "http://snomed.info/sct"
+      }
+    ],
+    "text": "Chronic obstructive lung disease"
+  },
+  "id": "4794d6d3-8a4f-5c65-856f-950a57d8babc",
+  "recordedDate": "2023-04-15",
+  "resourceType": "Condition",
+  "subject": {
+    "reference": "Patient/08e3cb00-6b3e-5d00-bb40-04b7a2114011"
+  },
+  "verificationStatus": {
+    "coding": [
+      {
+        "code": "confirmed",
+        "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status"
+      }
+    ]
+  }
+}

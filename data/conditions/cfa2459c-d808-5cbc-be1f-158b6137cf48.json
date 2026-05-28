@@ -1,0 +1,44 @@
+{
+  "category": [
+    {
+      "coding": [
+        {
+          "code": "problem-list-item",
+          "system": "http://terminology.hl7.org/CodeSystem/condition-category"
+        }
+      ]
+    }
+  ],
+  "clinicalStatus": {
+    "coding": [
+      {
+        "code": "active",
+        "system": "http://terminology.hl7.org/CodeSystem/condition-clinical"
+      }
+    ]
+  },
+  "code": {
+    "coding": [
+      {
+        "code": "38341003",
+        "display": "Hypertensive disorder",
+        "system": "http://snomed.info/sct"
+      }
+    ],
+    "text": "Hypertensive disorder"
+  },
+  "id": "cfa2459c-d808-5cbc-be1f-158b6137cf48",
+  "recordedDate": "2023-04-15",
+  "resourceType": "Condition",
+  "subject": {
+    "reference": "Patient/341dafb4-0ae4-5fe4-84c3-61c9ac871ebb"
+  },
+  "verificationStatus": {
+    "coding": [
+      {
+        "code": "confirmed",
+        "system": "http://terminology.hl7.org/CodeSystem/condition-ver-status"
+      }
+    ]
+  }
+}

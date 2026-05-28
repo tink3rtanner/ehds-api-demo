@@ -14,7 +14,6 @@ covered by structural_validate's pydantic + our own valueset tests.
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 
 import pytest
@@ -27,7 +26,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 JAR = REPO_ROOT / ".cache" / "validator_cli.jar"
 PANEL_IDS = [f"p-{i:03d}" for i in range(1, 11)]
 from app.fhir.document import CATEGORY_TO_DOC_TYPE
-from app.fhir.ids import bundle_id
+from app.fhir.ids import bundle_id, patient_id
+
 CATEGORIES = list(CATEGORY_TO_DOC_TYPE.keys())
 
 
@@ -62,14 +62,15 @@ async def test_compiled_documents_pass_r4_validation(client, auth_headers, pid, 
     )
 
 
-@pytest.mark.parametrize("pid", PANEL_IDS)
-async def test_patient_resources_pass_r4_validation(client, auth_headers, pid):
+@pytest.mark.parametrize("slot", PANEL_IDS)
+async def test_patient_resources_pass_r4_validation(client, auth_headers, slot):
     """every Patient passes R4 structural validation."""
-    r = await client.get(f"/Patient/{pid}", headers=auth_headers)
+    uuid = patient_id(slot)
+    r = await client.get(f"/Patient/{uuid}", headers=auth_headers)
     assert r.status_code == 200
     ok, issues = _run_validator(r.json())
     errs = [i for i in issues if i.get("severity") in ("error", "fatal")]
-    assert ok, f"errors for {pid}: " + "; ".join(_issue_text(i) for i in errs[:3])
+    assert ok, f"errors for {slot}: " + "; ".join(_issue_text(i) for i in errs[:3])
 
 
 def _issue_text(issue: dict) -> str:

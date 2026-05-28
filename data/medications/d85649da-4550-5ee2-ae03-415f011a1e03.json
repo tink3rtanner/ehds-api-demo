@@ -1,0 +1,14 @@
+{
+  "code": {
+    "coding": [
+      {
+        "code": "630208",
+        "display": "Albuterol 0.83 MG/ML Inhalation Solution",
+        "system": "http://www.nlm.nih.gov/research/umls/rxnorm"
+      }
+    ],
+    "text": "Albuterol 0.83 mg/mL inhalation solution"
+  },
+  "id": "d85649da-4550-5ee2-ae03-415f011a1e03",
+  "resourceType": "Medication"
+}

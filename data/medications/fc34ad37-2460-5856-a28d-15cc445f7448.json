@@ -1,0 +1,14 @@
+{
+  "code": {
+    "coding": [
+      {
+        "code": "314076",
+        "display": "Lisinopril 10 MG Oral Tablet",
+        "system": "http://www.nlm.nih.gov/research/umls/rxnorm"
+      }
+    ],
+    "text": "Lisinopril 10 mg tablet"
+  },
+  "id": "fc34ad37-2460-5856-a28d-15cc445f7448",
+  "resourceType": "Medication"
+}

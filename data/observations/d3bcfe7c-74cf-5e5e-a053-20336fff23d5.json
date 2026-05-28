@@ -1,0 +1,35 @@
+{
+  "category": [
+    {
+      "coding": [
+        {
+          "code": "vital-signs",
+          "system": "http://terminology.hl7.org/CodeSystem/observation-category"
+        }
+      ]
+    }
+  ],
+  "code": {
+    "coding": [
+      {
+        "code": "8310-5",
+        "display": "Body temperature",
+        "system": "http://loinc.org"
+      }
+    ],
+    "text": "Body temperature"
+  },
+  "effectiveDateTime": "2024-03-01",
+  "id": "d3bcfe7c-74cf-5e5e-a053-20336fff23d5",
+  "resourceType": "Observation",
+  "status": "final",
+  "subject": {
+    "reference": "Patient/35b51960-8d92-5aa1-8b7f-61523c35a272"
+  },
+  "valueQuantity": {
+    "code": "Cel",
+    "system": "http://unitsofmeasure.org",
+    "unit": "Cel",
+    "value": 36
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "collection": {
+    "collectedDateTime": "2024-03-01T08:30:00+01:00"
+  },
+  "id": "17a64359-2f5c-5495-901f-ebc263af6c97",
+  "resourceType": "Specimen",
+  "status": "available",
+  "subject": {
+    "reference": "Patient/6aa8846d-50de-54c2-9912-122a01ec7d8a"
+  },
+  "type": {
+    "coding": [
+      {
+        "code": "122575003",
+        "display": "Urine specimen",
+        "system": "http://snomed.info/sct"
+      }
+    ],
+    "text": "Urine specimen"
+  }
+}

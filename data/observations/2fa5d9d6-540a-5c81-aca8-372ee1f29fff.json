@@ -1,0 +1,35 @@
+{
+  "category": [
+    {
+      "coding": [
+        {
+          "code": "laboratory",
+          "system": "http://terminology.hl7.org/CodeSystem/observation-category"
+        }
+      ]
+    }
+  ],
+  "code": {
+    "coding": [
+      {
+        "code": "718-7",
+        "display": "Hemoglobin [Mass/volume] in Blood",
+        "system": "http://loinc.org"
+      }
+    ],
+    "text": "Hemoglobin [Mass/volume] in Blood"
+  },
+  "effectiveDateTime": "2024-03-01",
+  "id": "2fa5d9d6-540a-5c81-aca8-372ee1f29fff",
+  "resourceType": "Observation",
+  "status": "final",
+  "subject": {
+    "reference": "Patient/6aa8846d-50de-54c2-9912-122a01ec7d8a"
+  },
+  "valueQuantity": {
+    "code": "g/dL",
+    "system": "http://unitsofmeasure.org",
+    "unit": "g/dL",
+    "value": 13.2
+  }
+}

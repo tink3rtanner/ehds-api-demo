@@ -1,0 +1,19 @@
+{
+  "code": {
+    "coding": [
+      {
+        "code": "103693007",
+        "display": "Diagnostic procedure",
+        "system": "http://snomed.info/sct"
+      }
+    ],
+    "text": "Diagnostic procedure"
+  },
+  "id": "3748592f-4138-5d8a-8d60-7c8e310841b2",
+  "performedDateTime": "2023-08-22",
+  "resourceType": "Procedure",
+  "status": "completed",
+  "subject": {
+    "reference": "Patient/bb60d799-64a9-5eb4-b57f-ee3e35c305ef"
+  }
+}

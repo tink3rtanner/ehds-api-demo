@@ -1,0 +1,14 @@
+{
+  "code": {
+    "coding": [
+      {
+        "code": "617312",
+        "display": "atorvastatin 10 MG Oral Tablet",
+        "system": "http://www.nlm.nih.gov/research/umls/rxnorm"
+      }
+    ],
+    "text": "Atorvastatin 10 mg tablet"
+  },
+  "id": "d3207718-1ce9-54e8-bdb3-dcca7d413202",
+  "resourceType": "Medication"
+}

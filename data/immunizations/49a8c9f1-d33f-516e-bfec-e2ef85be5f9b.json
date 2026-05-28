@@ -1,0 +1,19 @@
+{
+  "id": "49a8c9f1-d33f-516e-bfec-e2ef85be5f9b",
+  "occurrenceDateTime": "2023-04-15",
+  "patient": {
+    "reference": "Patient/77b1da4d-6d76-5a21-ac84-5984e9465ff8"
+  },
+  "resourceType": "Immunization",
+  "status": "completed",
+  "vaccineCode": {
+    "coding": [
+      {
+        "code": "83",
+        "display": "Hep A, ped/adol, 2 dose",
+        "system": "http://hl7.org/fhir/sid/cvx"
+      }
+    ],
+    "text": "Hep A, ped/adol, 2 dose"
+  }
+}

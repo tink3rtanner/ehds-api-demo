@@ -35,15 +35,15 @@ def _build_app() -> FastAPI:
 
     app.include_router(smart_router)
 
+    from app.routers import binary as binary_router
+    from app.routers import bundle as bundle_router
+    from app.routers import discovery as discovery_router
+    from app.routers import docref as docref_router
+    from app.routers import docsubmit as docsubmit_router
+    from app.routers import everything as everything_router
     from app.routers import metadata as metadata_router
     from app.routers import patient as patient_router
     from app.routers import resource as resource_router
-    from app.routers import docref as docref_router
-    from app.routers import binary as binary_router
-    from app.routers import bundle as bundle_router
-    from app.routers import everything as everything_router
-    from app.routers import docsubmit as docsubmit_router
-    from app.routers import discovery as discovery_router
 
     app.include_router(metadata_router.router)
     app.include_router(patient_router.router)

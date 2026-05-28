@@ -6,11 +6,11 @@ import pytest
 pytestmark = pytest.mark.asyncio
 
 
-async def test_read_patient(client, auth_headers):
-    r = await client.get("/Patient/p-001", headers=auth_headers)
+async def test_read_patient(client, auth_headers, pid):
+    r = await client.get(f"/Patient/{pid}", headers=auth_headers)
     assert r.status_code == 200
     p = r.json()
-    assert p["id"] == "p-001"
+    assert p["id"] == pid
     assert p["name"][0]["family"] == "Müller"
 
 
@@ -50,7 +50,7 @@ async def test_pdqm_search_returns_all_for_empty_query(client, auth_headers):
     assert r.json()["total"] == 10
 
 
-async def test_patient_match_certain(client, auth_headers):
+async def test_patient_match_certain(client, auth_headers, pid):
     body = {
         "resourceType": "Parameters",
         "parameter": [
@@ -68,7 +68,7 @@ async def test_patient_match_certain(client, auth_headers):
     bundle = r.json()
     assert bundle["total"] >= 1
     top = bundle["entry"][0]
-    assert top["resource"]["id"] == "p-001"
+    assert top["resource"]["id"] == pid
     grade_ext = next(e for e in top["search"]["extension"]
                      if e["url"] == "http://hl7.org/fhir/StructureDefinition/match-grade")
     assert grade_ext["valueCode"] in {"certain", "probable"}

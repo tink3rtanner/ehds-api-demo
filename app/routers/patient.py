@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, Request
 from fastapi.responses import JSONResponse
 
 from app.auth.verify import Principal, require_scope

@@ -12,7 +12,7 @@ import shutil
 import tempfile
 import time
 import uuid
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator
 from pathlib import Path
 
 # ---------- early env setup ----------
@@ -40,8 +40,8 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 
 _TEST_CLIENT_KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
-import jwt as _jwt_for_jwk
 from jwt.algorithms import RSAAlgorithm as _RSAAlgorithm
+
 _TEST_CLIENT_JWK = json.loads(_RSAAlgorithm.to_jwk(_TEST_CLIENT_KEY.public_key()))
 _TEST_CLIENT_JWK["kid"] = "test-client-key-1"
 _TEST_CLIENT_JWK["use"] = "sig"
@@ -154,6 +154,35 @@ def make_assertion(test_client_key):
     def _factory(**overrides):
         return _assertion_for(test_client_key, **overrides)
     return _factory
+
+
+# ---- patient slot helpers ----
+# Patient ids are now deterministic UUIDs minted from slot labels. Tests use
+# these helpers to get the canonical FHIR id for the synthetic-panel slots.
+
+from app.fhir.ids import child_id as _child_id
+from app.fhir.ids import patient_id as _patient_id
+
+
+@pytest.fixture
+def pid() -> str:
+    """canonical FHIR Patient.id for slot p-001 (Anna Müller)."""
+    return _patient_id("p-001")
+
+
+@pytest.fixture
+def pid_for():
+    """callable returning Patient.id for any slot label."""
+    return _patient_id
+
+
+@pytest.fixture
+def child_id_for():
+    """callable returning the deterministic id for a slot-owned child resource.
+
+    usage: ``child_id_for("p-001", "Observation", 5)``
+    """
+    return _child_id
 
 
 # ---- java validator availability ----

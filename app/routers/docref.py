@@ -47,9 +47,12 @@ async def search_docref(
     if (v := norm.get("_id")):
         results = [r for r in results if r.get("id") == v[0]]
     if (v := norm.get("patient")):
-        pid = v[0].split("/")[-1]
-        results = [r for r in results
-                   if (r.get("subject", {}).get("reference", "")).endswith(f"Patient/{pid}")]
+        canonical = store.resolve_patient_ref(v[0])
+        if canonical is None:
+            results = []
+        else:
+            results = [r for r in results
+                       if (r.get("subject", {}).get("reference", "")).endswith(f"Patient/{canonical}")]
     if (v := norm.get("status")):
         results = [r for r in results if r.get("status") == v[0]]
     if (v := norm.get("category")):

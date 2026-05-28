@@ -4,7 +4,7 @@ from __future__ import annotations
 import pytest
 
 from app.fhir.ids import bundle_id, docref_id
-from scripts.seed import PANEL, DOC_TYPES, CATEGORY_CODES
+from scripts.seed import DOC_TYPES, PANEL
 
 pytestmark = pytest.mark.asyncio
 

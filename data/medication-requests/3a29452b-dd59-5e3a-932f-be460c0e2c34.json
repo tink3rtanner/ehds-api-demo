@@ -1,0 +1,18 @@
+{
+  "authoredOn": "2024-02-10",
+  "dosageInstruction": [
+    {
+      "text": "1 tablet daily by mouth"
+    }
+  ],
+  "id": "3a29452b-dd59-5e3a-932f-be460c0e2c34",
+  "intent": "order",
+  "medicationReference": {
+    "reference": "Medication/e6b0e7af-6497-5372-8b38-d2e2c4133d5f"
+  },
+  "resourceType": "MedicationRequest",
+  "status": "active",
+  "subject": {
+    "reference": "Patient/77b1da4d-6d76-5a21-ac84-5984e9465ff8"
+  }
+}

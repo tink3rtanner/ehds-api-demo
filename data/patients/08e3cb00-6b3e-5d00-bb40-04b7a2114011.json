@@ -1,0 +1,67 @@
+{
+  "active": true,
+  "address": [
+    {
+      "city": "Vienna",
+      "country": "AT",
+      "line": [
+        "Stephansplatz 1"
+      ],
+      "postalCode": "1010",
+      "use": "home"
+    }
+  ],
+  "birthDate": "1968-03-14",
+  "communication": [
+    {
+      "language": {
+        "coding": [
+          {
+            "code": "de-AT",
+            "system": "urn:ietf:bcp:47"
+          }
+        ]
+      }
+    }
+  ],
+  "gender": "female",
+  "id": "08e3cb00-6b3e-5d00-bb40-04b7a2114011",
+  "identifier": [
+    {
+      "system": "urn:ehds-demo:slot",
+      "use": "secondary",
+      "value": "p-001"
+    },
+    {
+      "system": "urn:oid:1.2.40.0.10.1.4.3.1",
+      "use": "official",
+      "value": "1014031968"
+    }
+  ],
+  "meta": {
+    "profile": [
+      "http://hl7.eu/fhir/StructureDefinition/Patient-eu"
+    ]
+  },
+  "name": [
+    {
+      "family": "M\u00fcller",
+      "given": [
+        "Anna"
+      ],
+      "use": "official"
+    }
+  ],
+  "resourceType": "Patient",
+  "telecom": [
+    {
+      "system": "phone",
+      "use": "home",
+      "value": "+43 1 5555111"
+    },
+    {
+      "system": "email",
+      "value": "anna.mueller@example.at"
+    }
+  ]
+}

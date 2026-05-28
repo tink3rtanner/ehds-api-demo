@@ -1,0 +1,14 @@
+{
+  "code": {
+    "coding": [
+      {
+        "code": "860974",
+        "display": "metformin hydrochloride 500 MG",
+        "system": "http://www.nlm.nih.gov/research/umls/rxnorm"
+      }
+    ],
+    "text": "Metformin HCl 500 mg"
+  },
+  "id": "e0b901fb-5150-50a4-80da-6befa14d5bf6",
+  "resourceType": "Medication"
+}

@@ -15,7 +15,19 @@ from fastapi.responses import JSONResponse
 from app.config import settings
 from app.fhir import document as doc_compile
 from app.fhir import store
-from app.fhir.ids import bundle_id
+from app.fhir.ids import SLOT_IDENTIFIER_SYSTEM, bundle_id
+
+
+def _slot_of(p: dict) -> str | None:
+    for ident in p.get("identifier", []) or []:
+        if ident.get("system") == SLOT_IDENTIFIER_SYSTEM:
+            return ident.get("value")
+    return None
+
+
+def _slot_for_patient_id(patient_uuid: str) -> str | None:
+    p = store.read("Patient", patient_uuid)
+    return _slot_of(p) if p else None
 
 router = APIRouter()
 
@@ -141,8 +153,8 @@ async def register_client(payload: dict) -> JSONResponse:
         jwks = {"keys": [jwk]}
     elif payload.get("public_key_pem"):
         try:
-            from jwt.algorithms import RSAAlgorithm
             from cryptography.hazmat.primitives import serialization
+            from jwt.algorithms import RSAAlgorithm
             pub = serialization.load_pem_public_key(payload["public_key_pem"].encode())
             jwk = json.loads(RSAAlgorithm.to_jwk(pub))
         except Exception as e:
@@ -179,18 +191,26 @@ async def register_client(payload: dict) -> JSONResponse:
 async def spec_bundle_id(pid: str, category: str) -> JSONResponse:
     """Resolve a (patient, category) pair to the deterministic /Bundle/{uuid}.
 
-    Agent path: smart-config advertises /Bundle/{uuid} but doesn't enumerate
-    the 50 uuids — instead it tells the agent to compute them via this
-    endpoint or by reading /DocumentReference?patient={pid} (which carries
-    the Bundle URL in content.attachment.url).
+    `pid` accepts either a Patient FHIR id (uuid) or a slot identifier
+    (``p-001`` etc.) — the latter so agents can derive a canonical URL
+    without first calling /Patient?identifier= to translate.
     """
     if category not in doc_compile.CATEGORY_TO_DOC_TYPE:
         raise HTTPException(status_code=404, detail="unknown category")
-    if store.read("Patient", pid) is None:
-        raise HTTPException(status_code=404, detail="patient not found")
-    bid = bundle_id(pid, category)
+    # accept either a Patient.id (uuid) or a slot identifier
+    patient = store.read("Patient", pid)
+    if patient is not None:
+        slot = _slot_of(patient) or pid
+    else:
+        slot = pid
+        match = [p for p in store.list_all("Patient") if _slot_of(p) == pid]
+        if not match:
+            raise HTTPException(status_code=404, detail="patient not found")
+        patient = match[0]
+    bid = bundle_id(slot, category)
     return JSONResponse({
-        "patient": pid,
+        "patient": patient["id"],
+        "slot": slot,
         "category": category,
         "bundle_id": bid,
         "path": f"/Bundle/{bid}",
@@ -200,18 +220,15 @@ async def spec_bundle_id(pid: str, category: str) -> JSONResponse:
 
 @router.get("/spec/all-bundle-ids", name="spec_all_bundle_ids")
 async def spec_all_bundle_ids() -> JSONResponse:
-    """List every (patient, category, /Bundle/{uuid}) mapping in one shot.
-
-    Useful for an agent that wants to enumerate every compiled document
-    without hitting /DocumentReference for each patient. Returns 50 entries
-    for the canonical 10-patient panel × 5 priority categories.
-    """
+    """Every (patient, category, /Bundle/{uuid}) mapping in one shot."""
     bundles = []
     for p in store.list_all("Patient"):
+        slot = _slot_of(p) or p["id"]
         for cat in doc_compile.CATEGORY_TO_DOC_TYPE:
-            bid = bundle_id(p["id"], cat)
+            bid = bundle_id(slot, cat)
             bundles.append({
                 "patient": p["id"],
+                "slot": slot,
                 "category": cat,
                 "bundle_id": bid,
                 "path": f"/Bundle/{bid}",

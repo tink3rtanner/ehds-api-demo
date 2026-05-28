@@ -17,7 +17,7 @@ import json
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Request
+from fastapi import APIRouter, Body, Depends
 from fastapi.responses import JSONResponse
 
 from app.auth.verify import Principal, require_scope

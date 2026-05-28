@@ -1,0 +1,35 @@
+{
+  "category": [
+    {
+      "coding": [
+        {
+          "code": "laboratory",
+          "system": "http://terminology.hl7.org/CodeSystem/observation-category"
+        }
+      ]
+    }
+  ],
+  "code": {
+    "coding": [
+      {
+        "code": "2339-0",
+        "display": "Glucose [Mass/volume] in Blood",
+        "system": "http://loinc.org"
+      }
+    ],
+    "text": "Glucose [Mass/volume] in Blood"
+  },
+  "effectiveDateTime": "2024-03-01",
+  "id": "46efb72f-ce03-5267-afdf-d95f03741c27",
+  "resourceType": "Observation",
+  "status": "final",
+  "subject": {
+    "reference": "Patient/d0a3a011-53d6-5fe9-b5d6-03a597b9deac"
+  },
+  "valueQuantity": {
+    "code": "mg/dL",
+    "system": "http://unitsofmeasure.org",
+    "unit": "mg/dL",
+    "value": 100
+  }
+}

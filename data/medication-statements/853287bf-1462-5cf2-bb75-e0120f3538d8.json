@@ -1,0 +1,17 @@
+{
+  "dosage": [
+    {
+      "text": "1 tablet daily by mouth"
+    }
+  ],
+  "effectiveDateTime": "2023-01-01",
+  "id": "853287bf-1462-5cf2-bb75-e0120f3538d8",
+  "medicationReference": {
+    "reference": "Medication/1f229b53-cde2-5bd0-acda-c175c78cb667"
+  },
+  "resourceType": "MedicationStatement",
+  "status": "active",
+  "subject": {
+    "reference": "Patient/08e3cb00-6b3e-5d00-bb40-04b7a2114011"
+  }
+}

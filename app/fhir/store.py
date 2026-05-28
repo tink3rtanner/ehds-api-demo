@@ -14,8 +14,9 @@ from __future__ import annotations
 
 import json
 import threading
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any
 
 from app.config import settings
 
@@ -124,6 +125,31 @@ def _resource_refs_patient(res: dict[str, Any]) -> str | None:
     return None
 
 
+def resolve_patient_ref(value: str) -> str | None:
+    """resolve a search-param value to a canonical Patient.id (uuid).
+
+    Accepts:
+      - a Patient.id (uuid) directly
+      - a slot identifier (Patient.identifier with the demo slot system),
+        e.g. ``p-001``
+      - a full reference like ``Patient/<id-or-slot>``
+    Returns the canonical Patient.id or None if no patient matches.
+    """
+    # strip Type/ prefix if given
+    if value.startswith("Patient/"):
+        value = value.split("/", 1)[1]
+    # exact id match first (cheapest)
+    p = read("Patient", value)
+    if p is not None:
+        return p["id"]
+    # then try Patient.identifier value lookup
+    for p in list_all("Patient"):
+        for ident in p.get("identifier", []) or []:
+            if ident.get("value") == value:
+                return p["id"]
+    return None
+
+
 def _match_token(res: dict[str, Any], field: str, value: str) -> bool:
     """rudimentary token search: status, code, category fields. value can be system|code."""
     target = value.split("|")[-1]  # strip system prefix
@@ -155,10 +181,14 @@ def search(rtype: str, params: dict[str, list[str]]) -> list[dict[str, Any]]:
     if (rid := take("_id")):
         results = [r for r in results if r.get("id") == rid]
 
-    # patient compartment (works for any subject-based resource)
+    # patient compartment (works for any subject-based resource).
+    # the patient param can be a uuid, a slot identifier, or a Patient/<x>
+    # reference — we resolve to canonical id once and filter from there.
     if (pat := take("patient")):
-        pid = pat.split("/")[-1]
-        results = [r for r in results if _resource_refs_patient(r) == pid]
+        canonical = resolve_patient_ref(pat)
+        if canonical is None:
+            return []
+        results = [r for r in results if _resource_refs_patient(r) == canonical]
 
     # generic identifier (Patient + Practitioner + Organization)
     if (ident := take("identifier")):

@@ -1,0 +1,42 @@
+{
+  "category": [
+    {
+      "coding": [
+        {
+          "code": "RAD",
+          "display": "Radiology",
+          "system": "http://terminology.hl7.org/CodeSystem/v2-0074"
+        }
+      ]
+    }
+  ],
+  "code": {
+    "coding": [
+      {
+        "code": "30746-2",
+        "display": "Portable XR Chest Views",
+        "system": "http://loinc.org"
+      }
+    ],
+    "text": "Chest X-ray report"
+  },
+  "conclusion": "Normal chest radiograph.",
+  "effectiveDateTime": "2024-04-11",
+  "id": "bd17e724-5fe9-511e-a203-0d16a7cc2c3d",
+  "imagingStudy": [
+    {
+      "reference": "ImagingStudy/87b734ce-38a7-5acb-934d-b3e312acfe9b"
+    }
+  ],
+  "issued": "2024-04-11T15:00:00+02:00",
+  "performer": [
+    {
+      "reference": "Practitioner/baf80266-57d9-53e4-89a3-0b83cc51a672"
+    }
+  ],
+  "resourceType": "DiagnosticReport",
+  "status": "final",
+  "subject": {
+    "reference": "Patient/fc282042-de09-5096-b1d0-30458f7deae7"
+  }
+}

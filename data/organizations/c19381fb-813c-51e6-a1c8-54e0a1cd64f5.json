@@ -1,0 +1,23 @@
+{
+  "address": [
+    {
+      "city": "Berlin",
+      "country": "DE"
+    }
+  ],
+  "id": "c19381fb-813c-51e6-a1c8-54e0a1cd64f5",
+  "identifier": [
+    {
+      "system": "urn:oid:1.2.3.4.5",
+      "value": "ORG-0004"
+    }
+  ],
+  "name": "Demo General Hospital",
+  "resourceType": "Organization",
+  "telecom": [
+    {
+      "system": "phone",
+      "value": "+49 30 11111"
+    }
+  ]
+}

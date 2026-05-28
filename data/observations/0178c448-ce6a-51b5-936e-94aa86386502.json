@@ -1,0 +1,65 @@
+{
+  "category": [
+    {
+      "coding": [
+        {
+          "code": "vital-signs",
+          "system": "http://terminology.hl7.org/CodeSystem/observation-category"
+        }
+      ]
+    }
+  ],
+  "code": {
+    "coding": [
+      {
+        "code": "85354-9",
+        "display": "Blood pressure panel with all children optional",
+        "system": "http://loinc.org"
+      }
+    ],
+    "text": "Blood pressure"
+  },
+  "component": [
+    {
+      "code": {
+        "coding": [
+          {
+            "code": "8480-6",
+            "display": "Systolic blood pressure",
+            "system": "http://loinc.org"
+          }
+        ]
+      },
+      "valueQuantity": {
+        "code": "mm[Hg]",
+        "system": "http://unitsofmeasure.org",
+        "unit": "mm[Hg]",
+        "value": 120
+      }
+    },
+    {
+      "code": {
+        "coding": [
+          {
+            "code": "8462-4",
+            "display": "Diastolic blood pressure",
+            "system": "http://loinc.org"
+          }
+        ]
+      },
+      "valueQuantity": {
+        "code": "mm[Hg]",
+        "system": "http://unitsofmeasure.org",
+        "unit": "mm[Hg]",
+        "value": 80
+      }
+    }
+  ],
+  "effectiveDateTime": "2024-03-01",
+  "id": "0178c448-ce6a-51b5-936e-94aa86386502",
+  "resourceType": "Observation",
+  "status": "final",
+  "subject": {
+    "reference": "Patient/fc282042-de09-5096-b1d0-30458f7deae7"
+  }
+}

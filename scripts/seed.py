@@ -1,12 +1,18 @@
 """seed 10 synthetic EU patients + all dependent resources.
 
-deterministic: same inputs -> same outputs (same ids, same dates).
+every resource id is a deterministic uuid5 minted by app.fhir.ids — same id
+on every reseed, but visually indistinguishable from a real FHIR server's
+output. the human-readable slot label (``p-001``) survives only as a
+Patient.identifier with system ``urn:ehds-demo:slot``, so PDQm searches
+by identifier still find the right patient.
+
 covers every priority category compiler's needs:
   - patient summary  -> Patient, AllergyIntolerance, Condition, MedicationStatement,
                         Immunization, Procedure, Observation, Encounter
   - laboratory       -> DiagnosticReport(LAB), Observation, Specimen
   - discharge        -> Encounter, Condition, MedicationRequest, Procedure
   - imaging          -> DiagnosticReport(RAD), ImagingStudy
+  - prescription     -> MedicationRequest
 
 usage:  python -m scripts.seed [--data-dir path]
 """
@@ -18,6 +24,16 @@ import random
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
+
+from app.fhir.ids import (
+    SLOT_IDENTIFIER_SYSTEM,
+    bundle_id,
+    child_id,
+    docref_id,
+    organization_id,
+    patient_id,
+    practitioner_id,
+)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_DATA_DIR = REPO_ROOT / "data"
@@ -42,9 +58,10 @@ CATEGORY_CODES = {
     "prescription":      {"system": CATEGORY_CS, "code": "prescription",      "display": "ePrescription"},
 }
 
+
 @dataclass
 class P:
-    pid: str
+    pid: str  # slot label (kept for deterministic id derivation; NOT a FHIR id)
     family: str
     given: list[str]
     gender: str  # 'male' | 'female' | 'other'
@@ -54,7 +71,7 @@ class P:
     postal: str
     line: str
     language: str  # bcp-47
-    national_id_system: str  # urn:oid:... or similar
+    national_id_system: str
     national_id: str
     phone: str
     email: str
@@ -84,16 +101,26 @@ PANEL: list[P] = [
 ]
 
 
+# ---------- per-resource builders ----------
+# every builder takes a slot label (e.g. "p-001") and an index where applicable.
+# every resource gets a deterministic uuid via app.fhir.ids; every reference
+# uses uuids too.
+
+def _patient_ref(slot: str) -> str:
+    return f"Patient/{patient_id(slot)}"
+
+
 def _patient(p: P) -> dict:
     return {
         "resourceType": "Patient",
-        "id": p.pid,
+        "id": patient_id(p.pid),
         "meta": {"profile": ["http://hl7.eu/fhir/StructureDefinition/Patient-eu"]},
-        "identifier": [{
-            "system": p.national_id_system,
-            "value": p.national_id,
-            "use": "official",
-        }],
+        "identifier": [
+            # the EHDS-demo slot label is preserved here so clients that hardcode
+            # "p-001" can still find the patient via PDQm by identifier
+            {"system": SLOT_IDENTIFIER_SYSTEM, "value": p.pid, "use": "secondary"},
+            {"system": p.national_id_system, "value": p.national_id, "use": "official"},
+        ],
         "active": True,
         "name": [{"use": "official", "family": p.family, "given": p.given}],
         "telecom": [
@@ -113,10 +140,10 @@ def _patient(p: P) -> dict:
     }
 
 
-def _practitioner(idx: int) -> dict:
+def _practitioner(slot: str, idx: int) -> dict:
     return {
         "resourceType": "Practitioner",
-        "id": f"pract-{idx:03d}",
+        "id": practitioner_id(slot),
         "identifier": [{"system": "urn:oid:1.2.3.4.5", "value": f"DOC-{idx:05d}"}],
         "name": [{"family": ["Hoffmann", "Bianchi", "Bernard", "Lopez", "Petrov"][idx % 5],
                   "given": [["Eva", "Marco", "Pierre", "Carmen", "Ivan"][idx % 5]],
@@ -125,10 +152,10 @@ def _practitioner(idx: int) -> dict:
     }
 
 
-def _organization(idx: int) -> dict:
+def _organization(slot: str, idx: int) -> dict:
     return {
         "resourceType": "Organization",
-        "id": f"org-{idx:03d}",
+        "id": organization_id(slot),
         "identifier": [{"system": "urn:oid:1.2.3.4.5", "value": f"ORG-{idx:04d}"}],
         "name": ["EHDS Demo University Hospital", "Demo General Hospital",
                  "Demo Regional Clinic"][idx % 3],
@@ -146,13 +173,13 @@ def _allergy(p: P, idx: int) -> dict:
     code, disp, cat = substances[idx % 3]
     return {
         "resourceType": "AllergyIntolerance",
-        "id": f"allergy-{p.pid}-{idx:02d}",
+        "id": child_id(p.pid, "AllergyIntolerance", idx),
         "clinicalStatus": {"coding": [{"system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical", "code": "active"}]},
         "verificationStatus": {"coding": [{"system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-verification", "code": "confirmed"}]},
         "category": [cat],
         "criticality": "low",
         "code": {"coding": [{"system": "http://snomed.info/sct", "code": code, "display": disp}], "text": disp},
-        "patient": {"reference": f"Patient/{p.pid}"},
+        "patient": {"reference": _patient_ref(p.pid)},
     }
 
 
@@ -167,21 +194,17 @@ def _condition(p: P, idx: int) -> dict:
     code, disp = cs[idx % 5]
     return {
         "resourceType": "Condition",
-        "id": f"cond-{p.pid}-{idx:02d}",
+        "id": child_id(p.pid, "Condition", idx),
         "clinicalStatus": {"coding": [{"system": "http://terminology.hl7.org/CodeSystem/condition-clinical", "code": "active"}]},
         "verificationStatus": {"coding": [{"system": "http://terminology.hl7.org/CodeSystem/condition-ver-status", "code": "confirmed"}]},
         "category": [{"coding": [{"system": "http://terminology.hl7.org/CodeSystem/condition-category", "code": "problem-list-item"}]}],
         "code": {"coding": [{"system": "http://snomed.info/sct", "code": code, "display": disp}], "text": disp},
-        "subject": {"reference": f"Patient/{p.pid}"},
+        "subject": {"reference": _patient_ref(p.pid)},
         "recordedDate": "2023-04-15",
     }
 
 
 def _medication(p: P, idx: int) -> dict:
-    # RxNorm (RXCUI) codes — well-known, publicly resolvable, no licence
-    # restriction. coding[].display strings MUST match the canonical RxNorm
-    # text exactly (the HL7 validator cross-checks against tx.fhir.org). The
-    # human-friendly label lives in code.text.
     meds = [
         ("314076", "Lisinopril 10 MG Oral Tablet",                   "Lisinopril 10 mg tablet"),
         ("860974", "metformin hydrochloride 500 MG",                 "Metformin HCl 500 mg"),
@@ -192,7 +215,7 @@ def _medication(p: P, idx: int) -> dict:
     code, disp, text = meds[idx % 5]
     return {
         "resourceType": "Medication",
-        "id": f"med-{p.pid}-{idx:02d}",
+        "id": child_id(p.pid, "Medication", idx),
         "code": {"coding": [{"system": "http://www.nlm.nih.gov/research/umls/rxnorm", "code": code, "display": disp}], "text": text},
     }
 
@@ -200,10 +223,10 @@ def _medication(p: P, idx: int) -> dict:
 def _med_statement(p: P, idx: int, med_ref: str) -> dict:
     return {
         "resourceType": "MedicationStatement",
-        "id": f"medst-{p.pid}-{idx:02d}",
+        "id": child_id(p.pid, "MedicationStatement", idx),
         "status": "active",
         "medicationReference": {"reference": med_ref},
-        "subject": {"reference": f"Patient/{p.pid}"},
+        "subject": {"reference": _patient_ref(p.pid)},
         "effectiveDateTime": "2023-01-01",
         "dosage": [{"text": "1 tablet daily by mouth"}],
     }
@@ -212,11 +235,11 @@ def _med_statement(p: P, idx: int, med_ref: str) -> dict:
 def _med_request(p: P, idx: int, med_ref: str) -> dict:
     return {
         "resourceType": "MedicationRequest",
-        "id": f"medrq-{p.pid}-{idx:02d}",
+        "id": child_id(p.pid, "MedicationRequest", idx),
         "status": "active",
         "intent": "order",
         "medicationReference": {"reference": med_ref},
-        "subject": {"reference": f"Patient/{p.pid}"},
+        "subject": {"reference": _patient_ref(p.pid)},
         "authoredOn": "2024-02-10",
         "dosageInstruction": [{"text": "1 tablet daily by mouth"}],
     }
@@ -225,18 +248,16 @@ def _med_request(p: P, idx: int, med_ref: str) -> dict:
 def _med_dispense(p: P, idx: int, med_ref: str) -> dict:
     return {
         "resourceType": "MedicationDispense",
-        "id": f"meddi-{p.pid}-{idx:02d}",
+        "id": child_id(p.pid, "MedicationDispense", idx),
         "status": "completed",
         "medicationReference": {"reference": med_ref},
-        "subject": {"reference": f"Patient/{p.pid}"},
+        "subject": {"reference": _patient_ref(p.pid)},
         "whenHandedOver": "2024-02-12",
         "quantity": {"value": 30, "unit": "tablet"},
     }
 
 
 def _immunization(p: P, idx: int) -> dict:
-    # CVX display strings must match CDC IIS canonical text or the HL7
-    # validator emits Wrong-Display-Name errors against the terminology server.
     vaxes = [
         ("207", "COVID-19, mRNA, LNP-S, PF, 100 mcg/0.5mL dose or 50 mcg/0.25mL dose"),
         ("140", "Influenza, split virus, trivalent, PF"),
@@ -246,10 +267,10 @@ def _immunization(p: P, idx: int) -> dict:
     code, disp = vaxes[idx % 4]
     return {
         "resourceType": "Immunization",
-        "id": f"imm-{p.pid}-{idx:02d}",
+        "id": child_id(p.pid, "Immunization", idx),
         "status": "completed",
         "vaccineCode": {"coding": [{"system": "http://hl7.org/fhir/sid/cvx", "code": code, "display": disp}], "text": disp},
-        "patient": {"reference": f"Patient/{p.pid}"},
+        "patient": {"reference": _patient_ref(p.pid)},
         "occurrenceDateTime": f"2023-{(idx % 12) + 1:02d}-15",
     }
 
@@ -263,28 +284,23 @@ def _procedure(p: P, idx: int) -> dict:
     code, disp = procs[idx % 3]
     return {
         "resourceType": "Procedure",
-        "id": f"proc-{p.pid}-{idx:02d}",
+        "id": child_id(p.pid, "Procedure", idx),
         "status": "completed",
         "code": {"coding": [{"system": "http://snomed.info/sct", "code": code, "display": disp}], "text": disp},
-        "subject": {"reference": f"Patient/{p.pid}"},
+        "subject": {"reference": _patient_ref(p.pid)},
         "performedDateTime": "2023-08-22",
     }
 
 
 def _bp_panel(p: P, idx: int) -> dict:
-    """proper R4 BP panel (LOINC 85354-9) with systolic+diastolic components.
-
-    Using standalone 8480-6 triggers the http://hl7.org/fhir/StructureDefinition/bp
-    profile, which requires the panel layout with both components. So we emit the
-    panel directly instead.
-    """
+    """proper R4 BP panel (LOINC 85354-9) with systolic+diastolic components."""
     return {
         "resourceType": "Observation",
-        "id": f"obs-{p.pid}-{idx:02d}",
+        "id": child_id(p.pid, "Observation", idx),
         "status": "final",
         "category": [{"coding": [{"system": "http://terminology.hl7.org/CodeSystem/observation-category", "code": "vital-signs"}]}],
         "code": {"coding": [{"system": "http://loinc.org", "code": "85354-9", "display": "Blood pressure panel with all children optional"}], "text": "Blood pressure"},
-        "subject": {"reference": f"Patient/{p.pid}"},
+        "subject": {"reference": _patient_ref(p.pid)},
         "effectiveDateTime": "2024-03-01",
         "component": [
             {
@@ -300,20 +316,16 @@ def _bp_panel(p: P, idx: int) -> dict:
 
 
 def _observation(p: P, idx: int) -> dict:
-    # LOINC display strings must match the official en-US text (validator
-    # cross-checks the LOINC terminology server). One observation per patient
-    # (idx == 0) is rendered as a proper BP panel via _bp_panel().
+    """LOINC display strings must match the official en-US text (validator
+    cross-checks). idx == 0 is rendered as a proper BP panel."""
     if idx == 0:
         return _bp_panel(p, idx)
 
     obs_specs = [
-        # (loinc, display, unit, value, category) — 9 standalone observations
         ("8867-4",  "Heart rate",                                      "/min",   72 + idx, "vital-signs"),
         ("8310-5",  "Body temperature",                                "Cel",    36 + (idx % 2), "vital-signs"),
         ("9279-1",  "Respiratory rate",                                "/min",   16 + (idx % 4), "vital-signs"),
-        # 2708-6 is the "magic" LOINC the oxygensat base profile requires.
-        # 59408-5 (pulse-oximetry variant) trips OxygenSatCode-1 invariant.
-        ("2708-6",  "Oxygen saturation in Arterial blood",            "%",      96 + (idx % 4), "vital-signs"),
+        ("2708-6",  "Oxygen saturation in Arterial blood",             "%",      96 + (idx % 4), "vital-signs"),
         ("2339-0",  "Glucose [Mass/volume] in Blood",                  "mg/dL",  90 + idx * 2, "laboratory"),
         ("2093-3",  "Cholesterol [Mass/volume] in Serum or Plasma",    "mg/dL",  180 + idx,    "laboratory"),
         ("4548-4",  "Hemoglobin A1c/Hemoglobin.total in Blood",        "%",      5.6 + (idx % 5) * 0.1, "laboratory"),
@@ -323,11 +335,11 @@ def _observation(p: P, idx: int) -> dict:
     code, disp, unit, val, cat = obs_specs[(idx - 1) % len(obs_specs)]
     return {
         "resourceType": "Observation",
-        "id": f"obs-{p.pid}-{idx:02d}",
+        "id": child_id(p.pid, "Observation", idx),
         "status": "final",
         "category": [{"coding": [{"system": "http://terminology.hl7.org/CodeSystem/observation-category", "code": cat}]}],
         "code": {"coding": [{"system": "http://loinc.org", "code": code, "display": disp}], "text": disp},
-        "subject": {"reference": f"Patient/{p.pid}"},
+        "subject": {"reference": _patient_ref(p.pid)},
         "effectiveDateTime": "2024-03-01",
         "valueQuantity": {"value": val, "unit": unit, "system": "http://unitsofmeasure.org", "code": unit},
     }
@@ -336,12 +348,12 @@ def _observation(p: P, idx: int) -> dict:
 def _encounter(p: P, idx: int) -> dict:
     return {
         "resourceType": "Encounter",
-        "id": f"enc-{p.pid}-{idx:02d}",
+        "id": child_id(p.pid, "Encounter", idx),
         "status": "finished",
         "class": {"system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
                   "code": "IMP" if idx == 0 else "AMB",
                   "display": "inpatient encounter" if idx == 0 else "ambulatory"},
-        "subject": {"reference": f"Patient/{p.pid}"},
+        "subject": {"reference": _patient_ref(p.pid)},
         "period": {"start": "2024-04-10T09:00:00+02:00", "end": "2024-04-12T16:00:00+02:00"},
         "reasonCode": [{"text": "Post-operative recovery" if idx == 0 else "Routine check-up"}],
     }
@@ -356,10 +368,10 @@ def _specimen(p: P, idx: int) -> dict:
     code, disp = types[idx % 3]
     return {
         "resourceType": "Specimen",
-        "id": f"spec-{p.pid}-{idx:02d}",
+        "id": child_id(p.pid, "Specimen", idx),
         "status": "available",
         "type": {"coding": [{"system": "http://snomed.info/sct", "code": code, "display": disp}], "text": disp},
-        "subject": {"reference": f"Patient/{p.pid}"},
+        "subject": {"reference": _patient_ref(p.pid)},
         "collection": {"collectedDateTime": "2024-03-01T08:30:00+01:00"},
     }
 
@@ -367,11 +379,11 @@ def _specimen(p: P, idx: int) -> dict:
 def _diag_lab(p: P, obs_refs: list[str], specimen_refs: list[str], practitioner_ref: str, idx: int) -> dict:
     return {
         "resourceType": "DiagnosticReport",
-        "id": f"dr-lab-{p.pid}-{idx:02d}",
+        "id": child_id(p.pid, "DiagnosticReport-lab", idx),
         "status": "final",
         "category": [{"coding": [{"system": "http://terminology.hl7.org/CodeSystem/v2-0074", "code": "LAB", "display": "Laboratory"}]}],
         "code": {"coding": [{"system": "http://loinc.org", "code": "11502-2", "display": "Laboratory report"}]},
-        "subject": {"reference": f"Patient/{p.pid}"},
+        "subject": {"reference": _patient_ref(p.pid)},
         "effectiveDateTime": "2024-03-01",
         "issued": "2024-03-01T12:00:00+01:00",
         "performer": [{"reference": practitioner_ref}],
@@ -383,11 +395,11 @@ def _diag_lab(p: P, obs_refs: list[str], specimen_refs: list[str], practitioner_
 def _diag_rad(p: P, imaging_ref: str, practitioner_ref: str) -> dict:
     return {
         "resourceType": "DiagnosticReport",
-        "id": f"dr-rad-{p.pid}",
+        "id": child_id(p.pid, "DiagnosticReport-rad", 0),
         "status": "final",
         "category": [{"coding": [{"system": "http://terminology.hl7.org/CodeSystem/v2-0074", "code": "RAD", "display": "Radiology"}]}],
         "code": {"coding": [{"system": "http://loinc.org", "code": "30746-2", "display": "Portable XR Chest Views"}], "text": "Chest X-ray report"},
-        "subject": {"reference": f"Patient/{p.pid}"},
+        "subject": {"reference": _patient_ref(p.pid)},
         "effectiveDateTime": "2024-04-11",
         "issued": "2024-04-11T15:00:00+02:00",
         "performer": [{"reference": practitioner_ref}],
@@ -399,9 +411,9 @@ def _diag_rad(p: P, imaging_ref: str, practitioner_ref: str) -> dict:
 def _imaging_study(p: P) -> dict:
     return {
         "resourceType": "ImagingStudy",
-        "id": f"img-{p.pid}",
+        "id": child_id(p.pid, "ImagingStudy", 0),
         "status": "available",
-        "subject": {"reference": f"Patient/{p.pid}"},
+        "subject": {"reference": _patient_ref(p.pid)},
         "started": "2024-04-11T14:30:00+02:00",
         "numberOfSeries": 1,
         "numberOfInstances": 2,
@@ -417,26 +429,22 @@ def _imaging_study(p: P) -> dict:
 
 
 def _docref(p: P, category: str) -> dict:
-    # late import so seed scripts can run without importing the full app
-    from app.fhir.ids import bundle_id as _bundle_id
-    from app.fhir.ids import docref_id as _docref_id
-
     type_coding = DOC_TYPES[category]
     cat_coding = CATEGORY_CODES[category]
     return {
         "resourceType": "DocumentReference",
-        "id": _docref_id(p.pid, category),
+        "id": docref_id(p.pid, category),
         "meta": {"profile": [EHDS_DOCREF_PROFILE]},
         "status": "current",
         "type": {"coding": [type_coding]},
         "category": [{"coding": [cat_coding]}],
-        "subject": {"reference": f"Patient/{p.pid}"},
+        "subject": {"reference": _patient_ref(p.pid)},
         "date": "2024-04-15T10:00:00+02:00",
         "description": f"{cat_coding['display']} for {p.given[0]} {p.family}",
         "content": [{
             "attachment": {
                 "contentType": "application/fhir+json",
-                "url": f"Bundle/{_bundle_id(p.pid, category)}",
+                "url": f"Bundle/{bundle_id(p.pid, category)}",
             },
             "format": {"system": "http://ihe.net/fhir/ValueSet/IHE.FormatCode.codesystem", "code": "urn:ihe:iti:xds-sd:text:2008"},
         }],
@@ -461,15 +469,16 @@ def _w(base: Path, sub: str, res: dict) -> None:
 def seed(base: Path, clean: bool = False) -> None:
     if clean and base.exists():
         for d in base.iterdir():
-            if d.is_dir():
+            if d.is_dir() and d.name != "audit":  # keep accumulated audit logs
                 shutil.rmtree(d)
     _ensure_dirs(base)
     random.seed(42)
 
     # one practitioner + one organization per patient for variety
     for i, p in enumerate(PANEL):
-        pract = _practitioner(i + 1)
-        org = _organization(i + 1)
+        pract = _practitioner(p.pid, i + 1)
+        org = _organization(p.pid, i + 1)
+        pract_ref = f"Practitioner/{pract['id']}"
         _w(base, "practitioners", pract)
         _w(base, "organizations", org)
         _w(base, "patients", _patient(p))
@@ -515,16 +524,16 @@ def seed(base: Path, clean: bool = False) -> None:
         # imaging study + radiology dx report
         img = _imaging_study(p)
         _w(base, "imaging-studies", img)
-        _w(base, "diagnostic-reports", _diag_rad(p, f"ImagingStudy/{img['id']}", f"Practitioner/{pract['id']}"))
+        _w(base, "diagnostic-reports", _diag_rad(p, f"ImagingStudy/{img['id']}", pract_ref))
         # 2 lab dx reports (each referencing the lab observations + specimens)
-        lab_obs_refs = [f"Observation/{oid}" for oid in obs_ids if "obs" in oid]
+        lab_obs_refs = [f"Observation/{oid}" for oid in obs_ids]
         for k in range(2):
             chunk = lab_obs_refs[k::2]
             sp_refs = [f"Specimen/{spec_ids[k % len(spec_ids)]}"]
-            _w(base, "diagnostic-reports", _diag_lab(p, chunk, sp_refs, f"Practitioner/{pract['id']}", k))
+            _w(base, "diagnostic-reports", _diag_lab(p, chunk, sp_refs, pract_ref, k))
 
         # one DocumentReference per priority category
-        for category in DOC_TYPES.keys():
+        for category in DOC_TYPES:
             _w(base, "document-references", _docref(p, category))
 
 

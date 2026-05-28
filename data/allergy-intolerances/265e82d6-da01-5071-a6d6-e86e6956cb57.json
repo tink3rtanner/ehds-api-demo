@@ -1,0 +1,37 @@
+{
+  "category": [
+    "food"
+  ],
+  "clinicalStatus": {
+    "coding": [
+      {
+        "code": "active",
+        "system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical"
+      }
+    ]
+  },
+  "code": {
+    "coding": [
+      {
+        "code": "227493005",
+        "display": "Cashew nuts",
+        "system": "http://snomed.info/sct"
+      }
+    ],
+    "text": "Cashew nuts"
+  },
+  "criticality": "low",
+  "id": "265e82d6-da01-5071-a6d6-e86e6956cb57",
+  "patient": {
+    "reference": "Patient/d0a3a011-53d6-5fe9-b5d6-03a597b9deac"
+  },
+  "resourceType": "AllergyIntolerance",
+  "verificationStatus": {
+    "coding": [
+      {
+        "code": "confirmed",
+        "system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-verification"
+      }
+    ]
+  }
+}

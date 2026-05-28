@@ -5,7 +5,7 @@ import pytest
 
 from app.fhir.capability import PROFILE_EU_BUNDLE
 from app.fhir.ids import bundle_id, docref_id
-from scripts.seed import PANEL, DOC_TYPES
+from scripts.seed import DOC_TYPES, PANEL
 
 pytestmark = pytest.mark.asyncio
 
@@ -30,6 +30,7 @@ async def test_docref_per_patient_per_category(client, auth_headers):
 
 
 async def test_docref_filter_by_category(client, auth_headers):
+    # the `patient=` search param accepts either uuid or the slot identifier
     r = await client.get("/DocumentReference", headers=auth_headers,
                          params={"patient": "p-001", "category": "laboratory-report"})
     assert r.status_code == 200
@@ -59,18 +60,9 @@ async def test_bundle_unknown_returns_404(client, auth_headers):
     assert r.status_code == 404
 
 
-async def test_binary_legacy_redirects_to_bundle(client, auth_headers):
-    """legacy /Binary/doc-{pid}-{cat} URLs 301-redirect to /Bundle/{uuid}."""
-    r = await client.get("/Binary/doc-p-001-patient-summary",
-                         headers=auth_headers, follow_redirects=False)
-    assert r.status_code == 301
-    expected = f"/Bundle/{bundle_id('p-001', 'patient-summary')}"
-    assert r.headers["location"] == expected, r.headers
-
-
-async def test_patient_summary_operation(client, auth_headers):
+async def test_patient_summary_operation(client, auth_headers, pid):
     """IPS $summary returns the same bundle as /Bundle/{patient-summary-uuid}."""
-    r = await client.get("/Patient/p-001/$summary", headers=auth_headers)
+    r = await client.get(f"/Patient/{pid}/$summary", headers=auth_headers)
     assert r.status_code == 200
     body = r.json()
     assert body["resourceType"] == "Bundle"

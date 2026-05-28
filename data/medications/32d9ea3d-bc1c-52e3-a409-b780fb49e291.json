@@ -1,0 +1,14 @@
+{
+  "code": {
+    "coding": [
+      {
+        "code": "197361",
+        "display": "Amlodipine 5 MG Oral Tablet",
+        "system": "http://www.nlm.nih.gov/research/umls/rxnorm"
+      }
+    ],
+    "text": "Amlodipine 5 mg tablet"
+  },
+  "id": "32d9ea3d-bc1c-52e3-a409-b780fb49e291",
+  "resourceType": "Medication"
+}

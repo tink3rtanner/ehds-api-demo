@@ -1,0 +1,35 @@
+{
+  "category": [
+    {
+      "coding": [
+        {
+          "code": "laboratory",
+          "system": "http://terminology.hl7.org/CodeSystem/observation-category"
+        }
+      ]
+    }
+  ],
+  "code": {
+    "coding": [
+      {
+        "code": "2093-3",
+        "display": "Cholesterol [Mass/volume] in Serum or Plasma",
+        "system": "http://loinc.org"
+      }
+    ],
+    "text": "Cholesterol [Mass/volume] in Serum or Plasma"
+  },
+  "effectiveDateTime": "2024-03-01",
+  "id": "1dafc59e-bd59-5314-8628-79c98068a90f",
+  "resourceType": "Observation",
+  "status": "final",
+  "subject": {
+    "reference": "Patient/08e3cb00-6b3e-5d00-bb40-04b7a2114011"
+  },
+  "valueQuantity": {
+    "code": "mg/dL",
+    "system": "http://unitsofmeasure.org",
+    "unit": "mg/dL",
+    "value": 186
+  }
+}

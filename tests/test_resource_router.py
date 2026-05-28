@@ -31,8 +31,8 @@ async def test_patient_compartment_counts(client, auth_headers, rtype, expected)
     assert body["total"] == expected, f"{rtype}: expected {expected} got {body['total']}"
 
 
-async def test_read_observation(client, auth_headers):
-    r = await client.get("/Observation/obs-p-001-00", headers=auth_headers)
+async def test_read_observation(client, auth_headers, child_id_for):
+    r = await client.get(f"/Observation/{child_id_for('p-001', 'Observation', 0)}", headers=auth_headers)
     assert r.status_code == 200
     assert r.json()["resourceType"] == "Observation"
 

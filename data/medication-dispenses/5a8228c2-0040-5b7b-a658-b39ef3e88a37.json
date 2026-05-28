@@ -1,0 +1,16 @@
+{
+  "id": "5a8228c2-0040-5b7b-a658-b39ef3e88a37",
+  "medicationReference": {
+    "reference": "Medication/593fa96a-1dbc-5367-a847-2eafd7225cb8"
+  },
+  "quantity": {
+    "unit": "tablet",
+    "value": 30
+  },
+  "resourceType": "MedicationDispense",
+  "status": "completed",
+  "subject": {
+    "reference": "Patient/fc282042-de09-5096-b1d0-30458f7deae7"
+  },
+  "whenHandedOver": "2024-02-12"
+}

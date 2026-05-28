@@ -1,0 +1,27 @@
+{
+  "id": "baf80266-57d9-53e4-89a3-0b83cc51a672",
+  "identifier": [
+    {
+      "system": "urn:oid:1.2.3.4.5",
+      "value": "DOC-00005"
+    }
+  ],
+  "name": [
+    {
+      "family": "Hoffmann",
+      "given": [
+        "Eva"
+      ],
+      "prefix": [
+        "Dr."
+      ]
+    }
+  ],
+  "resourceType": "Practitioner",
+  "telecom": [
+    {
+      "system": "phone",
+      "value": "+49 30 99999"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "category": [
+    "environment"
+  ],
+  "clinicalStatus": {
+    "coding": [
+      {
+        "code": "active",
+        "system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical"
+      }
+    ]
+  },
+  "code": {
+    "coding": [
+      {
+        "code": "256277009",
+        "display": "Grass pollen",
+        "system": "http://snomed.info/sct"
+      }
+    ],
+    "text": "Grass pollen"
+  },
+  "criticality": "low",
+  "id": "b13acda4-4fe5-5488-ac61-ed0e5204ba4c",
+  "patient": {
+    "reference": "Patient/6aa8846d-50de-54c2-9912-122a01ec7d8a"
+  },
+  "resourceType": "AllergyIntolerance",
+  "verificationStatus": {
+    "coding": [
+      {
+        "code": "confirmed",
+        "system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-verification"
+      }
+    ]
+  }
+}

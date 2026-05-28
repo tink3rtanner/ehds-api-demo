@@ -1,0 +1,23 @@
+{
+  "address": [
+    {
+      "city": "Berlin",
+      "country": "DE"
+    }
+  ],
+  "id": "d797b8fb-566a-57d3-b4a6-cbe70807f32f",
+  "identifier": [
+    {
+      "system": "urn:oid:1.2.3.4.5",
+      "value": "ORG-0005"
+    }
+  ],
+  "name": "Demo Regional Clinic",
+  "resourceType": "Organization",
+  "telecom": [
+    {
+      "system": "phone",
+      "value": "+49 30 11111"
+    }
+  ]
+}

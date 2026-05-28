@@ -1,0 +1,35 @@
+{
+  "category": [
+    {
+      "coding": [
+        {
+          "code": "vital-signs",
+          "system": "http://terminology.hl7.org/CodeSystem/observation-category"
+        }
+      ]
+    }
+  ],
+  "code": {
+    "coding": [
+      {
+        "code": "8867-4",
+        "display": "Heart rate",
+        "system": "http://loinc.org"
+      }
+    ],
+    "text": "Heart rate"
+  },
+  "effectiveDateTime": "2024-03-01",
+  "id": "abff8194-08ca-52f6-85de-6589d92aa379",
+  "resourceType": "Observation",
+  "status": "final",
+  "subject": {
+    "reference": "Patient/6aa8846d-50de-54c2-9912-122a01ec7d8a"
+  },
+  "valueQuantity": {
+    "code": "/min",
+    "system": "http://unitsofmeasure.org",
+    "unit": "/min",
+    "value": 73
+  }
+}

@@ -5,7 +5,7 @@ specific behaviour; this one handles everything else.
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
 from app.auth.verify import Principal, require_scope

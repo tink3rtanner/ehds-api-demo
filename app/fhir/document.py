@@ -26,7 +26,7 @@ from typing import Any
 from app.config import settings
 from app.fhir import store
 from app.fhir.capability import PROFILE_EU_BUNDLE
-from app.fhir.ids import bundle_id, bundle_identifier, composition_id
+from app.fhir.ids import SLOT_IDENTIFIER_SYSTEM, bundle_id, bundle_identifier, composition_id
 
 CATEGORY_TO_DOC_TYPE = {
     "patient-summary":   {"system": "http://loinc.org", "code": "60591-5", "display": "Patient summary Document"},
@@ -185,7 +185,11 @@ def compile_document(patient_id: str, category: str) -> dict[str, Any]:
     author_org = _author_organization(patient_id)
     author_practitioner = _author_practitioner()
 
-    comp_id = composition_id(patient_id, category)
+    # bundle/composition uuids are deterministic on the slot label so the
+    # mapping {slot, category} -> uuid is stable from outside callers
+    slot = next((i["value"] for i in (patient.get("identifier") or [])
+                 if i.get("system") == SLOT_IDENTIFIER_SYSTEM), patient_id)
+    comp_id = composition_id(slot, category)
     composition: dict[str, Any] = {
         "resourceType": "Composition",
         "id": comp_id,
@@ -247,13 +251,13 @@ def compile_document(patient_id: str, category: str) -> dict[str, Any]:
 
     return {
         "resourceType": "Bundle",
-        "id": bundle_id(patient_id, category),
+        "id": bundle_id(slot, category),
         "meta": {"profile": [PROFILE_EU_BUNDLE[category]]},
         "type": "document",
         "timestamp": composition["date"],
         "identifier": {
             "system": "urn:ietf:rfc:3986",
-            "value": bundle_identifier(patient_id, category),
+            "value": bundle_identifier(slot, category),
         },
         "entry": bundle_entries,
     }

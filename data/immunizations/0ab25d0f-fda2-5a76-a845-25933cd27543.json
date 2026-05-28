@@ -1,0 +1,19 @@
+{
+  "id": "0ab25d0f-fda2-5a76-a845-25933cd27543",
+  "occurrenceDateTime": "2023-03-15",
+  "patient": {
+    "reference": "Patient/d0a3a011-53d6-5fe9-b5d6-03a597b9deac"
+  },
+  "resourceType": "Immunization",
+  "status": "completed",
+  "vaccineCode": {
+    "coding": [
+      {
+        "code": "115",
+        "display": "Tdap",
+        "system": "http://hl7.org/fhir/sid/cvx"
+      }
+    ],
+    "text": "Tdap"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "collection": {
+    "collectedDateTime": "2024-03-01T08:30:00+01:00"
+  },
+  "id": "10dc5d9b-24d5-53a6-99d6-eb2b4602aaad",
+  "resourceType": "Specimen",
+  "status": "available",
+  "subject": {
+    "reference": "Patient/d0a3a011-53d6-5fe9-b5d6-03a597b9deac"
+  },
+  "type": {
+    "coding": [
+      {
+        "code": "119295008",
+        "display": "Specimen obtained by aspiration",
+        "system": "http://snomed.info/sct"
+      }
+    ],
+    "text": "Specimen obtained by aspiration"
+  }
+}

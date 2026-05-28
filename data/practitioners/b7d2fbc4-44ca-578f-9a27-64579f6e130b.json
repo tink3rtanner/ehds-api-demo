@@ -1,0 +1,27 @@
+{
+  "id": "b7d2fbc4-44ca-578f-9a27-64579f6e130b",
+  "identifier": [
+    {
+      "system": "urn:oid:1.2.3.4.5",
+      "value": "DOC-00002"
+    }
+  ],
+  "name": [
+    {
+      "family": "Bernard",
+      "given": [
+        "Pierre"
+      ],
+      "prefix": [
+        "Dr."
+      ]
+    }
+  ],
+  "resourceType": "Practitioner",
+  "telecom": [
+    {
+      "system": "phone",
+      "value": "+49 30 99999"
+    }
+  ]
+}

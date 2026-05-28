@@ -10,12 +10,12 @@ import json
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
-from fastapi.responses import JSONResponse, RedirectResponse, Response
+from fastapi.responses import JSONResponse, Response
 
 from app.auth.verify import Principal, require_scope
 from app.fhir import document as doc_compile
 from app.fhir import store
-from app.fhir.ids import bundle_id
+from app.fhir.ids import SLOT_IDENTIFIER_SYSTEM, bundle_id
 
 router = APIRouter()
 
@@ -25,12 +25,28 @@ def _oo(code: str, diag: str) -> dict:
             "issue": [{"severity": "error", "code": code, "diagnostics": diag}]}
 
 
+def _slot_of(patient: dict) -> str | None:
+    """extract the ehds-demo slot identifier (p-001 etc.) if present."""
+    for ident in patient.get("identifier", []) or []:
+        if ident.get("system") == SLOT_IDENTIFIER_SYSTEM:
+            return ident.get("value")
+    return None
+
+
 def _build_reverse_index() -> dict[str, tuple[str, str]]:
-    """build uuid -> (patient_id, category) map for every compileable bundle."""
+    """build bundle_uuid -> (patient_uuid, category) map.
+
+    bundle ids are minted from the patient slot label (so they're stable
+    even before a Patient resource has been read). The reverse map keys
+    on bundle_uuid and yields (patient.id, category) for compile_document.
+    """
     out: dict[str, tuple[str, str]] = {}
     for p in store.list_all("Patient"):
+        slot = _slot_of(p)
+        if not slot:
+            continue
         for cat in doc_compile.CATEGORY_TO_DOC_TYPE:
-            out[bundle_id(p["id"], cat)] = (p["id"], cat)
+            out[bundle_id(slot, cat)] = (p["id"], cat)
     return out
 
 

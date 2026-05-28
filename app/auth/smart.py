@@ -18,7 +18,7 @@ import jwt
 from fastapi import APIRouter, Form, HTTPException
 from fastapi.responses import JSONResponse
 
-from app.auth.jwks import load_clients, server_kid, server_private_key, server_jwks
+from app.auth.jwks import load_clients, server_jwks, server_kid, server_private_key
 from app.config import settings
 
 router = APIRouter()
@@ -33,7 +33,7 @@ def _check_jti_replay(jti: str, exp: float) -> None:
     # purge expired
     while _SEEN_JTI and _SEEN_JTI[0][0] < now:
         _SEEN_JTI.popleft()
-    for ts, j in _SEEN_JTI:
+    for _ts, j in _SEEN_JTI:
         if j == jti:
             raise HTTPException(status_code=400, detail={"error": "invalid_client", "error_description": "jti replay"})
     _SEEN_JTI.append((min(exp, now + _JTI_TTL), jti))
@@ -147,8 +147,16 @@ def smart_configuration() -> JSONResponse:
             "compiled_bundle_lookup":  base + "/Bundle/{uuid}  (uuids per (patient,category) via /spec/bundle-id/{pid}/{category})",
             "submit_iti105":           base + "/  (POST Bundle.type=transaction, requires system/Bundle.write)",
         },
-        "example_patient_ids": ["p-001", "p-002", "p-003", "p-004", "p-005",
-                                "p-006", "p-007", "p-008", "p-009", "p-010"],
+        # patient.id is a uuid; the demo panel slot labels (p-001 etc.) are
+        # preserved as Patient.identifier with system 'urn:ehds-demo:slot' so
+        # callers can resolve a slot to its uuid via PDQm identifier-search:
+        #   GET /Patient?identifier=p-001  -> Bundle with the canonical Patient
+        "example_patient_lookup": {
+            "slot_identifier_system": "urn:ehds-demo:slot",
+            "slot_values":            ["p-001", "p-002", "p-003", "p-004", "p-005",
+                                       "p-006", "p-007", "p-008", "p-009", "p-010"],
+            "resolve_via":            base + "/Patient?identifier=p-001",
+        },
         "priority_categories": ["patient-summary", "laboratory-report", "discharge-report",
                                 "imaging-report", "prescription"],
         "token_ttl_seconds": settings.token_ttl_seconds,

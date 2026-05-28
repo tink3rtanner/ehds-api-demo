@@ -1,0 +1,19 @@
+{
+  "code": {
+    "coding": [
+      {
+        "code": "80146002",
+        "display": "Appendectomy",
+        "system": "http://snomed.info/sct"
+      }
+    ],
+    "text": "Appendectomy"
+  },
+  "id": "0533a799-b3ac-53d2-bbf2-8e83bea0a315",
+  "performedDateTime": "2023-08-22",
+  "resourceType": "Procedure",
+  "status": "completed",
+  "subject": {
+    "reference": "Patient/341dafb4-0ae4-5fe4-84c3-61c9ac871ebb"
+  }
+}

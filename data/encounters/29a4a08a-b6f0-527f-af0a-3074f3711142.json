@@ -1,0 +1,22 @@
+{
+  "class": {
+    "code": "IMP",
+    "display": "inpatient encounter",
+    "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode"
+  },
+  "id": "29a4a08a-b6f0-527f-af0a-3074f3711142",
+  "period": {
+    "end": "2024-04-12T16:00:00+02:00",
+    "start": "2024-04-10T09:00:00+02:00"
+  },
+  "reasonCode": [
+    {
+      "text": "Post-operative recovery"
+    }
+  ],
+  "resourceType": "Encounter",
+  "status": "finished",
+  "subject": {
+    "reference": "Patient/341dafb4-0ae4-5fe4-84c3-61c9ac871ebb"
+  }
+}

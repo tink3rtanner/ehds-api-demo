@@ -12,7 +12,6 @@ from app.fhir.ids import bundle_id
 from app.fhir.validate import structural_validate
 from scripts.seed import PANEL
 
-
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DATA = REPO_ROOT / "data"
 CATEGORIES = list(CATEGORY_TO_DOC_TYPE.keys())

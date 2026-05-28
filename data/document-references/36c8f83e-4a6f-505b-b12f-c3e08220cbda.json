@@ -33,7 +33,7 @@
   "resourceType": "DocumentReference",
   "status": "current",
   "subject": {
-    "reference": "Patient/p-005"
+    "reference": "Patient/fc282042-de09-5096-b1d0-30458f7deae7"
   },
   "type": {
     "coding": [

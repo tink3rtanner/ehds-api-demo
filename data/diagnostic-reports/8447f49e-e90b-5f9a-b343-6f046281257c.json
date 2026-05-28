@@ -1,0 +1,57 @@
+{
+  "category": [
+    {
+      "coding": [
+        {
+          "code": "LAB",
+          "display": "Laboratory",
+          "system": "http://terminology.hl7.org/CodeSystem/v2-0074"
+        }
+      ]
+    }
+  ],
+  "code": {
+    "coding": [
+      {
+        "code": "11502-2",
+        "display": "Laboratory report",
+        "system": "http://loinc.org"
+      }
+    ]
+  },
+  "effectiveDateTime": "2024-03-01",
+  "id": "8447f49e-e90b-5f9a-b343-6f046281257c",
+  "issued": "2024-03-01T12:00:00+01:00",
+  "performer": [
+    {
+      "reference": "Practitioner/dd7e4fb9-a959-5ab5-aa3e-8b65aec0e122"
+    }
+  ],
+  "resourceType": "DiagnosticReport",
+  "result": [
+    {
+      "reference": "Observation/a7acc1b3-34dd-51a7-a1ca-1c43db1ee9f7"
+    },
+    {
+      "reference": "Observation/d3a62c3e-b32b-5162-bd33-101c74c9669f"
+    },
+    {
+      "reference": "Observation/9a6f6ed7-ac8c-5932-b6cf-64df03cb3d01"
+    },
+    {
+      "reference": "Observation/de728429-da8a-536d-ac87-a1d486d30158"
+    },
+    {
+      "reference": "Observation/17de8110-58c3-5f02-8878-ad6e9aaf3d35"
+    }
+  ],
+  "specimen": [
+    {
+      "reference": "Specimen/4302f9d0-6697-5878-b973-9cf8d2b3fd61"
+    }
+  ],
+  "status": "final",
+  "subject": {
+    "reference": "Patient/030a86fd-7316-5d7f-ba7b-68600010d27c"
+  }
+}

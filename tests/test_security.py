@@ -1,9 +1,7 @@
 """security middleware: body cap, rate limit, secret scrubbing, prod-mode."""
 from __future__ import annotations
 
-import asyncio
 import logging
-import os
 
 import pytest
 
@@ -22,7 +20,6 @@ async def test_rate_limit_kicks_in(app, auth_headers):
     """drive rate limit directly with a small per-minute cap so we hit it fast."""
     from app.security import RateLimitMiddleware
     # find our installed RateLimitMiddleware instance
-    rl: RateLimitMiddleware | None = None
     middleware = app.user_middleware
     for m in middleware:
         if m.cls is RateLimitMiddleware:

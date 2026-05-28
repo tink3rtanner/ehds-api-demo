@@ -1,0 +1,35 @@
+{
+  "category": [
+    {
+      "coding": [
+        {
+          "code": "vital-signs",
+          "system": "http://terminology.hl7.org/CodeSystem/observation-category"
+        }
+      ]
+    }
+  ],
+  "code": {
+    "coding": [
+      {
+        "code": "2708-6",
+        "display": "Oxygen saturation in Arterial blood",
+        "system": "http://loinc.org"
+      }
+    ],
+    "text": "Oxygen saturation in Arterial blood"
+  },
+  "effectiveDateTime": "2024-03-01",
+  "id": "28946155-8548-5d02-963a-2d81f68a875d",
+  "resourceType": "Observation",
+  "status": "final",
+  "subject": {
+    "reference": "Patient/77b1da4d-6d76-5a21-ac84-5984e9465ff8"
+  },
+  "valueQuantity": {
+    "code": "%",
+    "system": "http://unitsofmeasure.org",
+    "unit": "%",
+    "value": 96
+  }
+}

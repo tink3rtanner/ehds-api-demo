@@ -1,0 +1,27 @@
+{
+  "id": "dd7e4fb9-a959-5ab5-aa3e-8b65aec0e122",
+  "identifier": [
+    {
+      "system": "urn:oid:1.2.3.4.5",
+      "value": "DOC-00008"
+    }
+  ],
+  "name": [
+    {
+      "family": "Lopez",
+      "given": [
+        "Carmen"
+      ],
+      "prefix": [
+        "Dr."
+      ]
+    }
+  ],
+  "resourceType": "Practitioner",
+  "telecom": [
+    {
+      "system": "phone",
+      "value": "+49 30 99999"
+    }
+  ]
+}

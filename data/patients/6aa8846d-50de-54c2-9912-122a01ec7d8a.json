@@ -1,0 +1,67 @@
+{
+  "active": true,
+  "address": [
+    {
+      "city": "Rome",
+      "country": "IT",
+      "line": [
+        "Via Cavour 8"
+      ],
+      "postalCode": "00184",
+      "use": "home"
+    }
+  ],
+  "birthDate": "1981-11-02",
+  "communication": [
+    {
+      "language": {
+        "coding": [
+          {
+            "code": "it-IT",
+            "system": "urn:ietf:bcp:47"
+          }
+        ]
+      }
+    }
+  ],
+  "gender": "female",
+  "id": "6aa8846d-50de-54c2-9912-122a01ec7d8a",
+  "identifier": [
+    {
+      "system": "urn:ehds-demo:slot",
+      "use": "secondary",
+      "value": "p-003"
+    },
+    {
+      "system": "urn:oid:2.16.840.1.113883.2.9.4.3.2",
+      "use": "official",
+      "value": "RSSGLI81S42H501X"
+    }
+  ],
+  "meta": {
+    "profile": [
+      "http://hl7.eu/fhir/StructureDefinition/Patient-eu"
+    ]
+  },
+  "name": [
+    {
+      "family": "Rossi",
+      "given": [
+        "Giulia"
+      ],
+      "use": "official"
+    }
+  ],
+  "resourceType": "Patient",
+  "telecom": [
+    {
+      "system": "phone",
+      "use": "home",
+      "value": "+39 06 5550244"
+    },
+    {
+      "system": "email",
+      "value": "giulia.rossi@example.it"
+    }
+  ]
+}

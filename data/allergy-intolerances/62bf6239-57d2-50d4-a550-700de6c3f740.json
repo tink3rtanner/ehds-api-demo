@@ -1,0 +1,37 @@
+{
+  "category": [
+    "medication"
+  ],
+  "clinicalStatus": {
+    "coding": [
+      {
+        "code": "active",
+        "system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical"
+      }
+    ]
+  },
+  "code": {
+    "coding": [
+      {
+        "code": "372687004",
+        "display": "Amoxicillin",
+        "system": "http://snomed.info/sct"
+      }
+    ],
+    "text": "Amoxicillin"
+  },
+  "criticality": "low",
+  "id": "62bf6239-57d2-50d4-a550-700de6c3f740",
+  "patient": {
+    "reference": "Patient/030a86fd-7316-5d7f-ba7b-68600010d27c"
+  },
+  "resourceType": "AllergyIntolerance",
+  "verificationStatus": {
+    "coding": [
+      {
+        "code": "confirmed",
+        "system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-verification"
+      }
+    ]
+  }
+}

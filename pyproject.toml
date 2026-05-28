@@ -48,6 +48,23 @@ line-length = 110
 target-version = "py311"
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "S"]
-ignore = ["E501", "S101"]
+# S* warnings the project intentionally accepts:
+#  S110  try/except/pass — used for best-effort fs writes (audit log etc.)
+#  S310  urllib URL open — used in the register-client CLI against the
+#         user-supplied --base-url, with HTTPS expected.
+#  S603/S607  subprocess for the HL7 java validator and `git rev-parse`,
+#         both bounded to known binaries.
+#  B008  fastapi `Body(...)` in defaults — fastapi-idiomatic.
+ignore = ["E501", "S101", "S110", "S310", "S603", "S607", "B008"]
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["S105", "S106"]
+# tests have intentional late imports (after early env-setup at conftest top)
+# and embed test bearer / kid strings.
+"tests/**" = ["S105", "S106", "E402", "B904"]
+# routers/auth do a lot of `raise HTTPException(...)` after caught exceptions
+# where chaining the original via `from e` would leak internal details; we
+# explicitly elide the chain.
+"app/auth/**" = ["B904"]
+"app/routers/**" = ["B904"]
+"app/security.py" = ["B904"]
+"app/tools/register_client.py" = ["B904"]
+"app/fhir/validate.py" = ["B904"]

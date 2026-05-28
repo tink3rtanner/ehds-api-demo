@@ -63,22 +63,30 @@ async def ui_js():
 @router.get("/api/patients")
 async def api_patients() -> JSONResponse:
     _gate()
+    from app.fhir.ids import SLOT_IDENTIFIER_SYSTEM
     out = []
     for p in store.list_all("Patient"):
         name = (p.get("name") or [{}])[0]
-        ident = (p.get("identifier") or [{}])[0]
+        slot = None
+        national = {}
+        for ident in p.get("identifier") or []:
+            if ident.get("system") == SLOT_IDENTIFIER_SYSTEM:
+                slot = ident.get("value")
+            elif not national:
+                national = ident
         out.append({
             "id": p["id"],
+            "slot": slot,
             "family": name.get("family", ""),
             "given": " ".join(name.get("given", [])),
             "birthDate": p.get("birthDate"),
             "gender": p.get("gender"),
             "country": (p.get("address") or [{}])[0].get("country", ""),
             "city": (p.get("address") or [{}])[0].get("city", ""),
-            "identifier_system": ident.get("system", ""),
-            "identifier_value": ident.get("value", ""),
+            "identifier_system": national.get("system", ""),
+            "identifier_value": national.get("value", ""),
         })
-    out.sort(key=lambda r: r["id"])
+    out.sort(key=lambda r: r.get("slot") or r["id"])
     return JSONResponse(out)
 
 
@@ -99,9 +107,16 @@ async def api_patient_detail(pid: str) -> JSONResponse:
         if rt in hidden:
             continue
         buckets.setdefault(rt, []).append(r)
+    from app.fhir.ids import SLOT_IDENTIFIER_SYSTEM
     from app.fhir.ids import bundle_id as _bundle_id
+    slot = None
+    for ident in p.get("identifier") or []:
+        if ident.get("system") == SLOT_IDENTIFIER_SYSTEM:
+            slot = ident.get("value")
+            break
+    bundle_key = slot or pid
     return JSONResponse({"patient": p, "buckets": buckets,
-                         "documents": [{"category": c, "bundle_id": _bundle_id(pid, c)} for c in CATEGORIES]})
+                         "documents": [{"category": c, "bundle_id": _bundle_id(bundle_key, c)} for c in CATEGORIES]})
 
 
 @router.get("/api/patients/{pid}/timeline")
@@ -131,7 +146,7 @@ async def api_patient_timeline(pid: str) -> JSONResponse:
             return ""
         return c.get("text") or (c.get("coding") or [{}])[0].get("display") or ""
 
-    refs = lambda r: (r.get("subject") or r.get("patient") or {}).get("reference", "")
+    def refs(r): return (r.get("subject") or r.get("patient") or {}).get("reference", "")
 
     for r in store.list_all("Condition"):
         if refs(r).endswith(f"Patient/{pid}"):
@@ -341,16 +356,24 @@ async def api_build_info() -> JSONResponse:
 async def api_bundle_id(pid: str, category: str) -> JSONResponse:
     """resolve (patient, category) to the deterministic Bundle uuid.
 
-    used by client-side widgets that let the user pick a patient + category
-    and need to construct the canonical /Bundle/{uuid} URL.
+    Accepts either a Patient.id (uuid) or a slot identifier (``p-001`` etc.).
     """
     _gate()
     if category not in CATEGORIES:
         raise HTTPException(status_code=404, detail="unknown category")
-    if store.read("Patient", pid) is None:
-        raise HTTPException(status_code=404, detail="patient not found")
+    from app.fhir.ids import SLOT_IDENTIFIER_SYSTEM
     from app.fhir.ids import bundle_id as _bid
-    bid = _bid(pid, category)
+    p = store.read("Patient", pid)
+    if p is not None:
+        slot = next((i["value"] for i in (p.get("identifier") or []) if i.get("system") == SLOT_IDENTIFIER_SYSTEM), pid)
+    else:
+        match = [pp for pp in store.list_all("Patient")
+                 if any(i.get("system") == SLOT_IDENTIFIER_SYSTEM and i.get("value") == pid
+                        for i in (pp.get("identifier") or []))]
+        if not match:
+            raise HTTPException(status_code=404, detail="patient not found")
+        slot = pid
+    bid = _bid(slot, category)
     return JSONResponse({"bundle_id": bid, "path": f"/Bundle/{bid}"})
 
 
@@ -389,17 +412,21 @@ async def api_documents() -> JSONResponse:
     # 2. on-demand compiled Bundles (one per patient × category).
     # served via GET /Binary/{id} per IHE MHD convention — the Binary URL is
     # the routing path, the response is a Bundle.type=document.
+    from app.fhir.ids import SLOT_IDENTIFIER_SYSTEM
     from app.fhir.ids import bundle_id as _bid
-    patient_ids = sorted(p["id"] for p in store.list_all("Patient"))
-    for pid in patient_ids:
+    patients = sorted(store.list_all("Patient"), key=lambda p: p["id"])
+    for p in patients:
+        slot = next((i["value"] for i in (p.get("identifier") or []) if i.get("system") == SLOT_IDENTIFIER_SYSTEM), None)
+        key = slot or p["id"]
         for cat in CATEGORIES:
-            bid = _bid(pid, cat)
+            bid = _bid(key, cat)
             out.append({
                 "source": "Compiled Bundle",
                 "id": bid,
                 "fhir_path": f"/Bundle/{bid}",
                 "binary_url": f"Bundle/{bid}",
-                "patient": pid,
+                "patient": p["id"],
+                "patient_slot": slot,
                 "category_code": cat,
                 "category_display": cat.replace("-", " ").title(),
                 "type_code": "",
@@ -489,8 +516,8 @@ async def api_register_client(payload: dict) -> JSONResponse:
         jwks = {"keys": [jwk]}
     elif payload.get("public_key_pem"):
         try:
-            from jwt.algorithms import RSAAlgorithm
             from cryptography.hazmat.primitives import serialization
+            from jwt.algorithms import RSAAlgorithm
             pub = serialization.load_pem_public_key(payload["public_key_pem"].encode())
             jwk = json.loads(RSAAlgorithm.to_jwk(pub))
         except Exception as e:
@@ -540,7 +567,7 @@ async def api_audit(
     `limit` matching entries (newest first). filters are AND.
     """
     _gate()
-    from datetime import UTC, date, timedelta
+    from datetime import date, timedelta
     out: list[dict] = []
     today = date.today()
     files: list = []
@@ -581,7 +608,7 @@ async def api_audit_stats(days: int = 1) -> JSONResponse:
     """aggregate stats over the last `days` JSONL files."""
     _gate()
     from collections import Counter
-    from datetime import UTC, date, timedelta
+    from datetime import date, timedelta
     total = 0
     by_status_class: Counter = Counter()
     by_method: Counter = Counter()

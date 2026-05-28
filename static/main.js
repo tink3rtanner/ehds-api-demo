@@ -24,7 +24,7 @@ const CATEGORY_LABELS = {
                            profile: 'http://hl7.eu/fhir/ig/imaging/StructureDefinition/Bundle-eu-imaging',
                            ig: 'https://build.fhir.org/ig/hl7-eu/imaging-r4/' },
     'prescription':      { label: 'ePrescription',       icon: '💊',
-                           short: 'Medication order — what was prescribed, by whom, for which indication.',
+                           short: 'Bundle.type=document whose body is one or more MedicationRequest resources — the prescription order itself.',
                            profile: 'http://hl7.eu/fhir/ig/eu-health-data-api/StructureDefinition/Bundle-eu-prescription',
                            ig: 'https://build.fhir.org/ig/euridice-org/eu-health-data-api/' },
 };
@@ -336,8 +336,11 @@ function renderPatientGrid(patients) {
                 title: `identifier system: ${p.identifier_system}`,
                 style: 'display:block;margin-top:6px;font-size:11px;color:var(--text-faint);font-family:ui-monospace,monospace;',
             }, p.identifier_value) : null,
+            el('div', { class: 'ident', style: 'display:block;font-size:10.5px;color:var(--text-faint);font-family:ui-monospace,monospace;margin-top:4px;' },
+                'Patient/', el('span', { class: 'mono' }, p.id.slice(0, 8)), '… ',
+                p.slot ? el('span', { style: 'color:var(--text-muted);' }, '· slot ' + p.slot) : null,
+            ),
             el('div', { class: 'ident' },
-                el('span', { class: 'id' }, `Patient/${p.id}`),
                 docBadges(p.id),
             ),
         );
@@ -364,8 +367,8 @@ function renderPatientTable(patients) {
                 class: 'patient-row',
                 'data-search': `${fullName} ${p.country} ${COUNTRY_NAMES[p.country] || ''} ${p.id} ${p.city || ''} ${p.identifier_value || ''}`.toLowerCase(),
             },
-                el('td', { class: 'mono' },
-                    el('a', { href: `#/p/${p.id}` }, `Patient/${p.id}`),
+                el('td', { class: 'mono', style: 'font-size:11px;' },
+                    el('a', { href: `#/p/${p.id}`, title: p.id }, p.slot ? `slot ${p.slot}` : p.id.slice(0, 12) + '…'),
                 ),
                 el('td', {}, fullName),
                 el('td', {}, el('span', { class: 'country-pill', title: COUNTRY_NAMES[p.country] || p.country }, p.country)),
@@ -2057,7 +2060,13 @@ async function renderImplementPage() {
                 client_registration: { ui: base + '/ui/#/register', rest: base + '/ui/api/register-client', cli: 'python -m app.tools.register_client' },
                 supported_scopes: smart.scopes_supported,
                 allowed_algs: smart.token_endpoint_auth_signing_alg_values_supported,
-                example_patient_ids: ['p-001', 'p-002', 'p-003', 'p-004', 'p-005'],
+                example_patient_lookup: {
+                    note: 'patient.id is a uuid; slot labels live in Patient.identifier',
+                    by_slot_identifier_search: base + '/Patient?identifier=p-001',
+                    slot_identifier_system: 'urn:ehds-demo:slot',
+                    slot_values: ['p-001', 'p-002', 'p-003', 'p-004', 'p-005',
+                                  'p-006', 'p-007', 'p-008', 'p-009', 'p-010'],
+                },
                 priority_categories: Object.keys(CATEGORY_LABELS),
                 priority_category_profiles: Object.fromEntries(
                     Object.entries(CATEGORY_LABELS).map(([k, m]) => [k, m.profile])
