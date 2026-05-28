@@ -21,6 +21,7 @@ from app.auth.jwks import server_kid, server_private_key
 from app.config import settings
 from app.fhir import document as doc_compile
 from app.fhir import store
+from app.routers.discovery import _ALLOWED_REG_SCOPES  # canonical registration scope set
 
 router = APIRouter(prefix="/ui")
 
@@ -454,11 +455,8 @@ async def api_list_clients() -> JSONResponse:
     return JSONResponse({"clients": sorted(out, key=lambda r: r["client_id"])})
 
 
-# Allowed registration scopes. Must stay in sync with the top-level
-# /register-client (app/routers/discovery.py) — keep both authoritative.
-# The UI re-imports the canonical list so a single allowlist exists.
-from app.routers.discovery import _ALLOWED_REG_SCOPES
-
+# _ALLOWED_REG_SCOPES is re-exported from app.routers.discovery (imported at
+# top of file). That module is the single source of truth.
 _CLIENT_ID_RE = __import__("re").compile(r"^[a-z0-9][a-z0-9\-_]{1,62}[a-z0-9]$")
 
 
