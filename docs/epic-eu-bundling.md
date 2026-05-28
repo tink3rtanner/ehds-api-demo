@@ -163,16 +163,57 @@ Already implemented in `app/sources/epic_transform.py`:
 - Insert IPS absent-data placeholders (`no-allergy-info` / `no-problem-info`
   / `no-medication-info`) so required PS sections are never empty.
 
-To discover against the EU validator (record code + system + the error that
-forced the change):
-- patient-summary (EPS): …
-- laboratory-report (EU Lab): …
-- discharge-report (EU HDR): …
-- imaging-report (EU Imaging): …
-- eP/eD (MPD resource profiles): …
+### patient-summary (EPS) — validated against `bundle-eu-eps` + IPS 2.0.0
 
-Known candidates from IPS run already: Epic SNOMED codes outside IPS free set
-(info only); EU base will likely additionally require patient identifier with
-a registered NamingSystem OID, address.country, and Composition/section
-narrative. Terminology: CPT (procedures) and RxNorm/NDC (meds) are not EU
-free-set — may need SNOMED/ATC/EDQM dual-coding.
+First raw run (Camila Lopez, 285 entries): **1088 errors**. Root causes and
+the transforms applied (all in `app/sources/epic_transform.py` /
+`app/fhir/document.py`):
+
+1. **Proprietary extensions rejected** (~520 errors). Epic ships
+   `http://open.epic.com/FHIR/StructureDefinition/extension/*` (template-id,
+   legal-sex, sex-for-clinical-use, calculated-pronouns,
+   temperature-in-fahrenheit, observation-datetime, specialty) and some
+   Nictiz `http://nictiz.nl/fhir/StructureDefinition/*` (CopyIndicator,
+   BodySite-Qualifier). The validator errors "extension could not be found so
+   is not allowed here." → **`_sanitize_for_eu` strips every extension whose
+   url is not under `hl7.org/fhir` or `hl7.eu/fhir`.** EHDS cross-border docs
+   must not carry source-proprietary extensions.
+
+2. **Patient profile mismatch** (~275 errors). Every `subject`/`patient`
+   reference failed "Unable to find a profile match for Patient/X among
+   choices: Patient-uv-ips" — because the Patient carried the Epic extensions
+   above and so didn't conform to `Patient-uv-ips` / `patient-eu-eps`. Largely
+   cascades away once (1) strips the extensions.
+
+3. **Section-entry profile mismatch** (~265). Observations/Conditions didn't
+   match the EU-core profiles the EPS Composition slices require
+   (`medicalTestResult-eu-core`, `condition-eu-core`, …). Also driven by the
+   bad extensions; remainder tracked below.
+
+4. **Non-canonical displays** (~6). Epic's CPT/ICD-9 `display` strings
+   ("PR APPENDECTOMY", "Ischemic chest pain (CMS/HCC)") don't match the code
+   system's official display → "Wrong Display Name". → **`_sanitize_for_eu`
+   drops `display` on codings whose system is CPT / ICD-9-CM / ICD-10-CM**
+   (the code is authoritative; display is optional).
+
+5. **EPS Composition structure** (~3). `Composition.identifier` is 1..1 in
+   EPS (Epic/our compiler didn't set it) → **compile_document now mints a
+   deterministic `Composition.identifier`.** EPS also requires these sections
+   (min=1): Problems, Allergies, Medications, **Procedures**, **Medical
+   Devices**. → **`_ensure_required_eps_sections` injects any missing
+   required section with an `emptyReason` (list-empty-reason `unavailable`).**
+
+Remaining after the cascade fix: see latest `/tmp/vtrim.log` run — expect the
+EU-core resource-profile constraints (category/code bindings on
+`medicalTestResult-eu-core`, identifier-system expectations on
+`patient-eu-eps`) to be what's left. Update this list as they're closed.
+
+- laboratory-report (EU Lab `Bundle-eu-lab`): not yet validated.
+- discharge-report (EU HDR `bundle-eu-hdr`, type fixed 34105-7): not yet validated.
+- imaging-report (EU Imaging): Camila sandbox has no ImagingStudy; needs a patient with imaging.
+- eP/eD (MPD resource profiles, no R4 document bundle): validate MedicationRequest/Dispense against `*-eu-mpd`.
+
+Terminology note: Epic uses proprietary `open.epic.com` code systems on ~253
+Observation codes and its CPT/RxNorm/ICD codes are not in the IPS/EU free
+sets — these surface as warnings (info with `-tx n/a`); full conformance would
+need SNOMED/LOINC/ATC/EDQM concept-map translation, out of scope for now.
