@@ -54,7 +54,7 @@ def load() -> Settings:
         env=os.environ.get("ENV", "dev"),
         rate_limit_per_min=int(os.environ.get("EHDS_RATE_LIMIT_PER_MIN", "240")),
         body_max_bytes=int(os.environ.get("EHDS_BODY_MAX_BYTES", str(5 * 1024 * 1024))),
-        token_ttl_seconds=int(os.environ.get("EHDS_TOKEN_TTL_SECONDS", "300")),
+        token_ttl_seconds=int(os.environ.get("EHDS_TOKEN_TTL_SECONDS", "900")),
     )
 
 

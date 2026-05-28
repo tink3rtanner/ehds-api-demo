@@ -83,14 +83,34 @@ async def register_client_help() -> JSONResponse:
     """
     base = settings.base_url
     return JSONResponse({
-        "method": "POST",
-        "url": base + "/register-client",
-        "content_type": "application/json",
+        "create": {
+            "method": "POST",
+            "url": base + "/register-client",
+            "content_type": "application/json",
+        },
+        "manage": {
+            "url_template": base + "/register-client/{client_id}",
+            "operations": {
+                "GET":    "inspect current registration (scopes, kids, jwks)",
+                "PATCH":  "partial update — body may include 'scopes' and/or "
+                          "'public_key_pem' (or 'jwk'). use this to add a "
+                          "scope (e.g. system/Bundle.write) or rotate a key.",
+                "PUT":    "full replace — same payload as POST",
+                "DELETE": "unregister",
+            },
+            "auth": "none required in demo mode (synthetic data only)",
+            "example_add_write_scope": (
+                f"curl -X PATCH {base}/register-client/<my-client-id> "
+                f"-H 'Content-Type: application/json' "
+                f"-d '{{\"scopes\":[\"system/*.read\",\"system/Bundle.write\","
+                f"\"system/DocumentReference.write\"]}}'"
+            ),
+        },
         "request_body_schema": {
             "client_id": "lowercase letters/numbers/hyphens, 2-64 chars (required)",
             "scopes": f"list of strings, subset of {list(_ALLOWED_REG_SCOPES)} (default: ['system/*.read'])",
             "jwk": "single JWK dict (RSA or EC), OR",
-            "public_key_pem": "PEM-encoded public key string (one of jwk / public_key_pem is required)",
+            "public_key_pem": "PEM-encoded public key string (RSA or EC; alg auto-detected from key type)",
         },
         "response_body": {
             "client_id": "echoed back",
@@ -171,14 +191,27 @@ async def register_client(payload: dict) -> JSONResponse:
     elif payload.get("public_key_pem"):
         try:
             from cryptography.hazmat.primitives import serialization
-            from jwt.algorithms import RSAAlgorithm
+            from cryptography.hazmat.primitives.asymmetric import ec, rsa
+            from jwt.algorithms import ECAlgorithm, RSAAlgorithm
             pub = serialization.load_pem_public_key(payload["public_key_pem"].encode())
-            jwk = json.loads(RSAAlgorithm.to_jwk(pub))
+            if isinstance(pub, rsa.RSAPublicKey):
+                jwk = json.loads(RSAAlgorithm.to_jwk(pub))
+                default_alg = payload.get("alg", "RS256")
+            elif isinstance(pub, ec.EllipticCurvePublicKey):
+                jwk = json.loads(ECAlgorithm.to_jwk(pub))
+                # default to ES256 unless caller asks otherwise (and the
+                # curve matches: P-256 -> ES256, P-384 -> ES384)
+                curve_alg = {"P-256": "ES256", "P-384": "ES384", "P-521": "ES512"}
+                default_alg = payload.get("alg") or curve_alg.get(jwk.get("crv"), "ES256")
+            else:
+                raise HTTPException(status_code=400, detail=f"unsupported key type: {type(pub).__name__}")
+        except HTTPException:
+            raise
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"bad PEM: {e}")
         jwk["kid"] = f"{cid}-key-1"
         jwk["use"] = "sig"
-        jwk["alg"] = "RS256"
+        jwk["alg"] = default_alg
         jwks = {"keys": [jwk]}
     else:
         raise HTTPException(status_code=400, detail="provide either jwk or public_key_pem")
@@ -194,14 +227,133 @@ async def register_client(payload: dict) -> JSONResponse:
         "scopes": list(scopes),
         "jwks": jwks,
         "registered": bool(loaded),
+        # RFC 7592: hand the client its own management URL so it can later
+        # GET / PATCH / PUT / DELETE its registration without operator help.
+        "registration_client_uri": f"{settings.base_url}/register-client/{cid}",
         "next_steps": {
             "token_endpoint": settings.token_endpoint,
             "client_assertion_kid": jwks["keys"][0]["kid"],
             "audience": settings.token_endpoint,
-            "algorithm": "RS256",
+            "algorithm": jwks["keys"][0].get("alg", "RS256"),
             "expires_in_seconds": settings.token_ttl_seconds,
+            "manage_registration": {
+                "url": f"{settings.base_url}/register-client/{cid}",
+                "read":   "GET    (inspect current scopes / kids / jwks)",
+                "update": "PATCH  body={\"scopes\":[...]} or {\"public_key_pem\":\"...\"}",
+                "replace":"PUT    body=full registration payload",
+                "delete": "DELETE (no body)",
+            },
         },
     })
+
+
+@router.get("/register-client/{client_id}", name="register_client_read",
+            description="Inspect an existing client registration (no auth in demo mode).")
+async def register_client_read(client_id: str) -> JSONResponse:
+    """Return the current registration for a client_id.
+
+    Returns the registered scopes, the JWKS (public keys only — there's no
+    private material on the server), and the kids the agent should use in
+    JWT assertions. Returns 404 if the client_id isn't registered.
+    """
+    from app.auth.jwks import load_clients
+    if not _CLIENT_ID_RE.match(client_id):
+        raise HTTPException(status_code=400, detail="bad client_id")
+    clients = load_clients()
+    c = clients.get(client_id)
+    if c is None:
+        raise HTTPException(status_code=404, detail=f"client_id not registered: {client_id}")
+    return JSONResponse({
+        "client_id": c.client_id,
+        "scopes": list(c.scopes),
+        "jwks": c.jwks,
+        "kids": [k.get("kid") for k in c.jwks.get("keys", []) if k.get("kid")],
+    })
+
+
+@router.patch("/register-client/{client_id}", name="register_client_patch",
+              description="Update an existing client's scopes and/or rotate its key.")
+async def register_client_patch(client_id: str, payload: dict) -> JSONResponse:
+    """Partial update: change scopes and/or add/replace the public key.
+
+    body fields (all optional, at least one required):
+      - scopes: list[str]  -> replace the granted scopes (must be from
+                              _ALLOWED_REG_SCOPES)
+      - jwk:   dict        -> replace the JWKS with this single JWK
+      - public_key_pem: str -> PEM, converted to JWK and stored
+
+    no auth required in demo mode. for synthetic-data only.
+    """
+    from app.auth.jwks import patch_client
+    if not _CLIENT_ID_RE.match(client_id):
+        raise HTTPException(status_code=400, detail="bad client_id")
+    new_scopes = None
+    new_jwks = None
+    if "scopes" in payload:
+        scopes = payload.get("scopes") or []
+        if not isinstance(scopes, list) or not all(isinstance(s, str) for s in scopes):
+            raise HTTPException(status_code=400, detail="scopes must be a list of strings")
+        bad = [s for s in scopes if s not in _ALLOWED_REG_SCOPES]
+        if bad:
+            raise HTTPException(status_code=400,
+                                detail=f"scopes not in allowed set: {bad}. allowed: {list(_ALLOWED_REG_SCOPES)}")
+        new_scopes = list(scopes)
+    if payload.get("jwk"):
+        jwk = dict(payload["jwk"])
+        if not jwk.get("kty"):
+            raise HTTPException(status_code=400, detail="jwk.kty missing")
+        jwk.setdefault("use", "sig")
+        jwk.setdefault("alg", "RS256")
+        jwk.setdefault("kid", f"{client_id}-key-1")
+        new_jwks = {"keys": [jwk]}
+    elif payload.get("public_key_pem"):
+        try:
+            from cryptography.hazmat.primitives import serialization
+            from jwt.algorithms import ECAlgorithm, RSAAlgorithm
+            pub = serialization.load_pem_public_key(payload["public_key_pem"].encode())
+            try:
+                jwk = json.loads(RSAAlgorithm.to_jwk(pub))
+            except Exception:
+                jwk = json.loads(ECAlgorithm.to_jwk(pub))
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"bad PEM: {e}")
+        jwk["kid"] = f"{client_id}-key-1"
+        jwk["use"] = "sig"
+        jwk.setdefault("alg", "RS256")
+        new_jwks = {"keys": [jwk]}
+    if new_scopes is None and new_jwks is None:
+        raise HTTPException(status_code=400, detail="must include scopes and/or jwk/public_key_pem")
+    c = patch_client(client_id, scopes=new_scopes, jwks=new_jwks)
+    if c is None:
+        raise HTTPException(status_code=404, detail=f"client_id not registered: {client_id}")
+    return JSONResponse({
+        "client_id": c.client_id,
+        "scopes": list(c.scopes),
+        "jwks": c.jwks,
+        "kids": [k.get("kid") for k in c.jwks.get("keys", []) if k.get("kid")],
+    })
+
+
+@router.put("/register-client/{client_id}", name="register_client_put",
+            description="Full replace of an existing client registration.")
+async def register_client_put(client_id: str, payload: dict) -> JSONResponse:
+    """RFC 7592-style PUT: replace the registration entirely."""
+    payload = dict(payload)
+    payload["client_id"] = client_id
+    return await register_client(payload)
+
+
+@router.delete("/register-client/{client_id}", name="register_client_delete",
+               status_code=204,
+               description="Remove an existing client registration.")
+async def register_client_delete(client_id: str):
+    from app.auth.jwks import delete_client
+    if not _CLIENT_ID_RE.match(client_id):
+        raise HTTPException(status_code=400, detail="bad client_id")
+    if not delete_client(client_id):
+        raise HTTPException(status_code=404, detail=f"client_id not registered: {client_id}")
+    from fastapi.responses import Response
+    return Response(status_code=204)
 
 
 @router.get("/spec/bundle-id/{pid}/{category}", name="spec_bundle_id")

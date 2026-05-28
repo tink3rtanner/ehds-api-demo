@@ -81,7 +81,25 @@ def _verify_client_assertion(assertion: str) -> tuple[str, list[str]]:
         candidate = keys[0]
     if candidate is None:
         raise HTTPException(status_code=401, detail={"error": "invalid_client", "error_description": "no matching kid"})
-    pubkey = jwt.algorithms.RSAAlgorithm.from_jwk(candidate)  # type: ignore[attr-defined]
+    # use the correct algorithm class for the registered key type — RSA for
+    # RS256/RS384/RS512, EC for ES256/ES384. Mismatch is a registration error.
+    kty = candidate.get("kty")
+    if kty == "RSA":
+        if not alg.startswith("RS") and not alg.startswith("PS"):
+            raise HTTPException(status_code=401,
+                                detail={"error": "invalid_client",
+                                        "error_description": f"alg {alg} incompatible with registered RSA key"})
+        pubkey = jwt.algorithms.RSAAlgorithm.from_jwk(candidate)  # type: ignore[attr-defined]
+    elif kty == "EC":
+        if not alg.startswith("ES"):
+            raise HTTPException(status_code=401,
+                                detail={"error": "invalid_client",
+                                        "error_description": f"alg {alg} incompatible with registered EC key"})
+        pubkey = jwt.algorithms.ECAlgorithm.from_jwk(candidate)  # type: ignore[attr-defined]
+    else:
+        raise HTTPException(status_code=401,
+                            detail={"error": "invalid_client",
+                                    "error_description": f"unsupported key type: {kty}"})
 
     try:
         payload = jwt.decode(
@@ -126,6 +144,11 @@ def smart_configuration() -> JSONResponse:
         # scopes_supported including the writes a Document Source actor
         # needs for IHE MHD ITI-105 submission.
         "registration_endpoint": base + "/register-client",
+        # RFC 7592 — Dynamic Client Registration Management Protocol. The
+        # per-client URL template; supports GET (read), PATCH (partial
+        # update — most common: add a scope), PUT (full replace), DELETE.
+        # No auth required in demo mode (synthetic data).
+        "registration_management_endpoint_template": base + "/register-client/{client_id}",
         # extension fields (non-standard but useful for agent discovery)
         "fhir_base_url": base,
         "fhir_metadata_endpoint": base + "/metadata",

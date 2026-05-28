@@ -101,7 +101,7 @@ def load_clients() -> dict[str, RegisteredClient]:
 
 
 def upsert_client(client_id: str, jwks: dict[str, Any], scopes: list[str]) -> None:
-    """used by the register_client CLI tool."""
+    """create or replace a client registration."""
     path = settings.client_registry
     path.parent.mkdir(parents=True, exist_ok=True)
     raw = json.loads(path.read_text()) if path.exists() else {"clients": []}
@@ -109,3 +109,45 @@ def upsert_client(client_id: str, jwks: dict[str, Any], scopes: list[str]) -> No
     raw["clients"] = [c for c in raw["clients"] if c["client_id"] != client_id]
     raw["clients"].append({"client_id": client_id, "jwks": jwks, "scopes": scopes})
     path.write_text(json.dumps(raw, indent=2, sort_keys=True))
+
+
+def patch_client(client_id: str,
+                 scopes: list[str] | None = None,
+                 jwks: dict[str, Any] | None = None) -> RegisteredClient | None:
+    """partial update: replace scopes and/or jwks for an existing client.
+
+    returns the resulting RegisteredClient, or None if client_id was unknown.
+    """
+    path = settings.client_registry
+    if not path.exists():
+        return None
+    raw = json.loads(path.read_text())
+    found = None
+    for entry in raw.get("clients", []):
+        if entry["client_id"] == client_id:
+            if scopes is not None:
+                entry["scopes"] = scopes
+            if jwks is not None:
+                entry["jwks"] = jwks
+            found = entry
+            break
+    if not found:
+        return None
+    path.write_text(json.dumps(raw, indent=2, sort_keys=True))
+    return RegisteredClient(client_id=found["client_id"],
+                            jwks=found["jwks"],
+                            scopes=tuple(found["scopes"]))
+
+
+def delete_client(client_id: str) -> bool:
+    """remove a client. returns True if removed, False if not found."""
+    path = settings.client_registry
+    if not path.exists():
+        return False
+    raw = json.loads(path.read_text())
+    before = len(raw.get("clients", []))
+    raw["clients"] = [c for c in raw.get("clients", []) if c["client_id"] != client_id]
+    if len(raw["clients"]) == before:
+        return False
+    path.write_text(json.dumps(raw, indent=2, sort_keys=True))
+    return True
