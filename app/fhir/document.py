@@ -137,6 +137,20 @@ def _gather_for_category(patient_id: str, category: str) -> tuple[list[dict], di
 
         if not ents:
             continue
+        # Observations split across IPS sections by category: vital-signs go to
+        # the Vital Signs section (8716-3), everything else to Results
+        # (30954-2). The EPS Results section requires entries to match
+        # medicalTestResult-eu-core, which vital signs don't — so mis-filing
+        # them in Results is a validation error.
+        if stype == "Observation" and category == "patient-summary":
+            vitals = [r for r in ents if _is_vital_sign(r)]
+            results = [r for r in ents if not _is_vital_sign(r)]
+            if vitals:
+                sections.append(_obs_section(vitals, "8716-3", "Vital signs"))
+            if results:
+                sections.append(_obs_section(results, "30954-2",
+                                             "Relevant diagnostic tests/laboratory data note"))
+            continue
         code_tup = SECTION_CODES.get(stype, ("undefined", stype))
         sections.append({
             "title": stype,
@@ -149,6 +163,24 @@ def _gather_for_category(patient_id: str, category: str) -> tuple[list[dict], di
         })
 
     return sections, included
+
+
+def _is_vital_sign(obs: dict[str, Any]) -> bool:
+    return any(c.get("code") == "vital-signs"
+               for cc in (obs.get("category") or [])
+               for c in (cc.get("coding") or []))
+
+
+def _obs_section(ents: list[dict], code: str, display: str) -> dict:
+    return {
+        "title": display,
+        "code": {"coding": [{"system": "http://loinc.org", "code": code, "display": display}]},
+        "entry": [{"reference": _ref(r)} for r in ents],
+        "text": {
+            "status": "generated",
+            "div": f'<div xmlns="http://www.w3.org/1999/xhtml">{display}: {len(ents)} entries</div>',
+        },
+    }
 
 
 # EU EPS Composition required sections (min=1) with their LOINC codes.

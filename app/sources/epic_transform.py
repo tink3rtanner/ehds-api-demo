@@ -91,6 +91,10 @@ _DISPLAY_STRIP_SYSTEMS = frozenset({
     "http://www.ama-assn.org/go/cpt",
     "http://hl7.org/fhir/sid/icd-9-cm",
     "http://hl7.org/fhir/sid/icd-10-cm",
+    # Epic's LOINC displays are often non-canonical ("Vital signs" vs LOINC's
+    # "Vital signs note" for 8716-3), which the validator errors on. The code
+    # is authoritative; drop the display.
+    "http://loinc.org",
 })
 
 
