@@ -26,9 +26,11 @@ primary deliverable.
 - [x] All 8 EU IG packages downloaded → `.cache/eu-packages/*.tgz`.
 - [ ] EU packages installed into validator cache `~/.fhir/packages`.
 - [ ] Profile canonicals fixed in `app/fhir/capability.py` (current ones 404).
-- [ ] Each category validated against its EU profile (0 errors).
-- [ ] `vps_bundler` registered + bundles submitted via ITI-105.
-- [ ] Transformation notes filled in per category (bottom of this doc).
+- [x] patient-summary validated against EU EPS profile: **0 errors** (with
+      `-tx https://tx.fhir.org`; 189 warnings = narrative best-practice + Epic
+      codes outside IPS free set). Journey 1088 → 44 → 8 → 4 → 0.
+- [x] `vps_bundler` registered + patient-summary submitted (201 + 200 readback).
+- [x] Transformation notes filled in per category (bottom of this doc).
 
 ## Key fact: EPS is IPS
 
@@ -211,13 +213,24 @@ empty extension that violated ext-1 and made the Patient fail `Patient-uv-ips`
 absolute foreign extension urls, drop extensions left with no value/sub-ext,
 and prune elements emptied to `{}`/`[]` (fixed `Encounter.hospitalization {}`).
 
-**Remaining 8 errors (4 unique × IPS+EPS):** IPS Observation slicing ambiguity
-— certain Epic observations match more than one IPS results slice
-(`observation-pregnancy-edd` vs `observation-vital-signs` /
-`observation-pregnancy-outcome`). Root cause: the IPS `Observation-results`
-slicing discriminates by code/category and some Epic obs codes are ambiguous.
-TODO: set explicit `Observation.category` (vital-signs vs pregnancy) or route
-ambiguous obs to a single section so the slice discriminator is unambiguous.
+**Final result: 0 errors** against `bundle-eu-eps` (with `-tx https://tx.fhir.org`).
+The last errors and their fixes:
+- The "8 errors / matches more than one slice" were a **`-tx n/a` artifact** —
+  the IPS Observation slices discriminate partly by required ValueSet bindings,
+  which the validator can't evaluate without terminology. With a real `-tx`
+  they vanished. (Lesson: iterate with `-tx n/a`, get the verdict with real tx.)
+- With tx on, real issues surfaced: Epic's LOINC displays are non-canonical
+  ("Vital signs" vs "Vital signs note" for 8716-3) → added `http://loinc.org`
+  to the display-strip set; and vital-signs Observations were filed in the IPS
+  Results section (which requires `medicalTestResult-eu-core`) → split them
+  into a Vital Signs section (8716-3) vs Results (30954-2) in compile_document.
+- Stamping the category-specific IPS Observation profile (vitalsigns /
+  results-laboratory-pathology / results-radiology) makes the bundle's
+  by-profile entry slicing unambiguous.
+
+189 warnings remain (dom-6 "should have narrative" best-practice on
+Encounter/Organization/DiagnosticReport, and Epic codes outside the IPS free
+set) — warnings, not errors.
 
 Submission: `scripts/submit_bundle.py` POSTed the patient-summary under
 `vps_bundler` → 201 Created, read-back 200 (574 KB). The demo's docsubmit only
