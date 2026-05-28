@@ -2503,7 +2503,7 @@ async function renderAuditPage() {
     }
 
     const head = el('div', { class: 'page-head' },
-        el('h1', {}, 'Audit log'),
+        el('h1', {}, 'Logs'),
         el('div', { class: 'meta' },
             'Every HTTP request to this server, persisted to disk as JSONL. ',
             'Rotates daily. Authorization headers and other secrets are never written; the JWT-claimed ',
@@ -2622,7 +2622,7 @@ async function renderAuditPage() {
             )),
             el('tbody', {}, ...data.entries.map(e => {
                 const t = (e.ts || '').replace('T', ' ').replace('Z', '').slice(0, 19);
-                return el('tr', { class: 'audit-row', onclick: () => openModalText('Audit entry', e.ts, JSON.stringify(e, null, 2)) },
+                return el('tr', { class: 'audit-row', onclick: () => openModalText('Log entry', e.ts, JSON.stringify(e, null, 2)) },
                     el('td', { class: 'mono', style: 'font-size:11px;' }, t),
                     el('td', {}, el('span', { class: `method-badge ${(e.method || '').toLowerCase()}` }, e.method)),
                     el('td', { class: 'mono', style: 'font-size:11px;max-width:380px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' },
@@ -2634,7 +2634,7 @@ async function renderAuditPage() {
                     el('td', { class: 'mono', style: 'font-size:11px;' }, e.client_id || ''),
                     el('td', { class: 'mono', style: 'font-size:11px;color:var(--text-faint);' }, e.ip || ''),
                     el('td', {}, el('button', { class: 'btn-ghost', style: 'padding:2px 8px;font-size:11px;',
-                        onclick: (ev) => { ev.stopPropagation(); openModalText('Audit entry', e.ts, JSON.stringify(e, null, 2)); } }, '{ }')),
+                        onclick: (ev) => { ev.stopPropagation(); openModalText('Log entry', e.ts, JSON.stringify(e, null, 2)); } }, '{ }')),
                 );
             })),
         );
@@ -2684,7 +2684,7 @@ async function route() {
     if (hash === '#/implement') return renderImplementPage();
     if (hash === '#/register') return renderRegisterPage();
     if (hash === '#/qr') return renderQrPage();
-    if (hash === '#/audit') return renderAuditPage();
+    if (hash === '#/logs' || hash === '#/audit') return renderAuditPage();
     return renderNotFound(hash);
 }
 
