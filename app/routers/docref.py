@@ -46,17 +46,25 @@ async def search_docref(
 
     if (v := norm.get("_id")):
         results = [r for r in results if r.get("id") == v[0]]
-    # chained search: ?patient.identifier=system|value
-    if (v := norm.get("patient.identifier")):
-        matches = store.find_patient_ids_by_identifier(v[0])
+    # patient param supports (MHD-canonical + FHIR-canonical variants):
+    #   ?patient=<uuid|slot|Patient/x>      direct reference
+    #   ?patient.identifier=<system|value>  MHD ITI-67 chained search
+    #   ?patient:identifier=<system|value>  FHIR ':identifier' modifier
+    #   ?patient=<system>|<value>           identifier-token shorthand
+    pat_ident = (norm.get("patient.identifier") or norm.get("patient:identifier") or [None])[0]
+    pat_direct = (norm.get("patient") or [None])[0]
+    if pat_ident is None and pat_direct and "|" in pat_direct:
+        pat_ident, pat_direct = pat_direct, None
+    if pat_ident:
+        matches = store.find_patient_ids_by_identifier(pat_ident)
         if not matches:
             results = []
         else:
             results = [r for r in results
                        if any((r.get("subject", {}).get("reference", "")).endswith(f"Patient/{m}")
                               for m in matches)]
-    elif (v := norm.get("patient")):
-        canonical = store.resolve_patient_ref(v[0])
+    elif pat_direct:
+        canonical = store.resolve_patient_ref(pat_direct)
         if canonical is None:
             results = []
         else:

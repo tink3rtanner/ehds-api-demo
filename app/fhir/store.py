@@ -205,20 +205,28 @@ def search(rtype: str, params: dict[str, list[str]]) -> list[dict[str, Any]]:
     if (rid := take("_id")):
         results = [r for r in results if r.get("id") == rid]
 
-    # patient compartment. supports three forms:
-    #   ?patient=<uuid|slot|Patient/x>      -> direct reference resolution
-    #   ?patient.identifier=<system|value>  -> FHIR chained search: filter
-    #     resources whose patient's identifier matches (no pre-resolve needed)
-    if (pat_ident := take("patient.identifier")):
+    # patient compartment. supports these forms (FHIR-canonical + MHD-canonical):
+    #   ?patient=<uuid|slot|Patient/x>      direct reference resolution
+    #   ?patient.identifier=<system|value>  FHIR chained search (MHD ITI-67)
+    #   ?patient:identifier=<system|value>  FHIR ':identifier' modifier
+    #   ?patient=<system>|<value>           identifier-token shorthand on
+    #                                       a reference param (HAPI-style)
+    pat_ident = (take("patient.identifier")
+                 or take("patient:identifier"))
+    if not pat_ident:
+        pat = take("patient")
+        if pat and "|" in pat:
+            pat_ident, pat = pat, None
+        if pat_ident is None and pat:
+            canonical = resolve_patient_ref(pat)
+            if canonical is None:
+                return []
+            results = [r for r in results if _resource_refs_patient(r) == canonical]
+    if pat_ident:
         matches = find_patient_ids_by_identifier(pat_ident)
         if not matches:
             return []
         results = [r for r in results if _resource_refs_patient(r) in matches]
-    elif (pat := take("patient")):
-        canonical = resolve_patient_ref(pat)
-        if canonical is None:
-            return []
-        results = [r for r in results if _resource_refs_patient(r) == canonical]
 
     # FHIR identifier search — `system|value` form preferred (system-qualified).
     # bare `value` is accepted but a recipe for collisions; we still match it
