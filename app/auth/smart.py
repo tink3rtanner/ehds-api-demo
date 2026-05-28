@@ -102,6 +102,10 @@ def _verify_client_assertion(assertion: str) -> tuple[str, list[str]]:
 @router.get("/.well-known/smart-configuration")
 def smart_configuration() -> JSONResponse:
     base = settings.base_url
+    # pick a real working example patient.id (the canonical uuid for slot p-001)
+    # so the example URLs we publish actually return 200, not 404.
+    from app.fhir.ids import patient_id as _patient_id
+    example_pid = _patient_id("p-001")
     body = {
         "issuer": settings.issuer,
         "jwks_uri": base + "/.well-known/jwks.json",
@@ -139,13 +143,19 @@ def smart_configuration() -> JSONResponse:
         "fhir_metadata_endpoint": base + "/metadata",
         "openapi_endpoint": base + "/openapi.json",
         "documentation_url": base + "/ui/#/implement",
+        # every example URL here is a real working URL — paste it in a browser
+        # (in ENV=dev) and you get JSON back. resource ids are uuids (Patient,
+        # Observation, MedicationRequest etc. — everything). The slot label
+        # `p-001` is preserved in Patient.identifier; see example_patient_lookup.
         "example_endpoints": {
-            "read_patient":            base + "/Patient/p-001",
-            "patient_summary_operation": base + "/Patient/p-001/$summary",
-            "patient_everything":      base + "/Patient/p-001/$everything",
-            "document_search":         base + "/DocumentReference?patient=p-001",
-            "compiled_bundle_lookup":  base + "/Bundle/{uuid}  (uuids per (patient,category) via /spec/bundle-id/{pid}/{category})",
-            "submit_iti105":           base + "/  (POST Bundle.type=transaction, requires system/Bundle.write)",
+            "lookup_patient_by_slot":    base + "/Patient?identifier=p-001",
+            "read_patient":              base + f"/Patient/{example_pid}",
+            "patient_summary_operation": base + f"/Patient/{example_pid}/$summary",
+            "patient_everything":        base + f"/Patient/{example_pid}/$everything",
+            "observations_for_patient":  base + "/Observation?patient=p-001",
+            "document_search":           base + "/DocumentReference?patient=p-001",
+            "all_bundle_uuids":          base + "/spec/all-bundle-ids",
+            "submit_iti105":             base + "/  (POST Bundle.type=transaction, requires system/Bundle.write)",
         },
         # patient.id is a uuid; the demo panel slot labels (p-001 etc.) are
         # preserved as Patient.identifier with system 'urn:ehds-demo:slot' so
