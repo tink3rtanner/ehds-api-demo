@@ -101,9 +101,10 @@ def _verify_client_assertion(assertion: str) -> tuple[str, list[str]]:
 
 @router.get("/.well-known/smart-configuration")
 def smart_configuration() -> JSONResponse:
+    base = settings.base_url
     body = {
         "issuer": settings.issuer,
-        "jwks_uri": settings.base_url + "/.well-known/jwks.json",
+        "jwks_uri": base + "/.well-known/jwks.json",
         "token_endpoint": settings.token_endpoint,
         "token_endpoint_auth_methods_supported": ["private_key_jwt"],
         "token_endpoint_auth_signing_alg_values_supported": ["RS256", "RS384", "ES256", "ES384"],
@@ -111,12 +112,47 @@ def smart_configuration() -> JSONResponse:
         "scopes_supported": [
             "system/*.read",
             "system/Patient.read",
+            "system/Observation.read",
+            "system/Condition.read",
+            "system/MedicationStatement.read",
+            "system/MedicationRequest.read",
+            "system/AllergyIntolerance.read",
+            "system/Immunization.read",
+            "system/Procedure.read",
+            "system/DiagnosticReport.read",
+            "system/ImagingStudy.read",
+            "system/Encounter.read",
             "system/DocumentReference.read",
             "system/Binary.read",
+            "system/Bundle.write",
         ],
         "response_types_supported": ["token"],
         "capabilities": ["client-confidential-asymmetric"],
         "code_challenge_methods_supported": [],
+        # OAuth 2.0 Dynamic Client Registration (RFC 7591). For demo purposes
+        # this endpoint accepts unauthenticated registrations and grants only
+        # read scopes through this surface; system/Bundle.write must be granted
+        # via the CLI (which writes the registry on the box).
+        "registration_endpoint": base + "/register-client",
+        # extension fields (non-standard but useful for agent discovery)
+        "fhir_base_url": base,
+        "fhir_metadata_endpoint": base + "/metadata",
+        "openapi_endpoint": base + "/openapi.json",
+        "documentation_url": base + "/ui/#/implement",
+        "example_endpoints": {
+            "read_patient":            base + "/Patient/p-001",
+            "patient_summary_operation": base + "/Patient/p-001/$summary",
+            "patient_everything":      base + "/Patient/p-001/$everything",
+            "document_search":         base + "/DocumentReference?patient=p-001",
+            "compiled_bundle_lookup":  base + "/Bundle/{uuid}  (uuids per (patient,category) via /spec/bundle-id/{pid}/{category})",
+            "submit_iti105":           base + "/  (POST Bundle.type=transaction, requires system/Bundle.write)",
+        },
+        "example_patient_ids": ["p-001", "p-002", "p-003", "p-004", "p-005",
+                                "p-006", "p-007", "p-008", "p-009", "p-010"],
+        "priority_categories": ["patient-summary", "laboratory-report", "discharge-report",
+                                "imaging-report", "prescription"],
+        "token_ttl_seconds": settings.token_ttl_seconds,
+        "rate_limit_per_min": settings.rate_limit_per_min,
     }
     return JSONResponse(body)
 

@@ -43,6 +43,7 @@ def _build_app() -> FastAPI:
     from app.routers import bundle as bundle_router
     from app.routers import everything as everything_router
     from app.routers import docsubmit as docsubmit_router
+    from app.routers import discovery as discovery_router
 
     app.include_router(metadata_router.router)
     app.include_router(patient_router.router)
@@ -52,6 +53,7 @@ def _build_app() -> FastAPI:
     app.include_router(binary_router.router)  # legacy 301 -> /Bundle/{id}
     app.include_router(resource_router.router)
     app.include_router(docsubmit_router.router)
+    app.include_router(discovery_router.router)  # /register-client + /spec/*
 
     # dev-only UI (gated on ENV != prod inside the router)
     if not settings.is_prod:

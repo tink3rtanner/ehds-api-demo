@@ -101,7 +101,14 @@ def build_capability_statement() -> dict[str, Any]:
         "publisher": "ehds-api contributors",
         "kind": "instance",
         "implementation": {
-            "description": "EHDS Demo FHIR Server",
+            "description": (
+                "EHDS Demo FHIR Server — synthetic data. SMART Backend Services. "
+                "Self-service client registration at /register-client. "
+                "Implementer guide at /ui/#/implement. OpenAPI at /openapi.json. "
+                "Five EHDS priority categories compiled on demand at /Bundle/{uuid} "
+                "(see /spec/all-bundle-ids for the full uuid list, or "
+                "/Patient/{id}/$summary for the canonical IPS operation)."
+            ),
             "url": settings.base_url,
         },
         "fhirVersion": "4.0.1",
@@ -117,6 +124,13 @@ def build_capability_statement() -> dict[str, Any]:
         "rest": [{
             "mode": "server",
             "security": {
+                "description": (
+                    "SMART Backend Services (private_key_jwt). Discovery: "
+                    "/.well-known/smart-configuration. Register a client: "
+                    f"POST {settings.base_url}/register-client. "
+                    "Mint a bearer: POST {token_endpoint} with grant_type="
+                    "client_credentials and a signed JWT client_assertion."
+                ),
                 "service": [{
                     "coding": [{
                         "system": "http://terminology.hl7.org/CodeSystem/restful-security-service",
@@ -126,7 +140,8 @@ def build_capability_statement() -> dict[str, Any]:
                 "extension": [{
                     "url": "http://fhir-registry.smarthealthit.org/StructureDefinition/oauth-uris",
                     "extension": [
-                        {"url": "token", "valueUri": settings.token_endpoint},
+                        {"url": "token",    "valueUri": settings.token_endpoint},
+                        {"url": "register", "valueUri": settings.base_url + "/register-client"},
                     ],
                 }],
             },
