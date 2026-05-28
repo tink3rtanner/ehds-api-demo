@@ -14,6 +14,38 @@ connectathon demos.
 `README.md` has the IG-actor matrix and pretty-stack quickstart.
 `HANDOFF.md` has the full VPS bring-up runbook.
 
+## Skills + docs for future agents
+
+Project-scoped, both under `/srv/ehds-api/`. Future Claude sessions
+should run from this directory.
+
+**Skills** (`.claude/commands/`, invoked as `/<name>`):
+
+- `/ehds-deploy-and-verify` — push, restart, smoke-test 4 fail-fast
+  endpoints, dump logs on failure
+- `/ehds-trace-submission <id>` — diagnose a single ITI-105 submission
+  in `data/inbox/` (structure, dangling refs, audit correlation)
+- `/ehds-register-and-mint [client-id] [scope…]` — register a SMART
+  client and immediately mint a token, copy-paste ready
+- `/ehds-explain-401 [audit-line]` — decision tree for "why was this
+  rejected" against the actual messages in `app/auth/`
+- `/ehds-reseed-safe` — reseed panel preserving `inbox/`, `audit/`,
+  `clients.json`, `keys/`, then verify
+- `/ehds-add-document-category <slug> <loinc> <display>` — scaffold a
+  new on-demand document category end-to-end
+
+**Docs** (`docs/`):
+
+- `docs/TROUBLESHOOTING.md` — symptom-keyed root causes (validator
+  silently passing, scope errors, 203/EXEC, etc.)
+- `docs/conformance-deviations.md` — intentional spec deviations
+  (permissive submit, dev anon read, prescription-isn't-a-doc, etc.)
+- `docs/identity-cheatsheet.md` — slot↔uuid table, derivation chain,
+  the 4 patient-reference search forms
+- `docs/audit-recipes.md` — jq snippets against the JSONL audit log
+- `docs/runbook.md` — on-call for TLS expiry, disk full, systemd fail,
+  Caddy syntax
+
 ## Commands
 
 ```bash

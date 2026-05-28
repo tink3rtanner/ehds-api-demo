@@ -14,7 +14,13 @@ dist/
 # project
 .cache/
 ig/
-.claude/
+# .claude — track project-scoped skills/commands/agents but not runtime state.
+# Skills + commands are meant for future agents to find; the lock/session
+# files are per-process and must stay local.
+.claude/*
+!.claude/commands/
+!.claude/skills/
+!.claude/agents/
 *.log
 config/clients.local.json
 config/server_keys/
@@ -29,3 +35,9 @@ data/keys/
 data/clients.json
 data/inbox/
 data/audit/
+
+# Epic-submitted (or any externally-sourced) resources accumulate in
+# data/<type>/<id>.json with provider-shaped ids. Only the deterministic
+# uuid5 ids produced by scripts.seed should ever be tracked here.
+data/**/[!0-9a-f]*.json
+data/**/?*[!0-9a-f-].json
