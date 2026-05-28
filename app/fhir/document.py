@@ -25,7 +25,7 @@ from typing import Any
 
 from app.config import settings
 from app.fhir import store
-from app.fhir.capability import PROFILE_EU_BUNDLE
+from app.fhir.capability import PROFILE_EU_BUNDLE, PROFILE_EU_COMPOSITION
 from app.fhir.ids import SLOT_IDENTIFIER_SYSTEM, bundle_id, bundle_identifier, composition_id
 
 CATEGORY_TO_DOC_TYPE = {
@@ -195,6 +195,13 @@ def compile_document(patient_id: str, category: str) -> dict[str, Any]:
         "id": comp_id,
         "status": "final",
         "type": {"coding": [CATEGORY_TO_DOC_TYPE[category]]},
+        # narrative is required at Composition level by IPS/EU profiles
+        "text": {
+            "status": "generated",
+            "div": (f'<div xmlns="http://www.w3.org/1999/xhtml">'
+                    f'{CATEGORY_TO_DOC_TYPE[category]["display"]} for patient {patient_id}. '
+                    f'Compiled {datetime.now(UTC).strftime("%Y-%m-%d")}.</div>'),
+        },
         "category": [{"coding": [CATEGORY_TO_DOC_TYPE[category]]}],
         "subject": {"reference": f"Patient/{patient_id}"},
         "date": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S+00:00"),
@@ -202,6 +209,9 @@ def compile_document(patient_id: str, category: str) -> dict[str, Any]:
         "title": f"{CATEGORY_TO_DOC_TYPE[category]['display']} - {patient_id}",
         "section": sections,
     }
+    comp_profile = PROFILE_EU_COMPOSITION.get(category)
+    if comp_profile:
+        composition["meta"] = {"profile": [comp_profile]}
     if author_practitioner:
         composition["author"].append({"reference": _ref(author_practitioner)})
         included[_ref(author_practitioner)] = author_practitioner

@@ -11,17 +11,33 @@ from typing import Any
 
 from app.config import settings
 
-# canonical EU profile URLs (per the IGs we depend on). EHDS phase-1 priority
-# categories that are realistic to compile from an atomic resource store.
+# Canonical EU document-Bundle profile URLs, verified against the published
+# IG packages (hl7.eu/fhir/<ig>/package.tgz, 2026-05). The canonical form is
+# `http://hl7.eu/fhir/<ig>/...` — NOT `/fhir/ig/<ig>/...` (the old value 404'd
+# in the HL7 validator). See docs/epic-eu-bundling.md for the full inventory.
+#
+# NOTE: `prescription` has no document-Bundle profile in R4. The R4
+# `hl7.fhir.eu.mpd` IG ships resource profiles only (MedicationRequest-eu-mpd
+# etc.) and its example bundles are `type: collection`. We keep the key so the
+# compiler can still emit a prescription document, but it is validated at the
+# resource-profile level, not as an EU document bundle.
 PROFILE_EU_BUNDLE = {
-    "patient-summary":   "http://hl7.eu/fhir/ig/eps/StructureDefinition/Bundle-eu-eps",
-    "laboratory-report": "http://hl7.eu/fhir/ig/laboratory/StructureDefinition/Bundle-eu-lab",
-    "discharge-report":  "http://hl7.eu/fhir/ig/hdr/StructureDefinition/Bundle-eu-hdr",
-    "imaging-report":    "http://hl7.eu/fhir/ig/imaging/StructureDefinition/Bundle-eu-imaging",
-    "prescription":      "http://hl7.eu/fhir/ig/eu-health-data-api/StructureDefinition/Bundle-eu-prescription",
+    "patient-summary":   "http://hl7.eu/fhir/eps/StructureDefinition/bundle-eu-eps",
+    "laboratory-report": "http://hl7.eu/fhir/laboratory/StructureDefinition/Bundle-eu-lab",
+    "discharge-report":  "http://hl7.eu/fhir/hdr/StructureDefinition/bundle-eu-hdr",
+    "imaging-report":    "http://hl7.eu/fhir/imaging/StructureDefinition/BundleReportEuImaging",
+    "prescription":      "http://hl7.eu/fhir/mpd/StructureDefinition/MedicationRequest-eu-mpd",
 }
 
-EHDS_DOCREF_PROFILE = "http://hl7.eu/fhir/ig/eu-health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
+# Canonical EU Composition profile URLs per document category (entry[0]).
+PROFILE_EU_COMPOSITION = {
+    "patient-summary":   "http://hl7.eu/fhir/eps/StructureDefinition/composition-eu-eps",
+    "laboratory-report": "http://hl7.eu/fhir/laboratory/StructureDefinition/Composition-eu-lab",
+    "discharge-report":  "http://hl7.eu/fhir/hdr/StructureDefinition/composition-eu-hdr",
+    "imaging-report":    "http://hl7.eu/fhir/imaging/StructureDefinition/CompositionEuImaging",
+}
+
+EHDS_DOCREF_PROFILE = "http://hl7.eu/fhir/health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
 
 PDQM_PATIENT_SEARCH_PARAMS = [
     "_id", "identifier", "family", "given", "name", "birthdate", "gender",
@@ -114,12 +130,13 @@ def build_capability_statement() -> dict[str, Any]:
         "fhirVersion": "4.0.1",
         "format": ["application/fhir+json", "json"],
         "implementationGuide": [
-            "http://hl7.eu/fhir/ig/eu-core/ImplementationGuide/hl7.fhir.eu.base",
-            "http://hl7.eu/fhir/ig/eps/ImplementationGuide/hl7.fhir.eu.eps",
-            "http://hl7.eu/fhir/ig/laboratory/ImplementationGuide/hl7.fhir.eu.laboratory",
-            "http://hl7.eu/fhir/ig/hdr/ImplementationGuide/hl7.fhir.eu.hdr",
-            "http://hl7.eu/fhir/ig/imaging/ImplementationGuide/hl7.fhir.eu.imaging",
-            "http://hl7.eu/fhir/ig/eu-health-data-api/ImplementationGuide/hl7.fhir.eu.eehrxf",
+            "http://hl7.eu/fhir/base/ImplementationGuide/hl7.fhir.eu.base",
+            "http://hl7.eu/fhir/eps/ImplementationGuide/hl7.fhir.eu.eps",
+            "http://hl7.eu/fhir/laboratory/ImplementationGuide/hl7.fhir.eu.laboratory",
+            "http://hl7.eu/fhir/hdr/ImplementationGuide/hl7.fhir.eu.hdr",
+            "http://hl7.eu/fhir/imaging/ImplementationGuide/hl7.fhir.eu.imaging",
+            "http://hl7.eu/fhir/mpd/ImplementationGuide/hl7.fhir.eu.mpd",
+            "http://hl7.eu/fhir/health-data-api/ImplementationGuide/hl7.fhir.eu.health-data-api",
         ],
         "rest": [{
             "mode": "server",

@@ -21,6 +21,29 @@
         "system/*.read",
         "system/Bundle.write"
       ]
+    },
+    {
+      "client_id": "vps_bundler",
+      "jwks": {
+        "keys": [
+          {
+            "alg": "RS256",
+            "e": "AQAB",
+            "key_ops": [
+              "verify"
+            ],
+            "kid": "vps_bundler-key-1",
+            "kty": "RSA",
+            "n": "ttR9n-F_w6qj72jmEWuYTWzA4gexQw1qcAXCIoIXvHQ1ErDUAKZfDHMOwG61CSn-hu_rLpGKM19mO4Gjs7JEBxxrJOrhVY4sJU_nZSc1VCxv_gHu8qd-I21fHUN1cC7zvsHFE_dLJNLqp8pCUtzkk__LLRqs2sz6jy9uWhLURF0ZIavm7sqolgbB7Ld_G2zguneHJAb74CAWmBQYnr4E7AAKCdmxl_b1q0oS206-K1zH5Xeqxof-EOQD-Vclz8vEDNyHGgHvGc8Se9pHyBQBmVMfMxh0cJaJTN9GiyNK46npYR9731c7rQtAGBxl0p02M3hIDo1RyJXkgfk06NC-6w",
+            "use": "sig"
+          }
+        ]
+      },
+      "scopes": [
+        "system/*.read",
+        "system/Bundle.write",
+        "system/Patient.write"
+      ]
     }
   ]
 }

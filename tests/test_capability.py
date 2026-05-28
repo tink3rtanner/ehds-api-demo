@@ -42,11 +42,13 @@ async def test_metadata_advertises_smart_security(client):
 async def test_metadata_lists_eu_igs(client):
     body = (await client.get("/metadata")).json()
     igs = body["implementationGuide"]
-    assert any("eu-health-data-api" in u for u in igs)
+    # canonical EU IG URLs are http://hl7.eu/fhir/<ig>/ImplementationGuide/...
+    assert any("health-data-api" in u for u in igs)
     assert any("eps" in u for u in igs)
     assert any("laboratory" in u for u in igs)
     assert any("hdr" in u for u in igs)
     assert any("imaging" in u for u in igs)
+    assert any("/mpd/" in u for u in igs)
 
 
 async def test_metadata_lists_patient_match_operation(client):
