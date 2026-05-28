@@ -1,0 +1,176 @@
+{
+  "author": [
+    {
+      "display": "Epic FHIR Sandbox"
+    },
+    {
+      "display": "Epic FHIR (api-demo source)",
+      "reference": "https://api-demo.epic.com/fhir/Organization/epic-source"
+    }
+  ],
+  "custodian": {
+    "display": "Epic FHIR Sandbox"
+  },
+  "date": "2023-05-21",
+  "encounter": {
+    "reference": "urn:uuid:aec48429-8aff-4a02-8c43-109da45749cb"
+  },
+  "id": "a051fa7c-6e2d-4726-b495-9ebd5f5efcf5",
+  "meta": {
+    "profile": [
+      "http://hl7.eu/fhir/hdr/StructureDefinition/composition-eu-hdr"
+    ]
+  },
+  "resourceType": "Composition",
+  "section": [
+    {
+      "code": {
+        "coding": [
+          {
+            "code": "8648-8",
+            "display": "Hospital course Narrative",
+            "system": "http://loinc.org"
+          }
+        ]
+      },
+      "text": {
+        "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Office Visit; PR OFFICE OUTPATIENT VISIT 5 MINUTES</div>",
+        "status": "generated"
+      },
+      "title": "Hospital course Narrative"
+    },
+    {
+      "code": {
+        "coding": [
+          {
+            "code": "11535-2",
+            "display": "Hospital discharge Dx Narrative",
+            "system": "http://loinc.org"
+          }
+        ]
+      },
+      "entry": [
+        {
+          "reference": "urn:uuid:df9d5b3f-0903-48db-ab66-1c757657a24b"
+        }
+      ],
+      "text": {
+        "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Diagnoses: PCOS (polycystic ovarian syndrome)</div>",
+        "status": "generated"
+      },
+      "title": "Hospital discharge Dx Narrative"
+    },
+    {
+      "code": {
+        "coding": [
+          {
+            "code": "10185-7",
+            "display": "Hospital discharge procedures Narrative",
+            "system": "http://loinc.org"
+          }
+        ]
+      },
+      "entry": [
+        {
+          "reference": "urn:uuid:6fc07367-df94-4274-ac21-bce466fc40d5"
+        },
+        {
+          "reference": "urn:uuid:4b8c6b45-6708-4517-9fd7-ade6d3db7797"
+        }
+      ],
+      "text": {
+        "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Procedures: TRANSTHORACIC ECHO (TTE) COMPLETE; PR APPENDECTOMY</div>",
+        "status": "generated"
+      },
+      "title": "Hospital discharge procedures Narrative"
+    },
+    {
+      "code": {
+        "coding": [
+          {
+            "code": "87232-5",
+            "display": "Pharmacotherapy",
+            "system": "http://loinc.org"
+          }
+        ]
+      },
+      "entry": [
+        {
+          "reference": "urn:uuid:5e3879d8-9e2c-4123-852f-8ed524aba1ec"
+        }
+      ],
+      "text": {
+        "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Medications: drospirenone-ethinyl estradiol (YAZ) 3-0.02 MG per tablet</div>",
+        "status": "generated"
+      },
+      "title": "Pharmacotherapy"
+    },
+    {
+      "code": {
+        "coding": [
+          {
+            "code": "48765-2",
+            "display": "Allergies and adverse reactions Document",
+            "system": "http://loinc.org"
+          }
+        ]
+      },
+      "entry": [
+        {
+          "reference": "urn:uuid:68b9e33d-6dc5-4449-845e-255831bed471"
+        }
+      ],
+      "text": {
+        "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Allergies: Not on File</div>",
+        "status": "generated"
+      },
+      "title": "Allergies and adverse reactions Document"
+    },
+    {
+      "code": {
+        "coding": [
+          {
+            "code": "8653-8",
+            "display": "Hospital Discharge instructions",
+            "system": "http://loinc.org"
+          }
+        ]
+      },
+      "text": {
+        "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Hospital Discharge instructions</div>",
+        "status": "generated"
+      },
+      "title": "Hospital Discharge instructions"
+    },
+    {
+      "code": {
+        "coding": [
+          {
+            "code": "18776-5",
+            "display": "Plan of care note",
+            "system": "http://loinc.org"
+          }
+        ]
+      },
+      "text": {
+        "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Plan of care note</div>",
+        "status": "generated"
+      },
+      "title": "Plan of care note"
+    }
+  ],
+  "status": "final",
+  "subject": {
+    "reference": "urn:uuid:6e627682-e617-4be1-bd84-a86428bcb9b8"
+  },
+  "title": "Hospital Discharge Report",
+  "type": {
+    "coding": [
+      {
+        "code": "34105-7",
+        "display": "Hospital Discharge summary",
+        "system": "http://loinc.org"
+      }
+    ]
+  }
+}

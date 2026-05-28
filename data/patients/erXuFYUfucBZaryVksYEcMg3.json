@@ -1,0 +1,286 @@
+{
+  "active": true,
+  "address": [
+    {
+      "city": "GARLAND",
+      "country": "US",
+      "district": "DALLAS",
+      "line": [
+        "3268 West Johnson St.",
+        "Apt 117"
+      ],
+      "period": {
+        "start": "2019-05-24"
+      },
+      "postalCode": "75043",
+      "state": "TX",
+      "text": "3268 W Johnson St Apt 117\r\nGARLAND TX 75043\r\nUnited States of America",
+      "use": "home"
+    }
+  ],
+  "birthDate": "1987-09-12",
+  "communication": [
+    {
+      "_preferred": {
+        "extension": [
+          {
+            "url": "http://hl7.org/fhir/StructureDefinition/patient-preferenceType",
+            "valueCoding": {
+              "code": "verbal",
+              "display": "verbal",
+              "system": "http://hl7.org/fhir/language-preference-type"
+            }
+          },
+          {
+            "url": "http://hl7.org/fhir/StructureDefinition/patient-preferenceType",
+            "valueCoding": {
+              "code": "written",
+              "display": "written",
+              "system": "http://hl7.org/fhir/language-preference-type"
+            }
+          }
+        ]
+      },
+      "extension": [
+        {
+          "extension": [
+            {
+              "url": "type",
+              "valueCoding": {
+                "code": "ESP",
+                "display": "Expressed spoken",
+                "system": "http://terminology.hl7.org/CodeSystem/v3-LanguageAbilityMode"
+              }
+            }
+          ],
+          "url": "http://hl7.org/fhir/StructureDefinition/patient-proficiency"
+        },
+        {
+          "extension": [
+            {
+              "url": "type",
+              "valueCoding": {
+                "code": "EWR",
+                "display": "Expressed written",
+                "system": "http://terminology.hl7.org/CodeSystem/v3-LanguageAbilityMode"
+              }
+            }
+          ],
+          "url": "http://hl7.org/fhir/StructureDefinition/patient-proficiency"
+        }
+      ],
+      "language": {
+        "coding": [
+          {
+            "code": "en",
+            "display": "English",
+            "system": "urn:ietf:bcp:47"
+          }
+        ],
+        "text": "English"
+      },
+      "preferred": true
+    },
+    {
+      "extension": [
+        {
+          "extension": [
+            {
+              "url": "type",
+              "valueCoding": {
+                "code": "EWR",
+                "display": "Expressed written",
+                "system": "http://terminology.hl7.org/CodeSystem/v3-LanguageAbilityMode"
+              }
+            }
+          ],
+          "url": "http://hl7.org/fhir/StructureDefinition/patient-proficiency"
+        }
+      ],
+      "language": {
+        "coding": [
+          {
+            "code": "es",
+            "display": "Spanish",
+            "system": "urn:ietf:bcp:47"
+          }
+        ],
+        "text": "Spanish"
+      }
+    }
+  ],
+  "deceasedBoolean": false,
+  "extension": [
+    {
+      "extension": [
+        {
+          "url": "ombCategory",
+          "valueCoding": {
+            "code": "2131-1",
+            "display": "Other Race",
+            "system": "urn:oid:2.16.840.1.113883.6.238"
+          }
+        },
+        {
+          "url": "text",
+          "valueString": "Other"
+        }
+      ],
+      "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-race"
+    },
+    {
+      "extension": [
+        {
+          "url": "text",
+          "valueString": "Unknown"
+        }
+      ],
+      "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-ethnicity"
+    },
+    {
+      "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-sex",
+      "valueCode": "248152002"
+    }
+  ],
+  "gender": "female",
+  "generalPractitioner": [
+    {
+      "display": "Physician Family Medicine, MD",
+      "reference": "Practitioner/eM5CWtq15N0WJeuCet5bJlQ3",
+      "type": "Practitioner"
+    }
+  ],
+  "id": "erXuFYUfucBZaryVksYEcMg3",
+  "identifier": [
+    {
+      "system": "urn:oid:1.2.840.114350.1.13.0.1.7.3.688884.100",
+      "type": {
+        "text": "CEID"
+      },
+      "use": "usual",
+      "value": "FHRXPSX1P653C8W"
+    },
+    {
+      "system": "urn:oid:1.2.840.114350.1.13.0.1.7.5.737384.0",
+      "type": {
+        "text": "EPIC"
+      },
+      "use": "usual",
+      "value": "E4007"
+    },
+    {
+      "system": "urn:oid:1.2.840.114350.1.13.0.1.7.2.698084",
+      "type": {
+        "coding": [
+          {
+            "code": "um",
+            "system": "http://hl7.org/fhir/us/carin-bb/CodeSystem/C4BBIdentifierType"
+          }
+        ],
+        "text": "EXTERNAL"
+      },
+      "use": "usual",
+      "value": "Z6129"
+    },
+    {
+      "system": "http://open.epic.com/FHIR/StructureDefinition/patient-dstu2-fhir-id",
+      "type": {
+        "text": "FHIR"
+      },
+      "use": "usual",
+      "value": "TnOZ.elPXC6zcBNFMcFA7A5KZbYxo2.4T-LylRk4GoW4B"
+    },
+    {
+      "system": "http://open.epic.com/FHIR/StructureDefinition/patient-fhir-id",
+      "type": {
+        "text": "FHIR STU3"
+      },
+      "use": "usual",
+      "value": "erXuFYUfucBZaryVksYEcMg3"
+    },
+    {
+      "system": "urn:oid:1.2.840.114350.1.13.0.1.7.2.698084",
+      "type": {
+        "text": "INTERNAL"
+      },
+      "use": "usual",
+      "value": "     Z6129"
+    },
+    {
+      "system": "urn:oid:1.2.840.114350.1.13.0.1.7.5.737384.14",
+      "type": {
+        "text": "EPI"
+      },
+      "use": "usual",
+      "value": "203713"
+    },
+    {
+      "system": "urn:oid:1.2.840.114350.1.13.0.1.7.3.878082.110",
+      "type": {
+        "text": "MYCHARTLOGIN"
+      },
+      "use": "usual",
+      "value": "FHIRCAMILA"
+    },
+    {
+      "system": "urn:oid:1.2.840.114350.1.13.0.1.7.2.878082",
+      "type": {
+        "text": "WPRINTERNAL"
+      },
+      "use": "usual",
+      "value": "736"
+    }
+  ],
+  "managingOrganization": {
+    "display": "Epic Hospital System",
+    "reference": "Organization/enRyWnSP963FYDpoks4NHOA3"
+  },
+  "maritalStatus": {
+    "text": "Married"
+  },
+  "meta": {
+    "profile": [
+      "http://hl7.eu/fhir/hdr/StructureDefinition/patient-obl-eu-hdr"
+    ]
+  },
+  "name": [
+    {
+      "family": "Lopez",
+      "given": [
+        "Camila",
+        "Maria"
+      ],
+      "text": "Camila Maria Lopez",
+      "use": "official"
+    },
+    {
+      "family": "Lopez",
+      "given": [
+        "Camila",
+        "Maria"
+      ],
+      "text": "Camila Maria Lopez",
+      "use": "usual"
+    }
+  ],
+  "resourceType": "Patient",
+  "telecom": [
+    {
+      "rank": 2,
+      "system": "phone",
+      "use": "work",
+      "value": "+1 469-888-8888"
+    },
+    {
+      "rank": 3,
+      "system": "phone",
+      "use": "mobile",
+      "value": "+1 469-469-4321"
+    },
+    {
+      "rank": 1,
+      "system": "email",
+      "value": "knixontestemail@epic.com"
+    }
+  ]
+}

@@ -1,0 +1,189 @@
+{
+  "author": [
+    {
+      "display": "Epic FHIR Sandbox"
+    },
+    {
+      "display": "Epic FHIR (api-demo source)",
+      "reference": "https://api-demo.epic.com/fhir/Organization/epic-source"
+    }
+  ],
+  "custodian": {
+    "display": "Epic FHIR Sandbox"
+  },
+  "date": "2013-11-08T18:49:35Z",
+  "extension": [
+    {
+      "url": "http://hl7.eu/fhir/imaging-r5/StructureDefinition/im-composition-diagnosticReportReference",
+      "valueReference": {
+        "reference": "urn:uuid:05ba467c-a7f1-45dc-88cc-8ffdf2d64d13"
+      }
+    }
+  ],
+  "id": "e55b66e4-966e-465e-a570-3241b1da1d64",
+  "identifier": {
+    "system": "urn:oid:1.2.840.114350.1.13.0.1.7.2.798268",
+    "type": {
+      "coding": [
+        {
+          "code": "PLAC",
+          "display": "Placer Identifier",
+          "system": "http://terminology.hl7.org/CodeSystem/v2-0203"
+        }
+      ],
+      "text": "Placer Identifier"
+    },
+    "use": "official",
+    "value": "895374"
+  },
+  "meta": {
+    "profile": [
+      "http://hl7.eu/fhir/imaging/r5/StructureDefinition/Report-ImComposition"
+    ]
+  },
+  "resourceType": "Composition",
+  "section": [
+    {
+      "code": {
+        "coding": [
+          {
+            "code": "59776-5",
+            "display": "Procedure Findings Narrative",
+            "system": "http://loinc.org"
+          }
+        ]
+      },
+      "text": {
+        "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Procedure Findings Narrative</div>",
+        "status": "generated"
+      },
+      "title": "Procedure Findings Narrative"
+    },
+    {
+      "code": {
+        "coding": [
+          {
+            "code": "19005-8",
+            "display": "Radiology Imaging study [Impression] (narrative)",
+            "system": "http://loinc.org"
+          }
+        ]
+      },
+      "text": {
+        "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Radiology Imaging study [Impression] (narrative)</div>",
+        "status": "generated"
+      },
+      "title": "Radiology Imaging study [Impression] (narrative)"
+    },
+    {
+      "code": {
+        "coding": [
+          {
+            "code": "18783-1",
+            "display": "Radiology Study recommendation (narrative)",
+            "system": "http://loinc.org"
+          }
+        ]
+      },
+      "text": {
+        "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Radiology Study recommendation (narrative)</div>",
+        "status": "generated"
+      },
+      "title": "Radiology Study recommendation (narrative)"
+    },
+    {
+      "code": {
+        "coding": [
+          {
+            "code": "18726-0",
+            "display": "Radiology studies (set)",
+            "system": "http://loinc.org"
+          }
+        ]
+      },
+      "text": {
+        "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Radiology studies (set)</div>",
+        "status": "generated"
+      },
+      "title": "Radiology studies (set)"
+    },
+    {
+      "code": {
+        "coding": [
+          {
+            "code": "55115-0",
+            "display": "Requested imaging studies information Document",
+            "system": "http://loinc.org"
+          }
+        ]
+      },
+      "text": {
+        "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Requested imaging studies information Document</div>",
+        "status": "generated"
+      },
+      "title": "Requested imaging studies information Document"
+    },
+    {
+      "code": {
+        "coding": [
+          {
+            "code": "55111-9",
+            "display": "Current imaging procedure descriptions Document",
+            "system": "http://loinc.org"
+          }
+        ]
+      },
+      "text": {
+        "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Current imaging procedure descriptions Document</div>",
+        "status": "generated"
+      },
+      "title": "Current imaging procedure descriptions Document"
+    },
+    {
+      "code": {
+        "coding": [
+          {
+            "code": "18834-2",
+            "display": "Radiology Comparison study (narrative)",
+            "system": "http://loinc.org"
+          }
+        ]
+      },
+      "text": {
+        "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Radiology Comparison study (narrative)</div>",
+        "status": "generated"
+      },
+      "title": "Radiology Comparison study (narrative)"
+    },
+    {
+      "code": {
+        "coding": [
+          {
+            "code": "11329-0",
+            "display": "History general Narrative - Reported",
+            "system": "http://loinc.org"
+          }
+        ]
+      },
+      "text": {
+        "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">History general Narrative - Reported</div>",
+        "status": "generated"
+      },
+      "title": "History general Narrative - Reported"
+    }
+  ],
+  "status": "preliminary",
+  "subject": {
+    "reference": "urn:uuid:9efe06b8-1175-4bb3-8144-a84b742f50cc"
+  },
+  "title": "Imaging Report",
+  "type": {
+    "coding": [
+      {
+        "code": "85430-7",
+        "display": "Radiology report",
+        "system": "http://loinc.org"
+      }
+    ]
+  }
+}

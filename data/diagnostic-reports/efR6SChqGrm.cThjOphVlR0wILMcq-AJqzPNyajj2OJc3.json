@@ -1,0 +1,185 @@
+{
+  "basedOn": [
+    {
+      "display": "CT Head wo IV Contrast",
+      "reference": "ServiceRequest/eSmmUAUhj9PbM8t6RS4vfKQ-jkduG-2hhi7n6c8PIEjM3"
+    }
+  ],
+  "category": [
+    {
+      "coding": [
+        {
+          "code": "Imaging",
+          "system": "urn:oid:1.2.840.114350.1.13.0.1.7.10.798268.30"
+        }
+      ],
+      "text": "Imaging"
+    },
+    {
+      "coding": [
+        {
+          "code": "LP29684-5",
+          "display": "Radiology",
+          "system": "http://loinc.org"
+        }
+      ],
+      "text": "Radiology"
+    },
+    {
+      "coding": [
+        {
+          "code": "18748-4",
+          "display": "Diagnostic imaging study",
+          "system": "http://loinc.org"
+        }
+      ]
+    }
+  ],
+  "code": {
+    "coding": [
+      {
+        "code": "36104-8",
+        "system": "http://loinc.org"
+      },
+      {
+        "code": "70450",
+        "display": "CHG CT SCAN,HEAD/BRAIN,W/O CONTRAST MATL",
+        "system": "urn:oid:2.16.840.1.113883.6.12"
+      },
+      {
+        "code": "1000160",
+        "system": "urn:oid:1.2.840.114350.1.13.0.1.7.5.737384.52000"
+      },
+      {
+        "code": "IMG181",
+        "system": "urn:oid:1.2.840.114350.1.13.0.1.7.5.737384.72"
+      },
+      {
+        "code": "RPID22",
+        "system": "urn:oid:1.2.840.114350.1.13.0.1.7.5.737384.155"
+      }
+    ],
+    "text": "CT Head wo IV Contrast"
+  },
+  "conclusionCode": [
+    {
+      "coding": [
+        {
+          "code": "46177005",
+          "display": "End stage renal disease (disorder)",
+          "system": "http://snomed.info/sct"
+        },
+        {
+          "code": "585.6",
+          "display": "End stage renal disease (CMS/HCC)",
+          "system": "http://hl7.org/fhir/sid/icd-9-cm"
+        },
+        {
+          "code": "N18.6",
+          "display": "End stage renal disease",
+          "system": "http://hl7.org/fhir/sid/icd-10-cm"
+        }
+      ],
+      "text": "End stage renal disease (CMS/HCC)"
+    }
+  ],
+  "effectiveDateTime": "2020-07-27T19:29:34Z",
+  "encounter": {
+    "display": "Appointment",
+    "identifier": {
+      "system": "urn:oid:1.2.840.114350.1.13.0.1.7.3.698084.8",
+      "use": "usual",
+      "value": "27563"
+    },
+    "reference": "Encounter/ep4LAjn0KGw4LeAxEq-2VAg3"
+  },
+  "id": "efR6SChqGrm.cThjOphVlR0wILMcq-AJqzPNyajj2OJc3",
+  "identifier": [
+    {
+      "system": "urn:oid:1.2.840.114350.1.13.0.1.7.2.798268",
+      "type": {
+        "coding": [
+          {
+            "code": "PLAC",
+            "display": "Placer Identifier",
+            "system": "http://terminology.hl7.org/CodeSystem/v2-0203"
+          }
+        ],
+        "text": "Placer Identifier"
+      },
+      "use": "official",
+      "value": "1093805"
+    },
+    {
+      "type": {
+        "coding": [
+          {
+            "code": "FILL",
+            "display": "Filler Identifier",
+            "system": "http://terminology.hl7.org/CodeSystem/v2-0203"
+          }
+        ],
+        "text": "Filler Identifier"
+      },
+      "use": "official",
+      "value": "160"
+    }
+  ],
+  "imagingStudy": [
+    {
+      "reference": "ImagingStudy/eRGfH1SxCGzUMzjM3NCzXuGKP.H39zpR8U-Wlwoq6aJ03"
+    }
+  ],
+  "issued": "2020-07-27T19:30:48Z",
+  "meta": {
+    "profile": [
+      "http://hl7.eu/fhir/imaging/r5/StructureDefinition/Report-ImDiagnosticReport"
+    ]
+  },
+  "performer": [
+    {
+      "display": "IMAGING",
+      "reference": "Organization/etOhDRFmHqAJ3CBmvHCeF9VYgSiH5bYCNkDSOho2TXb43",
+      "type": "Organization"
+    }
+  ],
+  "presentedForm": [
+    {
+      "contentType": "text/html",
+      "title": "Narrative",
+      "url": "Binary/ePoGC3t0CHL9zxzy8XeBffeXK6LxFFA8ehfj6-2YlGI03"
+    },
+    {
+      "contentType": "text/html",
+      "title": "Impression",
+      "url": "Binary/ePoGC3t0CHL9zxzy8XeBffbi4dwAk0-UGZpvTN.QJMg03"
+    },
+    {
+      "contentType": "application/pdf",
+      "title": "Study Result Document",
+      "url": "Binary/fWpPXmg2roy0QU4WNtdCGXQ4"
+    }
+  ],
+  "resourceType": "DiagnosticReport",
+  "result": [
+    {
+      "display": "Narrative",
+      "reference": "Observation/eTcWIsqHjZOSMY2.brvNoK6bv-R7Ve9qtkRSo6l2dfMg3"
+    },
+    {
+      "display": "Impression",
+      "reference": "Observation/eTcWIsqHjZOSMY2.brvNoK.2UR.sIthIR-VGVhTLcbUQ3"
+    }
+  ],
+  "resultsInterpreter": [
+    {
+      "display": "Radiologist Radiology, MD",
+      "reference": "Practitioner/ePwlHXYFFHLNL9so.ugVNFQ3",
+      "type": "Practitioner"
+    }
+  ],
+  "status": "final",
+  "subject": {
+    "reference": "urn:uuid:d6c1bcdf-9a3b-4a12-bb5a-7a2cf69df77b"
+  }
+}

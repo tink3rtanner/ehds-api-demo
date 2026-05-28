@@ -15,26 +15,57 @@ from app.config import settings
 
 
 def structural_validate(resource: dict[str, Any]) -> tuple[bool, list[str]]:
-    """run fhir.resources pydantic validation; return (ok, [problem strings])."""
-    try:
-        from fhir.resources.fhirtypesvalidators import get_fhir_model_class  # type: ignore
-    except Exception:
-        # fhir.resources >= 7 prefers construct_fhir_element / direct model imports
-        try:
-            from fhir.resources import construct_fhir_element  # type: ignore
-        except Exception as e:
-            return True, [f"validator-unavailable: {e}"]
+    """run fhir.resources pydantic validation; return (ok, [problem strings]).
 
+    fhir.resources 8.x exposes get_fhir_model_class at the top level; older
+    versions used construct_fhir_element or fhirtypesvalidators.get_fhir_model_class.
+    We try the canonical 8.x path first and fall back to the older shapes so
+    this works across version bumps.
+    """
+    rtype = resource.get("resourceType")
+    if not rtype:
+        return False, ["resource has no resourceType"]
+
+    # fhir.resources 8.x defaults to R5 models at the top level; we explicitly
+    # use R4B (the R4 maintenance release) which matches our server's
+    # advertised fhirVersion 4.0.1. Without R4B the validator treats fields
+    # like Composition.subject as 0..* lists per R5 and rejects valid R4
+    # bundles where it's a single Reference.
+    try:
+        from fhir.resources.R4B import get_fhir_model_class  # type: ignore
+    except ImportError:
+        get_fhir_model_class = None  # type: ignore
+
+    # fallbacks for older fhir.resources installs
+    if get_fhir_model_class is None:
         try:
-            construct_fhir_element(resource["resourceType"], resource)  # type: ignore
+            from fhir.resources.fhirtypesvalidators import (  # type: ignore
+                get_fhir_model_class as _get,
+            )
+            get_fhir_model_class = _get
+        except ImportError:
+            pass
+
+    if get_fhir_model_class is not None:
+        try:
+            cls = get_fhir_model_class(rtype)
+        except (KeyError, LookupError, AttributeError) as e:
+            return False, [f"unknown resourceType {rtype!r}: {e}"]
+        try:
+            cls.model_validate(resource)
             return True, []
-        except Exception as e:  # noqa: BLE001
-            return False, [str(e)]
+        except Exception as e:  # noqa: BLE001  pydantic raises ValidationError
+            # surface a useful one-line summary instead of dumping the whole tree
+            msg = str(e).replace("\n", " ").strip()
+            return False, [msg[:600]]
 
+    # last-resort fallback: 6.x and earlier
     try:
-        cls = get_fhir_model_class(resource["resourceType"])
-        cls.model_validate(resource)
+        from fhir.resources import construct_fhir_element  # type: ignore
+        construct_fhir_element(rtype, resource)  # type: ignore
         return True, []
+    except ImportError as e:
+        return True, [f"validator-unavailable: {e}"]
     except Exception as e:  # noqa: BLE001
         return False, [str(e)]
 

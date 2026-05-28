@@ -21,18 +21,16 @@ SEED_DATA_DIR = REPO_ROOT / "data"
 
 _TEST_ROOT = Path(tempfile.mkdtemp(prefix="ehds_test_"))
 _DATA_DIR = _TEST_ROOT / "data"
-if SEED_DATA_DIR.exists() and any(SEED_DATA_DIR.iterdir()):
-    shutil.copytree(SEED_DATA_DIR, _DATA_DIR, dirs_exist_ok=True)
-else:
-    _DATA_DIR.mkdir(parents=True, exist_ok=True)
-    for sub in [
-        "patients", "observations", "medication-statements", "medication-dispenses",
-        "medication-requests", "medications", "conditions", "allergy-intolerances",
-        "immunizations", "procedures", "diagnostic-reports", "imaging-studies",
-        "encounters", "specimens", "practitioners", "organizations",
-        "compositions", "document-references", "inbox",
-    ]:
-        (_DATA_DIR / sub).mkdir(parents=True, exist_ok=True)
+# Seed deterministically from scripts.seed rather than copying the live data
+# dir. Live data accumulates ITI-105 submissions over time, which would
+# poison tests that count "the 10-patient panel".
+_DATA_DIR.mkdir(parents=True, exist_ok=True)
+# import lazily inside this block so the scripts.seed import doesn't trip
+# on env vars that haven't been set yet
+import sys as _sys
+_sys.path.insert(0, str(REPO_ROOT))
+from scripts.seed import seed as _seed  # noqa: E402
+_seed(_DATA_DIR, clean=True)
 
 # generate test client key (RSA) ONCE per session
 from cryptography.hazmat.primitives import serialization

@@ -1,0 +1,96 @@
+{
+  "basedOn": [
+    {
+      "display": "Cholesterol, total",
+      "reference": "ServiceRequest/e9dYxf-IZQnjLPZ.7EUor47r7hBhVUJW0uyCaouCn1Zw3"
+    }
+  ],
+  "category": [
+    {
+      "coding": [
+        {
+          "code": "laboratory",
+          "display": "Laboratory",
+          "system": "http://terminology.hl7.org/CodeSystem/observation-category"
+        }
+      ],
+      "text": "Laboratory"
+    },
+    {
+      "coding": [
+        {
+          "code": "Lab",
+          "display": "Lab",
+          "system": "urn:oid:1.2.840.114350.1.13.0.1.7.10.798268.30"
+        }
+      ],
+      "text": "Lab"
+    }
+  ],
+  "code": {
+    "coding": [
+      {
+        "code": "2093-3",
+        "display": "Cholesterol [Mass/volume] in Serum or Plasma",
+        "system": "http://loinc.org"
+      },
+      {
+        "code": "1557760",
+        "display": "Cholesterol",
+        "system": "urn:oid:1.2.840.114350.1.13.0.1.7.2.768282"
+      }
+    ],
+    "text": "Cholesterol"
+  },
+  "effectiveDateTime": "2019-05-28T15:59:00Z",
+  "encounter": {
+    "display": "Hospital Encounter",
+    "identifier": {
+      "system": "urn:oid:1.2.840.114350.1.13.0.1.7.3.698084.8",
+      "use": "usual",
+      "value": "27561"
+    },
+    "reference": "Encounter/eucYt0hPWgEMZqybf6t4c.g3"
+  },
+  "extension": [
+    {
+      "url": "http://nictiz.nl/fhir/StructureDefinition/ext-CopyIndicator",
+      "valueBoolean": false
+    }
+  ],
+  "id": "esFhjXae1fMMDolMsXjgBjz9hJczl28dBOAWyHG2FXcw8BQKIOiYT95ieddx",
+  "issued": "2019-05-28T16:06:31Z",
+  "meta": {
+    "profile": [
+      "http://hl7.eu/fhir/laboratory/StructureDefinition/Observation-resultslab-eu-lab"
+    ]
+  },
+  "performer": [
+    {
+      "display": "Physician One Cardiology, MD"
+    },
+    {
+      "display": "EMH HOSPITAL LAB"
+    }
+  ],
+  "referenceRange": [
+    {
+      "text": "<=200"
+    }
+  ],
+  "resourceType": "Observation",
+  "specimen": {
+    "display": "Specimen 19H-148C0001",
+    "reference": "Specimen/eIei5.i110ptl7-o1TkkJVA3"
+  },
+  "status": "final",
+  "subject": {
+    "reference": "urn:uuid:a33ba973-74cf-4da4-8f54-bfb5fd95d61d"
+  },
+  "valueQuantity": {
+    "code": "mg/dL",
+    "system": "http://unitsofmeasure.org",
+    "unit": "mg/dL",
+    "value": 187
+  }
+}

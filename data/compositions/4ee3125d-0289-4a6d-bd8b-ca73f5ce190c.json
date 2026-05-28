@@ -1,0 +1,79 @@
+{
+  "author": [
+    {
+      "display": "Physician One Cardiology, MD"
+    },
+    {
+      "display": "EMH HOSPITAL LAB"
+    },
+    {
+      "display": "Epic FHIR (api-demo source)",
+      "reference": "https://api-demo.epic.com/fhir/Organization/epic-source"
+    }
+  ],
+  "category": [
+    {
+      "coding": [
+        {
+          "code": "LAB",
+          "display": "Laboratory",
+          "system": "http://terminology.hl7.org/CodeSystem/v2-0074"
+        }
+      ]
+    }
+  ],
+  "custodian": {
+    "display": "Epic FHIR Sandbox"
+  },
+  "date": "2019-05-28T16:06:00Z",
+  "id": "4ee3125d-0289-4a6d-bd8b-ca73f5ce190c",
+  "identifier": {
+    "system": "urn:ietf:rfc:3986",
+    "value": "urn:uuid:4ee3125d-0289-4a6d-bd8b-ca73f5ce190c"
+  },
+  "meta": {
+    "profile": [
+      "http://hl7.eu/fhir/laboratory/StructureDefinition/Composition-eu-lab"
+    ]
+  },
+  "resourceType": "Composition",
+  "section": [
+    {
+      "code": {
+        "coding": [
+          {
+            "code": "2093-3",
+            "system": "http://loinc.org"
+          }
+        ]
+      },
+      "entry": [
+        {
+          "reference": "urn:uuid:8a80bd6e-b164-4700-9675-5c1fe307f325"
+        },
+        {
+          "reference": "urn:uuid:d0225dc6-b556-4e67-ac2a-0d347e28c6a4"
+        }
+      ],
+      "text": {
+        "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\">Laboratory study</div>",
+        "status": "generated"
+      },
+      "title": "Laboratory study"
+    }
+  ],
+  "status": "final",
+  "subject": {
+    "reference": "urn:uuid:a33ba973-74cf-4da4-8f54-bfb5fd95d61d"
+  },
+  "title": "Cholesterol, total",
+  "type": {
+    "coding": [
+      {
+        "code": "11502-2",
+        "display": "Laboratory report",
+        "system": "http://loinc.org"
+      }
+    ]
+  }
+}

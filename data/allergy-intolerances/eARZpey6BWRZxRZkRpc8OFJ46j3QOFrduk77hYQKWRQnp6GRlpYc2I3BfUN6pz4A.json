@@ -1,0 +1,42 @@
+{
+  "clinicalStatus": {
+    "coding": [
+      {
+        "code": "active",
+        "display": "Active",
+        "system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-clinical",
+        "version": "4.0.0"
+      }
+    ]
+  },
+  "code": {
+    "coding": [
+      {
+        "code": "1631000175102",
+        "display": "Patient not asked",
+        "system": "http://snomed.info/sct"
+      }
+    ],
+    "text": "Not on File"
+  },
+  "id": "eARZpey6BWRZxRZkRpc8OFJ46j3QOFrduk77hYQKWRQnp6GRlpYc2I3BfUN6pz4A",
+  "meta": {
+    "profile": [
+      "http://hl7.eu/fhir/base/StructureDefinition/allergyIntolerance-eu-core"
+    ]
+  },
+  "patient": {
+    "reference": "urn:uuid:cad743ae-45ad-4738-ac6b-a3d49b79ff42"
+  },
+  "resourceType": "AllergyIntolerance",
+  "verificationStatus": {
+    "coding": [
+      {
+        "code": "unconfirmed",
+        "display": "Unconfirmed",
+        "system": "http://terminology.hl7.org/CodeSystem/allergyintolerance-verification",
+        "version": "4.0.0"
+      }
+    ]
+  }
+}

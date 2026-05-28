@@ -1,0 +1,123 @@
+{
+  "context": {
+    "reference": "urn:uuid:10469253-c520-462e-a273-2982fa458089"
+  },
+  "dosage": [
+    {
+      "asNeededBoolean": false,
+      "doseAndRate": [
+        {
+          "doseQuantity": {
+            "code": "{tbl}",
+            "system": "http://unitsofmeasure.org",
+            "unit": "tablet",
+            "value": 1
+          },
+          "type": {
+            "coding": [
+              {
+                "code": "calculated",
+                "display": "calculated",
+                "system": "http://epic.com/CodeSystem/dose-rate-type"
+              }
+            ],
+            "text": "calculated"
+          }
+        },
+        {
+          "doseQuantity": {
+            "code": "{tbl}",
+            "system": "http://unitsofmeasure.org",
+            "unit": "tablet",
+            "value": 1
+          },
+          "type": {
+            "coding": [
+              {
+                "code": "admin-amount",
+                "display": "admin-amount",
+                "system": "http://epic.com/CodeSystem/dose-rate-type"
+              }
+            ],
+            "text": "admin-amount"
+          }
+        },
+        {
+          "doseQuantity": {
+            "code": "{tbl}",
+            "system": "http://unitsofmeasure.org",
+            "unit": "tablet",
+            "value": 1
+          },
+          "type": {
+            "coding": [
+              {
+                "code": "ordered",
+                "display": "ordered",
+                "system": "http://epic.com/CodeSystem/dose-rate-type"
+              }
+            ],
+            "text": "ordered"
+          }
+        }
+      ],
+      "method": {
+        "coding": [
+          {
+            "code": "419652001",
+            "display": "Take",
+            "system": "http://snomed.info/sct"
+          }
+        ],
+        "text": "Take"
+      },
+      "patientInstruction": "Take 1 tablet by mouth 1 (one) time each day.",
+      "route": {
+        "coding": [
+          {
+            "code": "260548002",
+            "display": "Oral (qualifier value)",
+            "system": "http://snomed.info/sct"
+          },
+          {
+            "code": "15",
+            "display": "Oral",
+            "system": "urn:oid:1.2.840.114350.1.13.0.1.7.4.798268.7025"
+          }
+        ],
+        "text": "Oral"
+      },
+      "text": "Take 1 tablet by mouth 1 (one) time each day., Starting Tue 5/28/2019, Until Wed 5/27/2020, Normal",
+      "timing": {
+        "code": {
+          "text": "0900"
+        },
+        "repeat": {
+          "boundsPeriod": {
+            "start": "2019-05-28"
+          },
+          "count": 365,
+          "timeOfDay": [
+            "09:00:00"
+          ]
+        }
+      }
+    }
+  ],
+  "effectiveDateTime": "2019-05-28",
+  "id": "3dbcadda-6612-44d9-bd75-72149274a954",
+  "medicationReference": {
+    "display": "drospirenone-ethinyl estradiol (YAZ) 3-0.02 MG per tablet",
+    "reference": "Medication/ej-bgums0x4N6E0.QqIjJb3kGhOQBVK3lIYjcil9mb9j-ukNrz6P2y90AiDm3R20Y3"
+  },
+  "meta": {
+    "profile": [
+      "http://hl7.eu/fhir/hdr/StructureDefinition/medicationStatement-eu-hdr"
+    ]
+  },
+  "resourceType": "MedicationStatement",
+  "status": "active",
+  "subject": {
+    "reference": "urn:uuid:3086607f-2efe-49fc-92df-dd1872316230"
+  }
+}

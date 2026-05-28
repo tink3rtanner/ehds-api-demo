@@ -1,0 +1,273 @@
+{
+  "active": true,
+  "address": [
+    {
+      "city": "KENTWOOD",
+      "country": "US",
+      "district": "KENT",
+      "line": [
+        "1563 West Main St",
+        "Apt 322"
+      ],
+      "period": {
+        "start": "2019-05-24"
+      },
+      "postalCode": "49518",
+      "state": "MI",
+      "text": "1563 W Main St Apt 322\r\nKENTWOOD MI 49518\r\nUnited States of America",
+      "use": "home"
+    }
+  ],
+  "birthDate": "1952-05-24",
+  "communication": [
+    {
+      "_preferred": {
+        "extension": [
+          {
+            "url": "http://hl7.org/fhir/StructureDefinition/patient-preferenceType",
+            "valueCoding": {
+              "code": "verbal",
+              "display": "verbal",
+              "system": "http://hl7.org/fhir/language-preference-type"
+            }
+          },
+          {
+            "url": "http://hl7.org/fhir/StructureDefinition/patient-preferenceType",
+            "valueCoding": {
+              "code": "written",
+              "display": "written",
+              "system": "http://hl7.org/fhir/language-preference-type"
+            }
+          }
+        ]
+      },
+      "extension": [
+        {
+          "extension": [
+            {
+              "url": "type",
+              "valueCoding": {
+                "code": "ESP",
+                "display": "Expressed spoken",
+                "system": "http://terminology.hl7.org/CodeSystem/v3-LanguageAbilityMode"
+              }
+            }
+          ],
+          "url": "http://hl7.org/fhir/StructureDefinition/patient-proficiency"
+        },
+        {
+          "extension": [
+            {
+              "url": "type",
+              "valueCoding": {
+                "code": "EWR",
+                "display": "Expressed written",
+                "system": "http://terminology.hl7.org/CodeSystem/v3-LanguageAbilityMode"
+              }
+            }
+          ],
+          "url": "http://hl7.org/fhir/StructureDefinition/patient-proficiency"
+        }
+      ],
+      "language": {
+        "coding": [
+          {
+            "code": "en",
+            "display": "English",
+            "system": "urn:ietf:bcp:47"
+          }
+        ],
+        "text": "English"
+      },
+      "preferred": true
+    }
+  ],
+  "deceasedBoolean": false,
+  "extension": [
+    {
+      "url": "http://open.epic.com/FHIR/StructureDefinition/extension/legal-sex",
+      "valueCodeableConcept": {
+        "coding": [
+          {
+            "code": "male",
+            "display": "male",
+            "system": "urn:oid:1.2.840.114350.1.13.0.1.7.10.698084.130.657370.19999000"
+          }
+        ],
+        "text": "Male"
+      }
+    },
+    {
+      "url": "http://open.epic.com/FHIR/StructureDefinition/extension/sex-for-clinical-use",
+      "valueCodeableConcept": {
+        "coding": [
+          {
+            "code": "male",
+            "display": "male",
+            "system": "urn:oid:1.2.840.114350.1.13.0.1.7.10.698084.130.657370.19999000"
+          }
+        ]
+      }
+    },
+    {
+      "extension": [
+        {
+          "url": "ombCategory",
+          "valueCoding": {
+            "code": "2106-3",
+            "display": "White",
+            "system": "urn:oid:2.16.840.1.113883.6.238"
+          }
+        },
+        {
+          "url": "text",
+          "valueString": "White"
+        }
+      ],
+      "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-race"
+    },
+    {
+      "extension": [
+        {
+          "url": "text",
+          "valueString": "Unknown"
+        }
+      ],
+      "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-ethnicity"
+    },
+    {
+      "url": "http://hl7.org/fhir/us/core/StructureDefinition/us-core-sex",
+      "valueCode": "248153007"
+    },
+    {
+      "url": "http://open.epic.com/FHIR/StructureDefinition/extension/calculated-pronouns-to-use-for-text",
+      "valueCodeableConcept": {
+        "coding": [
+          {
+            "code": "LA29518-0",
+            "display": "he/him/his/his/himself",
+            "system": "http://loinc.org"
+          }
+        ]
+      }
+    }
+  ],
+  "gender": "male",
+  "generalPractitioner": [
+    {
+      "display": "Physician Family Medicine, MD",
+      "reference": "Practitioner/eM5CWtq15N0WJeuCet5bJlQ3",
+      "type": "Practitioner"
+    },
+    {
+      "display": "Physician One Cardiology, MD",
+      "reference": "Practitioner/ef9TegF2nfECi-0Skirbvpg3",
+      "type": "Practitioner"
+    }
+  ],
+  "id": "e0w0LEDCYtfckT6N.CkJKCw3",
+  "identifier": [
+    {
+      "system": "urn:oid:1.2.840.114350.1.13.0.1.7.3.688884.100",
+      "type": {
+        "text": "CEID"
+      },
+      "use": "usual",
+      "value": "FHR2DVZ7VJ82LB9"
+    },
+    {
+      "system": "urn:oid:1.2.840.114350.1.13.0.1.7.5.737384.0",
+      "type": {
+        "text": "EPIC"
+      },
+      "use": "usual",
+      "value": "E4004"
+    },
+    {
+      "system": "urn:oid:1.2.840.114350.1.13.0.1.7.2.698084",
+      "type": {
+        "coding": [
+          {
+            "code": "um",
+            "system": "http://hl7.org/fhir/us/carin-bb/CodeSystem/C4BBIdentifierType"
+          }
+        ],
+        "text": "EXTERNAL"
+      },
+      "use": "usual",
+      "value": "Z6126"
+    },
+    {
+      "system": "http://open.epic.com/FHIR/StructureDefinition/patient-dstu2-fhir-id",
+      "type": {
+        "text": "FHIR"
+      },
+      "use": "usual",
+      "value": "T30fZc49izAoA6lDfHqEWvnH6qwRhYdpIoifD6NCWfEUB"
+    },
+    {
+      "system": "http://open.epic.com/FHIR/StructureDefinition/patient-fhir-id",
+      "type": {
+        "text": "FHIR STU3"
+      },
+      "use": "usual",
+      "value": "e0w0LEDCYtfckT6N.CkJKCw3"
+    },
+    {
+      "system": "urn:oid:1.2.840.114350.1.13.0.1.7.2.698084",
+      "type": {
+        "text": "INTERNAL"
+      },
+      "use": "usual",
+      "value": "     Z6126"
+    },
+    {
+      "system": "urn:oid:1.2.840.114350.1.13.0.1.7.5.737384.14",
+      "type": {
+        "text": "EPI"
+      },
+      "use": "usual",
+      "value": "203710"
+    }
+  ],
+  "managingOrganization": {
+    "display": "Epic Hospital System",
+    "reference": "Organization/enRyWnSP963FYDpoks4NHOA3"
+  },
+  "maritalStatus": {
+    "text": "Widowed"
+  },
+  "name": [
+    {
+      "family": "McGinnis",
+      "given": [
+        "Warren",
+        "James"
+      ],
+      "text": "Warren James McGinnis III",
+      "use": "official"
+    },
+    {
+      "family": "McGinnis",
+      "given": [
+        "Warren",
+        "James"
+      ],
+      "text": "Warren James McGinnis III",
+      "use": "usual"
+    },
+    {
+      "family": "McGinnis",
+      "given": [
+        "Warren"
+      ],
+      "text": "MCGINNIS,WARREN",
+      "use": "old"
+    }
+  ],
+  "resourceType": "Patient",
+  "text": {
+    "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><h1>Warren James McGinnis III</h1><div class=\"Section\"><div class=\"Header\"><h2>Demographics</h2></div><div class=\"Body\"><div class=\"Section\"><div class=\"SingleLineField\"><span class=\"Prefix\"><strong>Legal name:</strong></span> <span class=\"Value\">Warren James McGinnis III</span></div><div class=\"SingleLineField\"><span class=\"Prefix\"><strong>Preferred name:</strong></span> <span class=\"Value\">Not on file</span></div><div class=\"SingleLineField\"><span class=\"Prefix\"><strong>Age:</strong></span> <span class=\"Value\">73 y.o.</span></div><div class=\"SingleLineField\"><span class=\"Prefix\"><strong>Legal sex:</strong></span> <span class=\"Value\">Male</span></div><div class=\"SingleLineField\"><span class=\"Prefix\"><strong>Birth date:</strong></span> <span class=\"Value\">5/24/1952</span></div></div><br /><div class=\"Section\"><div class=\"Header\"><h3>Identifiers</h3></div><div class=\"Body\"><p class=\"NotOnFile\">Not on file</p></div></div><br /><div class=\"Section\"><div class=\"Header\"><h3>Addresses</h3></div><div class=\"Body\"><div class=\"Section\"><div class=\"Header\"><h4>Current Addresses</h4></div><div class=\"Body\"><ul class=\"unlist\"><li><div>1563 W Main St Apt 322 (Home)</div><div>KENTWOOD MI 49518</div><div>United States of America</div></li></ul></div></div><br /><div class=\"Section\"><div class=\"Header\"><h4>Former Addresses</h4></div><div class=\"Body\"><p class=\"NotOnFile\">Not on file</p></div></div></div></div><br /><div class=\"Section\"><div class=\"Header\"><h3>Communication</h3></div><div class=\"Body\"><p class=\"NotOnFile\">Not on file</p></div></div><br /><div class=\"Section\"><div class=\"Header\"><h3>Languages</h3></div><div class=\"Body\"><div class=\"Section\"><div class=\"Header\"><h4>Spoken Languages</h4></div><div class=\"Body\"><ol class=\"unlist\"><li>English (Preferred)</li></ol></div></div><br /><div class=\"Section\"><div class=\"Header\"><h4>Written Languages</h4></div><div class=\"Body\"><ol class=\"unlist\"><li>English (Preferred)</li></ol></div></div></div></div></div></div><br /><br /><div class=\"Section\"><div class=\"Header\"><h2>Contacts</h2></div><div class=\"Body\"><p class=\"NotOnFile\">Not on file</p></div></div><br /><br /><div class=\"Section\"><div class=\"Header\"><h2>Primary Care Providers</h2></div><div class=\"Body\"><table><thead><tr><th>Provider Name</th></tr></thead><tbody><tr><td class=\"PCPName\">Physician Family Medicine, MD</td></tr><tr><td class=\"PCPName\">Physician One Cardiology, MD</td></tr></tbody></table></div></div></div>",
+    "status": "generated"
+  }
+}

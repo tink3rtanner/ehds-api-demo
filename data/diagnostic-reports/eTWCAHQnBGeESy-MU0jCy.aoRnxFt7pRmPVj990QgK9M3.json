@@ -1,0 +1,110 @@
+{
+  "basedOn": [
+    {
+      "display": "Cholesterol, total",
+      "reference": "ServiceRequest/e9dYxf-IZQnjLPZ.7EUor47r7hBhVUJW0uyCaouCn1Zw3"
+    }
+  ],
+  "category": [
+    {
+      "coding": [
+        {
+          "code": "Lab",
+          "system": "urn:oid:1.2.840.114350.1.13.0.1.7.10.798268.30"
+        }
+      ],
+      "text": "Lab"
+    },
+    {
+      "coding": [
+        {
+          "code": "LAB",
+          "display": "Laboratory",
+          "system": "http://terminology.hl7.org/CodeSystem/v2-0074"
+        }
+      ],
+      "text": "Laboratory"
+    }
+  ],
+  "code": {
+    "coding": [
+      {
+        "code": "2093-3",
+        "system": "http://loinc.org"
+      },
+      {
+        "code": "82465",
+        "display": "HC ASSAY, BLD/SERUM CHOLESTEROL",
+        "system": "urn:oid:2.16.840.1.113883.6.12"
+      }
+    ],
+    "text": "Cholesterol, total"
+  },
+  "effectiveDateTime": "2019-05-28T15:59:00Z",
+  "encounter": {
+    "display": "Hospital Encounter",
+    "identifier": {
+      "system": "urn:oid:1.2.840.114350.1.13.0.1.7.3.698084.8",
+      "use": "usual",
+      "value": "27561"
+    },
+    "reference": "Encounter/eucYt0hPWgEMZqybf6t4c.g3"
+  },
+  "id": "eTWCAHQnBGeESy-MU0jCy.aoRnxFt7pRmPVj990QgK9M3",
+  "identifier": [
+    {
+      "system": "urn:oid:1.2.840.114350.1.13.0.1.7.2.798268",
+      "type": {
+        "coding": [
+          {
+            "code": "PLAC",
+            "display": "Placer Identifier",
+            "system": "http://terminology.hl7.org/CodeSystem/v2-0203"
+          }
+        ],
+        "text": "Placer Identifier"
+      },
+      "use": "official",
+      "value": "1066934"
+    },
+    {
+      "system": "https://open.epic.com/FHIR/0/order-accession-number/Beaker",
+      "type": {
+        "coding": [
+          {
+            "code": "FILL",
+            "display": "Filler Identifier",
+            "system": "http://terminology.hl7.org/CodeSystem/v2-0203"
+          }
+        ],
+        "text": "Filler Identifier"
+      },
+      "use": "official",
+      "value": "19H-148C0001"
+    }
+  ],
+  "issued": "2019-05-28T16:06:00Z",
+  "meta": {
+    "profile": [
+      "http://hl7.eu/fhir/laboratory/StructureDefinition/DiagnosticReport-eu-lab"
+    ]
+  },
+  "performer": [
+    {
+      "display": "Physician One Cardiology, MD"
+    },
+    {
+      "display": "EMH HOSPITAL LAB"
+    }
+  ],
+  "resourceType": "DiagnosticReport",
+  "result": [
+    {
+      "reference": "urn:uuid:e7078784-815c-4200-a048-a580edae5a20"
+    }
+  ],
+  "status": "final",
+  "subject": {
+    "reference": "urn:uuid:f8ef0bf7-f0e3-41b7-9347-54d2670b52af"
+  }
+}
