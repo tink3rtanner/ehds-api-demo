@@ -104,6 +104,97 @@ async def api_patient_detail(pid: str) -> JSONResponse:
                          "documents": [{"category": c, "bundle_id": _bundle_id(pid, c)} for c in CATEGORIES]})
 
 
+@router.get("/api/patients/{pid}/timeline")
+async def api_patient_timeline(pid: str) -> JSONResponse:
+    """chronological clinical-event timeline for a patient.
+
+    aggregates events across Conditions, Encounters, Procedures, Observations,
+    Immunizations, MedicationRequests, MedicationDispenses, MedicationStatements,
+    DiagnosticReports, ImagingStudies, AllergyIntolerances and DocumentReferences.
+    sorted by date descending. used by the patient-detail timeline component.
+    """
+    _gate()
+    if store.read("Patient", pid) is None:
+        raise HTTPException(status_code=404)
+    events: list[dict] = []
+
+    def _add(kind: str, label: str, dt: str | None, resource_type: str, rid: str, detail: str = "", icon: str = ""):
+        if not dt:
+            return
+        events.append({
+            "kind": kind, "label": label, "date": dt[:19] if len(dt) >= 19 else dt,
+            "resource_type": resource_type, "resource_id": rid, "detail": detail, "icon": icon,
+        })
+
+    def _txt(c: dict | None) -> str:
+        if not c:
+            return ""
+        return c.get("text") or (c.get("coding") or [{}])[0].get("display") or ""
+
+    refs = lambda r: (r.get("subject") or r.get("patient") or {}).get("reference", "")
+
+    for r in store.list_all("Condition"):
+        if refs(r).endswith(f"Patient/{pid}"):
+            _add("condition", "Condition recorded", r.get("recordedDate"), "Condition", r["id"], _txt(r.get("code")), "🩺")
+    for r in store.list_all("Encounter"):
+        if refs(r).endswith(f"Patient/{pid}"):
+            start = (r.get("period") or {}).get("start")
+            cls = r.get("class", {})
+            label = "Inpatient encounter" if cls.get("code") == "IMP" else "Ambulatory visit"
+            _add("encounter", label, start, "Encounter", r["id"], _txt(r.get("reasonCode", [{}])[0] if r.get("reasonCode") else None), "🏥")
+    for r in store.list_all("Procedure"):
+        if refs(r).endswith(f"Patient/{pid}"):
+            _add("procedure", "Procedure", r.get("performedDateTime"), "Procedure", r["id"], _txt(r.get("code")), "⚕️")
+    for r in store.list_all("Observation"):
+        if refs(r).endswith(f"Patient/{pid}"):
+            cat = ((r.get("category") or [{}])[0].get("coding") or [{}])[0].get("code", "")
+            label = "Lab result" if cat == "laboratory" else "Vital sign"
+            value = ""
+            if r.get("valueQuantity"):
+                vq = r["valueQuantity"]
+                value = f"{vq.get('value','')}{vq.get('unit','')}"
+            elif r.get("component"):
+                parts = []
+                for c in r["component"]:
+                    v = c.get("valueQuantity", {})
+                    parts.append(f"{_txt(c.get('code'))} {v.get('value','')}{v.get('unit','')}")
+                value = " / ".join(parts)
+            _add("observation", label, r.get("effectiveDateTime"), "Observation", r["id"],
+                 f"{_txt(r.get('code'))}: {value}".strip(": "),
+                 "🧪" if cat == "laboratory" else "📊")
+    for r in store.list_all("Immunization"):
+        if refs(r).endswith(f"Patient/{pid}"):
+            _add("immunization", "Vaccination", r.get("occurrenceDateTime"), "Immunization", r["id"], _txt(r.get("vaccineCode")), "💉")
+    for r in store.list_all("MedicationRequest"):
+        if refs(r).endswith(f"Patient/{pid}"):
+            med = (r.get("medicationReference") or {}).get("display", "") or _txt(r.get("medicationCodeableConcept"))
+            _add("medication", "Prescription", r.get("authoredOn"), "MedicationRequest", r["id"], med, "💊")
+    for r in store.list_all("MedicationDispense"):
+        if refs(r).endswith(f"Patient/{pid}"):
+            med = (r.get("medicationReference") or {}).get("display", "") or _txt(r.get("medicationCodeableConcept"))
+            _add("medication", "Dispensed", r.get("whenHandedOver"), "MedicationDispense", r["id"], med, "💊")
+    for r in store.list_all("AllergyIntolerance"):
+        if refs(r).endswith(f"Patient/{pid}"):
+            _add("allergy", "Allergy recorded", r.get("recordedDate") or r.get("onsetDateTime"), "AllergyIntolerance", r["id"], _txt(r.get("code")), "⚠️")
+    for r in store.list_all("DiagnosticReport"):
+        if refs(r).endswith(f"Patient/{pid}"):
+            cat = ((r.get("category") or [{}])[0].get("coding") or [{}])[0].get("code", "")
+            label = "Imaging report" if cat in ("RAD", "radiology") else "Lab report"
+            _add("report", label, r.get("effectiveDateTime") or r.get("issued"), "DiagnosticReport", r["id"], _txt(r.get("code")),
+                 "🩻" if cat in ("RAD", "radiology") else "🧪")
+    for r in store.list_all("ImagingStudy"):
+        if refs(r).endswith(f"Patient/{pid}"):
+            _add("imaging", "Imaging study", r.get("started"), "ImagingStudy", r["id"],
+                 ((r.get("modality") or [{}])[0].get("display", "")), "🩻")
+    for r in store.list_all("DocumentReference"):
+        if refs(r).endswith(f"Patient/{pid}"):
+            cat = ((r.get("category") or [{}])[0].get("coding") or [{}])[0].get("code", "")
+            _add("document", "Document published", r.get("date"), "DocumentReference", r["id"], cat, "📄")
+
+    events.sort(key=lambda e: e["date"], reverse=True)
+    return JSONResponse({"total": len(events), "events": events})
+
+
 @router.get("/api/patients/{pid}/doc/{category}")
 async def api_patient_doc(pid: str, category: str) -> JSONResponse:
     _gate()
