@@ -458,6 +458,7 @@ async def api_list_clients() -> JSONResponse:
 # /register-client (app/routers/discovery.py) — keep both authoritative.
 # The UI re-imports the canonical list so a single allowlist exists.
 from app.routers.discovery import _ALLOWED_REG_SCOPES
+
 _CLIENT_ID_RE = __import__("re").compile(r"^[a-z0-9][a-z0-9\-_]{1,62}[a-z0-9]$")
 
 
