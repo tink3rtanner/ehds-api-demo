@@ -203,10 +203,25 @@ the transforms applied (all in `app/sources/epic_transform.py` /
    Devices**. → **`_ensure_required_eps_sections` injects any missing
    required section with an `emptyReason` (list-empty-reason `unavailable`).**
 
-Remaining after the cascade fix: see latest `/tmp/vtrim.log` run — expect the
-EU-core resource-profile constraints (category/code bindings on
-`medicalTestResult-eu-core`, identifier-system expectations on
-`patient-eu-eps`) to be what's left. Update this list as they're closed.
+Cascade result: **1088 → 44 → 8 errors**. The drop from 44→8 came from fixing
+the sanitizer: it had been stripping *relative-url sub-extensions* (e.g.
+`level`/`type` inside the complex `patient-proficiency` extension), leaving an
+empty extension that violated ext-1 and made the Patient fail `Patient-uv-ips`
+— which cascaded to every `subject`/`patient` reference. Fix: only strip
+absolute foreign extension urls, drop extensions left with no value/sub-ext,
+and prune elements emptied to `{}`/`[]` (fixed `Encounter.hospitalization {}`).
+
+**Remaining 8 errors (4 unique × IPS+EPS):** IPS Observation slicing ambiguity
+— certain Epic observations match more than one IPS results slice
+(`observation-pregnancy-edd` vs `observation-vital-signs` /
+`observation-pregnancy-outcome`). Root cause: the IPS `Observation-results`
+slicing discriminates by code/category and some Epic obs codes are ambiguous.
+TODO: set explicit `Observation.category` (vital-signs vs pregnancy) or route
+ambiguous obs to a single section so the slice discriminator is unambiguous.
+
+Submission: `scripts/submit_bundle.py` POSTed the patient-summary under
+`vps_bundler` → 201 Created, read-back 200 (574 KB). The demo's docsubmit only
+does structural validation, so EU-profile cleanliness isn't required to submit.
 
 - laboratory-report (EU Lab `Bundle-eu-lab`): not yet validated.
 - discharge-report (EU HDR `bundle-eu-hdr`, type fixed 34105-7): not yet validated.

@@ -94,16 +94,38 @@ _DISPLAY_STRIP_SYSTEMS = frozenset({
 })
 
 
+def _ext_is_meaningful(e: dict[str, Any]) -> bool:
+    """An extension must carry either a value[x] or nested sub-extensions
+    (FHIR invariant ext-1). After stripping foreign content an extension can
+    be left with neither — those must be dropped, not emitted empty."""
+    if any(k.startswith("value") for k in e):
+        return True
+    return bool(e.get("extension"))
+
+
 def _sanitize_for_eu(obj: Any) -> None:
     """In-place: strip proprietary extensions and non-canonical code displays
-    so the resource can conform to EU/IPS profiles."""
+    so the resource can conform to EU/IPS profiles.
+
+    Key subtlety: a *complex* extension's sub-extensions use relative urls
+    (e.g. "level", "type" inside patient-proficiency). We must NOT strip those
+    by the http(s) allow-list — only top-level/absolute foreign extensions are
+    removed. After stripping we prune any extension left with no value and no
+    sub-extensions (ext-1) and any element emptied to {} / []."""
     if isinstance(obj, dict):
         for key in ("extension", "modifierExtension"):
             exts = obj.get(key)
             if isinstance(exts, list):
-                kept = [e for e in exts
-                        if isinstance(e, dict)
-                        and str(e.get("url", "")).startswith(_ALLOWED_EXT_PREFIXES)]
+                kept = []
+                for e in exts:
+                    if not isinstance(e, dict):
+                        continue
+                    url = str(e.get("url", ""))
+                    # relative urls are complex-extension children — keep them;
+                    # absolute urls are kept only if HL7 Intl / HL7 Europe.
+                    if url.startswith(("http://", "https://")) and not url.startswith(_ALLOWED_EXT_PREFIXES):
+                        continue
+                    kept.append(e)
                 if kept:
                     obj[key] = kept
                 else:
@@ -112,6 +134,15 @@ def _sanitize_for_eu(obj: Any) -> None:
             obj.pop("display", None)
         for v in obj.values():
             _sanitize_for_eu(v)
+        # after recursion: drop extensions emptied by stripping (ext-1), then
+        # prune any element that collapsed to an empty object / list.
+        for key in ("extension", "modifierExtension"):
+            if key in obj:
+                obj[key] = [e for e in obj[key] if _ext_is_meaningful(e)]
+                if not obj[key]:
+                    obj.pop(key, None)
+        for k in [k for k, v in obj.items() if v in ({}, [], None)]:
+            obj.pop(k, None)
     elif isinstance(obj, list):
         for v in obj:
             _sanitize_for_eu(v)
