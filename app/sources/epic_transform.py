@@ -173,9 +173,27 @@ def build_id_map(resources: list[dict[str, Any]]) -> dict[str, str]:
     return out
 
 
+# IPS 2.0 slices the document Bundle's Observation entries *by profile*, so an
+# Observation with only a generic profile can structurally match several slices
+# at once (e.g. a vital-signs panel matches both `vitalsigns` and the pregnancy
+# slices), which the validator reports as "matches more than one slice". To make
+# the discriminator unambiguous we stamp the specific IPS profile that matches
+# the observation's category.
+def _observation_profile(obs: dict[str, Any]) -> str:
+    cats = {c.get("code")
+            for cc in (obs.get("category") or [])
+            for c in (cc.get("coding") or [])}
+    if "vital-signs" in cats:
+        return "http://hl7.org/fhir/StructureDefinition/vitalsigns"
+    if "imaging" in cats or "radiology" in cats:
+        return "http://hl7.org/fhir/uv/ips/StructureDefinition/Observation-results-radiology-uv-ips"
+    # laboratory + anything else clinical -> the lab/pathology results profile
+    return "http://hl7.org/fhir/uv/ips/StructureDefinition/Observation-results-laboratory-pathology-uv-ips"
+
+
 def _tag_profile(res: dict[str, Any]) -> None:
     rtype = res.get("resourceType")
-    prof = IPS_PROFILES.get(rtype)
+    prof = _observation_profile(res) if rtype == "Observation" else IPS_PROFILES.get(rtype)
     if not prof:
         return
     meta = res.setdefault("meta", {})
