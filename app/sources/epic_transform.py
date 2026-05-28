@@ -73,6 +73,50 @@ def local_id(rtype: str, epic_id: str) -> str:
     return _u5(f"{rtype}/epic/{epic_id}")
 
 
+# Extensions are kept only if defined by HL7 International or HL7 Europe. EHDS
+# cross-border documents must not carry source-system-proprietary extensions
+# (Epic's open.epic.com/*, Nictiz's nictiz.nl/*, US-Core us/core extensions),
+# which the validator rejects as "extension could not be found / not allowed".
+_ALLOWED_EXT_PREFIXES = (
+    "http://hl7.org/fhir/StructureDefinition/",       # core FHIR extensions
+    "http://hl7.org/fhir/uv/ips/",                     # IPS
+    "http://hl7.eu/fhir/",                             # all HL7 Europe IGs
+    "http://hl7.org/fhir/5.0/StructureDefinition/",    # cross-version
+)
+
+# Code systems whose Epic-supplied display strings are non-canonical and the
+# validator flags as "Wrong Display Name". We drop display (it's optional);
+# the code itself is authoritative.
+_DISPLAY_STRIP_SYSTEMS = frozenset({
+    "http://www.ama-assn.org/go/cpt",
+    "http://hl7.org/fhir/sid/icd-9-cm",
+    "http://hl7.org/fhir/sid/icd-10-cm",
+})
+
+
+def _sanitize_for_eu(obj: Any) -> None:
+    """In-place: strip proprietary extensions and non-canonical code displays
+    so the resource can conform to EU/IPS profiles."""
+    if isinstance(obj, dict):
+        for key in ("extension", "modifierExtension"):
+            exts = obj.get(key)
+            if isinstance(exts, list):
+                kept = [e for e in exts
+                        if isinstance(e, dict)
+                        and str(e.get("url", "")).startswith(_ALLOWED_EXT_PREFIXES)]
+                if kept:
+                    obj[key] = kept
+                else:
+                    obj.pop(key, None)
+        if obj.get("system") in _DISPLAY_STRIP_SYSTEMS:
+            obj.pop("display", None)
+        for v in obj.values():
+            _sanitize_for_eu(v)
+    elif isinstance(obj, list):
+        for v in obj:
+            _sanitize_for_eu(v)
+
+
 def _walk_replace_refs(obj: Any, mapping: dict[str, str]) -> None:
     """In-place: replace every {"reference": old} where old in mapping."""
     if isinstance(obj, dict):
@@ -264,6 +308,9 @@ def transform_bundle(
 
     # Third pass: rewrite every reference.
     _walk_replace_refs(out, id_map)
+    # Fourth pass: strip proprietary extensions + non-canonical displays.
+    for r in out:
+        _sanitize_for_eu(r)
     return out, id_map, patient_local_id
 
 

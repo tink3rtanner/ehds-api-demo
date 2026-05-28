@@ -151,6 +151,46 @@ def _gather_for_category(patient_id: str, category: str) -> tuple[list[dict], di
     return sections, included
 
 
+# EU EPS Composition required sections (min=1) with their LOINC codes.
+# composition-eu-eps slices: sectionProblems, sectionAllergies,
+# sectionMedications, sectionProceduresHx, sectionMedicalDevices.
+EPS_REQUIRED_SECTIONS = [
+    ("11450-4", "Problem list - Reported"),
+    ("48765-2", "Allergies and adverse reactions Document"),
+    ("10160-0", "History of Medication use Narrative"),
+    ("47519-4", "History of Procedures Document"),
+    ("46264-8", "History of medical device use"),
+]
+
+
+def _ensure_required_eps_sections(sections: list[dict]) -> None:
+    """Append any EPS-required section that's missing, with an emptyReason."""
+    present = {
+        c.get("code")
+        for s in sections
+        for c in s.get("code", {}).get("coding", [])
+    }
+    for code, display in EPS_REQUIRED_SECTIONS:
+        if code in present:
+            continue
+        sections.append({
+            "title": display,
+            "code": {"coding": [{"system": "http://loinc.org", "code": code, "display": display}]},
+            "text": {
+                "status": "generated",
+                "div": (f'<div xmlns="http://www.w3.org/1999/xhtml">'
+                        f'No information available for: {display}.</div>'),
+            },
+            # IPS/EPS: a required section with no data carries an emptyReason
+            # instead of entries.
+            "emptyReason": {"coding": [{
+                "system": "http://terminology.hl7.org/CodeSystem/list-empty-reason",
+                "code": "unavailable",
+                "display": "Unavailable",
+            }]},
+        })
+
+
 def _author_organization(patient_id: str) -> dict | None:
     # any Organization present
     for o in store.list_all("Organization"):
@@ -181,6 +221,13 @@ def compile_document(patient_id: str, category: str) -> dict[str, Any]:
     if not sections:
         raise MissingResources(f"no candidate data for {category} of {patient_id}")
 
+    # EU EPS requires these Composition sections (min=1). When the patient has
+    # no data for a required section we still emit the section with an
+    # emptyReason (the IPS/EPS pattern), otherwise the document fails the
+    # required-slice constraint.
+    if category == "patient-summary":
+        _ensure_required_eps_sections(sections)
+
     # author
     author_org = _author_organization(patient_id)
     author_practitioner = _author_practitioner()
@@ -193,6 +240,9 @@ def compile_document(patient_id: str, category: str) -> dict[str, Any]:
     composition: dict[str, Any] = {
         "resourceType": "Composition",
         "id": comp_id,
+        # EU EPS requires Composition.identifier (1..1). Deterministic per slot+category.
+        "identifier": {"system": "urn:ietf:rfc:3986",
+                       "value": f"urn:uuid:{composition_id(slot, category + ':identifier')}"},
         "status": "final",
         "type": {"coding": [CATEGORY_TO_DOC_TYPE[category]]},
         # narrative is required at Composition level by IPS/EU profiles
