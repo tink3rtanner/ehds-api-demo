@@ -31,10 +31,14 @@ def _slot_for_patient_id(patient_uuid: str) -> str | None:
 
 router = APIRouter()
 
-# allowlist of scopes the public REST registration may grant. Bundle.write
-# requires CLI registration (which has filesystem access to the registry).
+# Scopes the public REST registration may grant. Includes the writes a
+# Document Source actor needs for IHE MHD ITI-105 submission. Synthetic-data
+# demo — any client can self-register for write access.
 _ALLOWED_REG_SCOPES = (
+    # broad
     "system/*.read",
+    "system/*.write",
+    # reads (per-resource)
     "system/Patient.read",
     "system/Observation.read",
     "system/Condition.read",
@@ -48,6 +52,20 @@ _ALLOWED_REG_SCOPES = (
     "system/Encounter.read",
     "system/DocumentReference.read",
     "system/Binary.read",
+    # writes — required for ITI-105 Document Source actor
+    "system/Bundle.write",
+    "system/DocumentReference.write",
+    "system/Patient.write",
+    "system/Observation.write",
+    "system/Condition.write",
+    "system/MedicationStatement.write",
+    "system/MedicationRequest.write",
+    "system/AllergyIntolerance.write",
+    "system/Immunization.write",
+    "system/Procedure.write",
+    "system/DiagnosticReport.write",
+    "system/ImagingStudy.write",
+    "system/Encounter.write",
 )
 _CLIENT_ID_RE = re.compile(r"^[a-z0-9][a-z0-9\-_]{1,62}[a-z0-9]$")
 
@@ -140,8 +158,7 @@ async def register_client(payload: dict) -> JSONResponse:
     bad = [s for s in scopes if s not in _ALLOWED_REG_SCOPES]
     if bad:
         raise HTTPException(status_code=400,
-                            detail=f"scopes not allowed via REST: {bad}. allowed: {list(_ALLOWED_REG_SCOPES)}. "
-                                   f"system/Bundle.write requires the CLI tool.")
+                            detail=f"scopes not in allowed set: {bad}. allowed: {list(_ALLOWED_REG_SCOPES)}")
 
     if payload.get("jwk"):
         jwk = dict(payload["jwk"])

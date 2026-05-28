@@ -454,25 +454,10 @@ async def api_list_clients() -> JSONResponse:
     return JSONResponse({"clients": sorted(out, key=lambda r: r["client_id"])})
 
 
-# scopes the public registration UI may grant. Read-only by default. We don't
-# expose Bundle.write here — that's a meaningful capability (lets you submit
-# resources) so we require the CLI for it.
-_ALLOWED_REG_SCOPES = (
-    "system/*.read",
-    "system/Patient.read",
-    "system/Observation.read",
-    "system/Condition.read",
-    "system/MedicationStatement.read",
-    "system/MedicationRequest.read",
-    "system/AllergyIntolerance.read",
-    "system/Immunization.read",
-    "system/Procedure.read",
-    "system/DiagnosticReport.read",
-    "system/ImagingStudy.read",
-    "system/Encounter.read",
-    "system/DocumentReference.read",
-    "system/Binary.read",
-)
+# Allowed registration scopes. Must stay in sync with the top-level
+# /register-client (app/routers/discovery.py) — keep both authoritative.
+# The UI re-imports the canonical list so a single allowlist exists.
+from app.routers.discovery import _ALLOWED_REG_SCOPES
 _CLIENT_ID_RE = __import__("re").compile(r"^[a-z0-9][a-z0-9\-_]{1,62}[a-z0-9]$")
 
 
@@ -503,7 +488,7 @@ async def api_register_client(payload: dict) -> JSONResponse:
         raise HTTPException(status_code=400, detail="scopes must be a list of strings")
     bad = [s for s in scopes if s not in _ALLOWED_REG_SCOPES]
     if bad:
-        raise HTTPException(status_code=400, detail=f"scopes not allowed via UI: {bad}. allowed: {list(_ALLOWED_REG_SCOPES)}")
+        raise HTTPException(status_code=400, detail=f"scopes not in allowed set: {bad}. allowed: {list(_ALLOWED_REG_SCOPES)}")
 
     # build a JWKS
     if payload.get("jwk"):

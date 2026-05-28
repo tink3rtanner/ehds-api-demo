@@ -20,6 +20,7 @@ from fastapi.responses import JSONResponse
 
 from app.auth.jwks import load_clients, server_jwks, server_kid, server_private_key
 from app.config import settings
+from app.routers.discovery import _ALLOWED_REG_SCOPES
 
 router = APIRouter()
 
@@ -113,30 +114,17 @@ def smart_configuration() -> JSONResponse:
         "token_endpoint_auth_methods_supported": ["private_key_jwt"],
         "token_endpoint_auth_signing_alg_values_supported": ["RS256", "RS384", "ES256", "ES384"],
         "grant_types_supported": ["client_credentials"],
-        "scopes_supported": [
-            "system/*.read",
-            "system/Patient.read",
-            "system/Observation.read",
-            "system/Condition.read",
-            "system/MedicationStatement.read",
-            "system/MedicationRequest.read",
-            "system/AllergyIntolerance.read",
-            "system/Immunization.read",
-            "system/Procedure.read",
-            "system/DiagnosticReport.read",
-            "system/ImagingStudy.read",
-            "system/Encounter.read",
-            "system/DocumentReference.read",
-            "system/Binary.read",
-            "system/Bundle.write",
-        ],
+        # Single source of truth for both /.well-known/smart-configuration's
+        # `scopes_supported` and /register-client's allowlist. The agent walks
+        # GET /register-client to see this list as the registration schema.
+        "scopes_supported": list(_ALLOWED_REG_SCOPES),
         "response_types_supported": ["token"],
         "capabilities": ["client-confidential-asymmetric"],
         "code_challenge_methods_supported": [],
-        # OAuth 2.0 Dynamic Client Registration (RFC 7591). For demo purposes
-        # this endpoint accepts unauthenticated registrations and grants only
-        # read scopes through this surface; system/Bundle.write must be granted
-        # via the CLI (which writes the registry on the box).
+        # OAuth 2.0 Dynamic Client Registration (RFC 7591). Synthetic-data
+        # demo: anyone can self-register, and may request any scope in
+        # scopes_supported including the writes a Document Source actor
+        # needs for IHE MHD ITI-105 submission.
         "registration_endpoint": base + "/register-client",
         # extension fields (non-standard but useful for agent discovery)
         "fhir_base_url": base,

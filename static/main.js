@@ -2249,7 +2249,10 @@ async function renderRegisterPage() {
         const cid = el('input', { value: '', placeholder: 'e.g. my-agent', style: 'width:100%;' });
         const SCOPE_GROUPS = [
             { title: 'Broad',
-              scopes: [{ val: 'system/*.read', label: 'system/*.read', sub: 'all reads (most permissive)' }] },
+              scopes: [
+                { val: 'system/*.read',  label: 'system/*.read',  sub: 'all reads (most permissive)' },
+                { val: 'system/*.write', label: 'system/*.write', sub: 'all writes — IHE MHD Document Source actor' },
+              ] },
             { title: 'Patient & clinical',
               scopes: [
                 { val: 'system/Patient.read',              label: 'system/Patient.read',              sub: 'demographics + identifiers' },
@@ -2270,10 +2273,26 @@ async function renderRegisterPage() {
                 { val: 'system/DiagnosticReport.read',     label: 'system/DiagnosticReport.read',     sub: 'lab + imaging reports' },
                 { val: 'system/ImagingStudy.read',         label: 'system/ImagingStudy.read',         sub: 'DICOM-like study metadata' },
               ] },
-            { title: 'Documents',
+            { title: 'Documents (read)',
               scopes: [
                 { val: 'system/DocumentReference.read',    label: 'system/DocumentReference.read',    sub: 'the document registry' },
                 { val: 'system/Binary.read',               label: 'system/Binary.read',               sub: 'fetch compiled Bundles (read /Bundle/{id})' },
+              ] },
+            { title: 'Publish (ITI-105 / Document Source)',
+              scopes: [
+                { val: 'system/Bundle.write',              label: 'system/Bundle.write',              sub: 'POST a Bundle.type=transaction (ITI-105 envelope)' },
+                { val: 'system/DocumentReference.write',   label: 'system/DocumentReference.write',   sub: 'create/update DocumentReference entries' },
+                { val: 'system/Patient.write',             label: 'system/Patient.write',             sub: 'create patients via transaction bundle' },
+                { val: 'system/Observation.write',         label: 'system/Observation.write',         sub: 'create observations' },
+                { val: 'system/Condition.write',           label: 'system/Condition.write',           sub: 'create conditions' },
+                { val: 'system/MedicationRequest.write',   label: 'system/MedicationRequest.write',   sub: 'create prescriptions' },
+                { val: 'system/MedicationStatement.write', label: 'system/MedicationStatement.write', sub: 'create medication history' },
+                { val: 'system/AllergyIntolerance.write',  label: 'system/AllergyIntolerance.write',  sub: 'create allergies' },
+                { val: 'system/Immunization.write',        label: 'system/Immunization.write',        sub: 'create vaccinations' },
+                { val: 'system/Procedure.write',           label: 'system/Procedure.write',           sub: 'create procedures' },
+                { val: 'system/DiagnosticReport.write',    label: 'system/DiagnosticReport.write',    sub: 'create diagnostic reports' },
+                { val: 'system/ImagingStudy.write',        label: 'system/ImagingStudy.write',        sub: 'create imaging studies' },
+                { val: 'system/Encounter.write',           label: 'system/Encounter.write',           sub: 'create encounters' },
               ] },
         ];
         const scopeBoxes = [];
