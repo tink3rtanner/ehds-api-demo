@@ -26,3 +26,5 @@ config/server_keys/
 .DS_Store
 Thumbs.db
 data/keys/
+data/clients.json
+data/inbox/

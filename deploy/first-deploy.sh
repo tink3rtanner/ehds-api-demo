@@ -26,8 +26,10 @@ pytest -q --maxfail=5 \
     --deselect tests/test_profile_validation.py::test_compiled_documents_pass_r4_validation
 
 echo "==> installing systemd service"
-sudo mkdir -p /etc/ehds-api
+sudo mkdir -p /etc/ehds-api /srv/ehds-api/data/keys
 [[ -f /etc/ehds-api/env ]] || sudo cp .env.example /etc/ehds-api/env
+# seed the client registry into the data dir (writable under ProtectSystem=full)
+[[ -f /srv/ehds-api/data/clients.json ]] || cp config/clients.json /srv/ehds-api/data/clients.json
 sudo install -m 644 deploy/ehds-api.service /etc/systemd/system/
 sudo systemctl daemon-reload
 
