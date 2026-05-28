@@ -146,7 +146,7 @@ def _gather_for_category(patient_id: str, category: str) -> tuple[list[dict], di
             vitals = [r for r in ents if _is_vital_sign(r)]
             results = [r for r in ents if not _is_vital_sign(r)]
             if vitals:
-                sections.append(_obs_section(vitals, "8716-3", "Vital signs"))
+                sections.append(_obs_section(vitals, "8716-3", "Vital signs note"))
             if results:
                 sections.append(_obs_section(results, "30954-2",
                                              "Relevant diagnostic tests/laboratory data note"))
