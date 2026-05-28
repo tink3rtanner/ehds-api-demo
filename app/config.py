@@ -23,6 +23,8 @@ class Settings:
     client_registry: Path
     jwks_path: Path
     validator_jar: Path
+    audit_log_dir: Path
+    audit_retention_days: int
     env: str            # "dev" | "prod"
     rate_limit_per_min: int
     body_max_bytes: int
@@ -39,13 +41,16 @@ class Settings:
 
 def load() -> Settings:
     root = Path(__file__).resolve().parent.parent
+    data_dir = _path("EHDS_DATA_DIR", str(root / "data"))
     return Settings(
         base_url=os.environ.get("EHDS_BASE_URL", "http://localhost:8000").rstrip("/"),
         issuer=os.environ.get("EHDS_ISSUER", os.environ.get("EHDS_BASE_URL", "http://localhost:8000")).rstrip("/"),
-        data_dir=_path("EHDS_DATA_DIR", str(root / "data")),
+        data_dir=data_dir,
         client_registry=_path("EHDS_CLIENT_REGISTRY", str(root / "config" / "clients.json")),
         jwks_path=_path("EHDS_JWKS_PATH", str(root / "config" / "server_keys")),
         validator_jar=_path("EHDS_VALIDATOR_JAR", str(root / ".cache" / "validator_cli.jar")),
+        audit_log_dir=_path("EHDS_AUDIT_LOG_DIR", str(data_dir / "audit")),
+        audit_retention_days=int(os.environ.get("EHDS_AUDIT_RETENTION_DAYS", "30")),
         env=os.environ.get("ENV", "dev"),
         rate_limit_per_min=int(os.environ.get("EHDS_RATE_LIMIT_PER_MIN", "240")),
         body_max_bytes=int(os.environ.get("EHDS_BODY_MAX_BYTES", str(5 * 1024 * 1024))),

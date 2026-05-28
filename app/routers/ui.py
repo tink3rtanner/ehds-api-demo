@@ -524,6 +524,129 @@ async def api_register_client(payload: dict) -> JSONResponse:
     })
 
 
+@router.get("/api/audit")
+async def api_audit(
+    limit: int = 200,
+    method: str | None = None,
+    path_prefix: str | None = None,
+    status_min: int = 100,
+    status_max: int = 599,
+    client_id: str | None = None,
+    days: int = 7,
+) -> JSONResponse:
+    """tail of the persistent transaction log.
+
+    reads up to the last `days` JSONL files and returns the most recent
+    `limit` matching entries (newest first). filters are AND.
+    """
+    _gate()
+    from datetime import UTC, date, timedelta
+    out: list[dict] = []
+    today = date.today()
+    files: list = []
+    for back in range(days):
+        f = settings.audit_log_dir / f"audit-{(today - timedelta(days=back)).isoformat()}.jsonl"
+        if f.exists():
+            files.append(f)
+    # newest file first; within a file, last lines are newest -> read in reverse
+    for f in files:
+        try:
+            lines = f.read_text(encoding="utf-8").splitlines()
+        except OSError:
+            continue
+        for line in reversed(lines):
+            if not line.strip():
+                continue
+            try:
+                e = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if method and e.get("method") != method.upper():
+                continue
+            if path_prefix and not (e.get("path") or "").startswith(path_prefix):
+                continue
+            s = e.get("status", 0)
+            if not (status_min <= s <= status_max):
+                continue
+            if client_id and e.get("client_id") != client_id:
+                continue
+            out.append(e)
+            if len(out) >= limit:
+                return JSONResponse({"total": len(out), "entries": out, "truncated": True})
+    return JSONResponse({"total": len(out), "entries": out, "truncated": False})
+
+
+@router.get("/api/audit/stats")
+async def api_audit_stats(days: int = 1) -> JSONResponse:
+    """aggregate stats over the last `days` JSONL files."""
+    _gate()
+    from collections import Counter
+    from datetime import UTC, date, timedelta
+    total = 0
+    by_status_class: Counter = Counter()
+    by_method: Counter = Counter()
+    by_path: Counter = Counter()
+    by_client: Counter = Counter()
+    latencies: list[int] = []
+    today = date.today()
+    for back in range(days):
+        f = settings.audit_log_dir / f"audit-{(today - timedelta(days=back)).isoformat()}.jsonl"
+        if not f.exists():
+            continue
+        try:
+            lines = f.read_text(encoding="utf-8").splitlines()
+        except OSError:
+            continue
+        for line in lines:
+            if not line.strip():
+                continue
+            try:
+                e = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            total += 1
+            s = e.get("status", 0)
+            by_status_class[f"{s // 100}xx"] += 1
+            by_method[e.get("method", "?")] += 1
+            # collapse pathParam-ish bits so /Patient/p-001 and /Patient/p-002 group
+            p = e.get("path", "")
+            if p.startswith("/Patient/") and p.count("/") == 2:
+                p = "/Patient/{id}"
+            elif p.startswith("/Bundle/") and p.count("/") == 2:
+                p = "/Bundle/{id}"
+            elif p.startswith("/DocumentReference/") and p.count("/") == 2:
+                p = "/DocumentReference/{id}"
+            by_path[p] += 1
+            cid = e.get("client_id")
+            if cid:
+                by_client[cid] += 1
+            d = e.get("dur_ms")
+            if isinstance(d, int):
+                latencies.append(d)
+    latencies.sort()
+
+    def _pct(p: float) -> int | None:
+        if not latencies:
+            return None
+        idx = min(int(len(latencies) * p / 100), len(latencies) - 1)
+        return latencies[idx]
+
+    return JSONResponse({
+        "total": total,
+        "days": days,
+        "by_status_class": dict(by_status_class),
+        "by_method": dict(by_method),
+        "top_paths": by_path.most_common(10),
+        "top_clients": by_client.most_common(10),
+        "latency_ms": {
+            "p50": _pct(50),
+            "p95": _pct(95),
+            "p99": _pct(99),
+            "max": latencies[-1] if latencies else None,
+        },
+    })
+
+
 @router.get("/api/qr")
 async def api_qr(text: str) -> Response:
     """SVG QR code for arbitrary text — used by the /ui#/qr sharing page.

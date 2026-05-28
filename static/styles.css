@@ -1413,3 +1413,31 @@ body[data-client-mode='walkthrough'] .json-dump,
 body[data-client-mode='walkthrough'] .demo-result-head .mono { font-size: 11px; color: var(--text-faint); }
 body[data-client-mode='walkthrough'] .json-dump { display: none; }
 body[data-client-mode='walkthrough'] details > pre.json-dump { display: none; }
+
+/* ---------- audit log page ---------- */
+.audit-filters .demo-controls { gap: 8px 14px; }
+.audit-filters select,
+.audit-filters input {
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    font-family: inherit;
+    font-size: 12px;
+}
+.audit-table { font-size: 12px; }
+.audit-table td { padding: 6px 8px; vertical-align: top; }
+.audit-row { cursor: pointer; }
+.audit-row:hover td { background: var(--surface-2); }
+.audit-top-list {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+}
+.audit-top-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 10px;
+    border-bottom: 1px solid var(--border-soft);
+}
+.audit-top-row:last-child { border-bottom: none; }

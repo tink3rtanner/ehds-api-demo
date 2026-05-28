@@ -2444,6 +2444,187 @@ function downloadText(filename, text) {
     URL.revokeObjectURL(url);
 }
 
+// ---------- audit log page ----------
+async function renderAuditPage() {
+    setLoading();
+    const state = {
+        method: '', path_prefix: '', status: '', client_id: '', days: 7, limit: 200,
+        autoRefresh: false, refreshId: null,
+    };
+
+    function buildQuery() {
+        const p = new URLSearchParams();
+        if (state.method)       p.set('method', state.method);
+        if (state.path_prefix)  p.set('path_prefix', state.path_prefix);
+        if (state.client_id)    p.set('client_id', state.client_id);
+        if (state.status === '2xx') { p.set('status_min', '200'); p.set('status_max', '299'); }
+        else if (state.status === '4xx') { p.set('status_min', '400'); p.set('status_max', '499'); }
+        else if (state.status === '5xx') { p.set('status_min', '500'); p.set('status_max', '599'); }
+        p.set('days', String(state.days));
+        p.set('limit', String(state.limit));
+        return p.toString();
+    }
+
+    async function refresh() {
+        const [entries, stats] = await Promise.all([
+            api(`/ui/api/audit?${buildQuery()}`),
+            api(`/ui/api/audit/stats?days=${state.days}`),
+        ]);
+        renderStats(stats);
+        renderTable(entries);
+    }
+
+    const head = el('div', { class: 'page-head' },
+        el('h1', {}, 'Audit log'),
+        el('div', { class: 'meta' },
+            'Every HTTP request to this server, persisted to disk as JSONL. ',
+            'Rotates daily. Authorization headers and other secrets are never written; the JWT-claimed ',
+            el('code', {}, 'client_id'),
+            ' is parsed (without signature verification) so you can see who claimed to call.',
+        ),
+    );
+
+    const statsBox = el('section', { class: 'doc-block', id: 'audit-stats' },
+        el('div', { class: 'meta' }, 'loading stats…'),
+    );
+
+    const filters = el('section', { class: 'doc-block audit-filters' },
+        el('h3', {}, 'Filter'),
+        el('div', { class: 'demo-controls' },
+            el('label', {}, 'Method: ',
+                selectFilter(['', 'GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], state.method, (v) => { state.method = v; refresh(); })),
+            el('label', {}, 'Status: ',
+                selectFilter(['', '2xx', '4xx', '5xx'], state.status, (v) => { state.status = v; refresh(); })),
+            el('label', {}, 'Path prefix: ',
+                el('input', { value: state.path_prefix, placeholder: '/Patient, /Bundle…', style: 'width:140px;',
+                    oninput: (e) => { state.path_prefix = e.target.value; clearTimeout(state.t); state.t = setTimeout(refresh, 250); } })),
+            el('label', {}, 'Client: ',
+                el('input', { value: state.client_id, placeholder: 'client_id', style: 'width:140px;',
+                    oninput: (e) => { state.client_id = e.target.value; clearTimeout(state.t); state.t = setTimeout(refresh, 250); } })),
+            el('label', {}, 'Days back: ',
+                selectFilter([1, 7, 14, 30], state.days, (v) => { state.days = Number(v); refresh(); })),
+            el('label', {}, 'Limit: ',
+                selectFilter([50, 200, 500, 1000], state.limit, (v) => { state.limit = Number(v); refresh(); })),
+            el('button', { class: 'btn-ghost', onclick: () => refresh() }, '↻ Refresh'),
+            el('label', { style: 'margin-left:auto;' },
+                el('input', { type: 'checkbox', checked: state.autoRefresh,
+                    onchange: (e) => {
+                        state.autoRefresh = e.target.checked;
+                        if (state.refreshId) clearInterval(state.refreshId);
+                        if (state.autoRefresh) state.refreshId = setInterval(refresh, 5000);
+                    } }),
+                ' auto-refresh (5s)',
+            ),
+        ),
+    );
+
+    const tableHost = el('section', { class: 'doc-block' },
+        el('h3', {}, 'Entries'),
+        el('div', { id: 'audit-table' }, el('div', { class: 'meta' }, 'loading…')),
+    );
+
+    function selectFilter(options, value, onchange) {
+        const s = el('select', { onchange: (e) => onchange(e.target.value) },
+            ...options.map(o => el('option', { value: o, selected: String(o) === String(value) }, String(o) || '(any)')),
+        );
+        return s;
+    }
+
+    function renderStats(stats) {
+        statsBox.innerHTML = '';
+        statsBox.appendChild(el('h3', {}, `Stats (last ${stats.days} day${stats.days > 1 ? 's' : ''}, ${stats.total.toLocaleString()} requests)`));
+        statsBox.appendChild(el('div', { class: 'hero-stats' },
+            statCard('Total', stats.total.toLocaleString(), `over ${stats.days}d`),
+            statCard('2xx', (stats.by_status_class['2xx'] || 0).toLocaleString(), 'success'),
+            statCard('4xx', (stats.by_status_class['4xx'] || 0).toLocaleString(), 'client errors'),
+            statCard('5xx', (stats.by_status_class['5xx'] || 0).toLocaleString(), 'server errors'),
+            statCard('p50 latency', `${stats.latency_ms.p50 ?? 0}ms`, 'median'),
+            statCard('p95 latency', `${stats.latency_ms.p95 ?? 0}ms`, '95th pct'),
+        ));
+        if (stats.top_paths.length) {
+            statsBox.appendChild(el('div', { style: 'margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:18px;' },
+                el('div', {},
+                    el('div', { class: 'field-label', style: 'margin-bottom:6px;' }, 'Top paths'),
+                    el('div', { class: 'audit-top-list' },
+                        ...stats.top_paths.map(([path, count]) => el('div', { class: 'audit-top-row' },
+                            el('span', { class: 'mono', style: 'font-size:11px;' }, path),
+                            el('span', { class: 'mono', style: 'font-size:11px;color:var(--text-muted);' }, count.toLocaleString()),
+                        )),
+                    ),
+                ),
+                el('div', {},
+                    el('div', { class: 'field-label', style: 'margin-bottom:6px;' }, 'Top clients'),
+                    stats.top_clients.length
+                        ? el('div', { class: 'audit-top-list' },
+                            ...stats.top_clients.map(([cid, count]) => el('div', { class: 'audit-top-row' },
+                                el('span', { class: 'mono', style: 'font-size:11px;' }, cid),
+                                el('span', { class: 'mono', style: 'font-size:11px;color:var(--text-muted);' }, count.toLocaleString()),
+                            )),
+                        )
+                        : el('div', { class: 'meta' }, '(no authenticated clients yet)'),
+                ),
+            ));
+        }
+    }
+
+    function statusColor(s) {
+        if (s >= 500) return 'var(--danger)';
+        if (s >= 400) return 'var(--warn)';
+        if (s >= 300) return 'var(--info)';
+        return 'var(--accent)';
+    }
+
+    function renderTable(data) {
+        const host = document.getElementById('audit-table');
+        host.innerHTML = '';
+        if (!data.entries.length) {
+            host.appendChild(el('div', { class: 'meta' }, '(no matching entries)'));
+            return;
+        }
+        const tbl = el('table', { class: 'endpoints-table audit-table' },
+            el('thead', {}, el('tr', {},
+                el('th', {}, 'Time (UTC)'),
+                el('th', {}, 'Method'),
+                el('th', {}, 'Path'),
+                el('th', {style: 'text-align:right;'}, 'Status'),
+                el('th', {style: 'text-align:right;'}, 'Latency'),
+                el('th', {}, 'Client'),
+                el('th', {}, 'IP'),
+                el('th', {}, ''),
+            )),
+            el('tbody', {}, ...data.entries.map(e => {
+                const t = (e.ts || '').replace('T', ' ').replace('Z', '').slice(0, 19);
+                return el('tr', { class: 'audit-row', onclick: () => openModalText('Audit entry', e.ts, JSON.stringify(e, null, 2)) },
+                    el('td', { class: 'mono', style: 'font-size:11px;' }, t),
+                    el('td', {}, el('span', { class: `method-badge ${(e.method || '').toLowerCase()}` }, e.method)),
+                    el('td', { class: 'mono', style: 'font-size:11px;max-width:380px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' },
+                        e.path + (e.query ? '?' + e.query : '')),
+                    el('td', { style: `text-align:right;font-family:ui-monospace,monospace;font-size:11px;font-weight:600;color:${statusColor(e.status)};` },
+                        String(e.status || '')),
+                    el('td', { class: 'mono', style: 'text-align:right;font-size:11px;color:var(--text-muted);' },
+                        e.dur_ms != null ? `${e.dur_ms}ms` : ''),
+                    el('td', { class: 'mono', style: 'font-size:11px;' }, e.client_id || ''),
+                    el('td', { class: 'mono', style: 'font-size:11px;color:var(--text-faint);' }, e.ip || ''),
+                    el('td', {}, el('button', { class: 'btn-ghost', style: 'padding:2px 8px;font-size:11px;',
+                        onclick: (ev) => { ev.stopPropagation(); openModalText('Audit entry', e.ts, JSON.stringify(e, null, 2)); } }, '{ }')),
+                );
+            })),
+        );
+        host.appendChild(tbl);
+        if (data.truncated) {
+            host.appendChild(el('div', { class: 'meta', style: 'margin-top:8px;' },
+                `Showing first ${data.entries.length} matching. Tighten filters or raise the limit to see more.`));
+        }
+    }
+
+    app.innerHTML = '';
+    app.append(head, statsBox, filters, tableHost);
+    try { await refresh(); } catch (e) { renderError(e.message); }
+    // clean up auto-refresh interval on hashchange
+    const cleanup = () => { if (state.refreshId) clearInterval(state.refreshId); window.removeEventListener('hashchange', cleanup); };
+    window.addEventListener('hashchange', cleanup);
+}
+
 // ---------- router ----------
 function highlightNav(hash) {
     // map sub-routes to their canonical nav item
@@ -2475,6 +2656,7 @@ async function route() {
     if (hash === '#/implement') return renderImplementPage();
     if (hash === '#/register') return renderRegisterPage();
     if (hash === '#/qr') return renderQrPage();
+    if (hash === '#/audit') return renderAuditPage();
     return renderNotFound(hash);
 }
 

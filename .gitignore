@@ -28,3 +28,4 @@ Thumbs.db
 data/keys/
 data/clients.json
 data/inbox/
+data/audit/
