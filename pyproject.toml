@@ -23,6 +23,7 @@ dependencies = [
     "python-json-logger>=2.0",
     "PyYAML>=6.0",
     "qrcode>=7.4",  # SVG QR codes for the /ui#/qr page
+    "httpx>=0.27",  # outbound HTTP for app.sources.* (Epic, future Cerner, ...)
 ]
 
 [project.optional-dependencies]

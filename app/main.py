@@ -40,6 +40,7 @@ def _build_app() -> FastAPI:
     from app.routers import discovery as discovery_router
     from app.routers import docref as docref_router
     from app.routers import docsubmit as docsubmit_router
+    from app.routers import epic_import as epic_import_router
     from app.routers import everything as everything_router
     from app.routers import metadata as metadata_router
     from app.routers import patient as patient_router
@@ -54,6 +55,7 @@ def _build_app() -> FastAPI:
     app.include_router(resource_router.router)
     app.include_router(docsubmit_router.router)
     app.include_router(discovery_router.router)  # /register-client + /spec/*
+    app.include_router(epic_import_router.router)  # /Epic/$import
 
     # dev-only UI (gated on ENV != prod inside the router)
     if not settings.is_prod:
