@@ -1,0 +1,47 @@
+{
+  "category": [
+    {
+      "coding": [
+        {
+          "code": "laboratory-report",
+          "display": "Laboratory Report",
+          "system": "http://hl7.eu/fhir/ig/eu-health-data-api/CodeSystem/eehrxf-document-priority-category"
+        }
+      ]
+    }
+  ],
+  "content": [
+    {
+      "attachment": {
+        "contentType": "application/fhir+json",
+        "url": "Bundle/99c50074-33ed-5bae-9955-9cf1ad3663a2"
+      },
+      "format": {
+        "code": "urn:ihe:iti:xds-sd:text:2008",
+        "system": "http://ihe.net/fhir/ValueSet/IHE.FormatCode.codesystem"
+      }
+    }
+  ],
+  "date": "2024-04-15T10:00:00+02:00",
+  "description": "Laboratory Report for Hans Schmidt",
+  "id": "c3993489-ce28-59f8-bcd3-1975335e8a05",
+  "meta": {
+    "profile": [
+      "http://hl7.eu/fhir/ig/eu-health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
+    ]
+  },
+  "resourceType": "DocumentReference",
+  "status": "current",
+  "subject": {
+    "reference": "Patient/p-002"
+  },
+  "type": {
+    "coding": [
+      {
+        "code": "11502-2",
+        "display": "Laboratory report",
+        "system": "http://loinc.org"
+      }
+    ]
+  }
+}

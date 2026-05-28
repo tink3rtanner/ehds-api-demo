@@ -1,0 +1,47 @@
+{
+  "category": [
+    {
+      "coding": [
+        {
+          "code": "discharge-report",
+          "display": "Hospital Discharge Report",
+          "system": "http://hl7.eu/fhir/ig/eu-health-data-api/CodeSystem/eehrxf-document-priority-category"
+        }
+      ]
+    }
+  ],
+  "content": [
+    {
+      "attachment": {
+        "contentType": "application/fhir+json",
+        "url": "Bundle/5892e49a-0a5f-53f6-9250-3042fdf326bd"
+      },
+      "format": {
+        "code": "urn:ihe:iti:xds-sd:text:2008",
+        "system": "http://ihe.net/fhir/ValueSet/IHE.FormatCode.codesystem"
+      }
+    }
+  ],
+  "date": "2024-04-15T10:00:00+02:00",
+  "description": "Hospital Discharge Report for Sof\u00eda Garc\u00eda",
+  "id": "9fe4a338-81e8-564d-b73b-9ad712b2b2a2",
+  "meta": {
+    "profile": [
+      "http://hl7.eu/fhir/ig/eu-health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
+    ]
+  },
+  "resourceType": "DocumentReference",
+  "status": "current",
+  "subject": {
+    "reference": "Patient/p-005"
+  },
+  "type": {
+    "coding": [
+      {
+        "code": "18842-5",
+        "display": "Discharge summary",
+        "system": "http://loinc.org"
+      }
+    ]
+  }
+}

@@ -27,6 +27,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 JAR = REPO_ROOT / ".cache" / "validator_cli.jar"
 PANEL_IDS = [f"p-{i:03d}" for i in range(1, 11)]
 from app.fhir.document import CATEGORY_TO_DOC_TYPE
+from app.fhir.ids import bundle_id
 CATEGORIES = list(CATEGORY_TO_DOC_TYPE.keys())
 
 
@@ -51,7 +52,7 @@ def _run_validator(resource: dict, *, version: str = "4.0.1", timeout: int = 240
 @pytest.mark.parametrize("pid", ["p-001"])  # one patient × 4 categories = enough to prove the path
 @pytest.mark.parametrize("category", CATEGORIES)
 async def test_compiled_documents_pass_r4_validation(client, auth_headers, pid, category):
-    r = await client.get(f"/Binary/doc-{pid}-{category}", headers=auth_headers)
+    r = await client.get(f"/Bundle/{bundle_id(pid, category)}", headers=auth_headers)
     assert r.status_code == 200, r.text
     bundle = r.json()
     ok, issues = _run_validator(bundle)

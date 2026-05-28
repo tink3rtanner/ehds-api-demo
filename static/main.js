@@ -97,11 +97,11 @@ function setLoading() {
 }
 
 // ---------- URL chips ----------
-// GET chips are clickable links that open the actual server response in a new
-// tab via /ui/api/proxy (which injects a dev bearer server-side, so the link
-// Just Works in a browser without the user needing a token). non-GET methods
-// stay as spans because clicking can't POST/PUT/DELETE. opts.noLink forces a
-// non-link span (used for illustrative paths like `/Patient/{id}`).
+// GET chips are clickable links that open the canonical FHIR URL in a new
+// tab. In dev mode the server accepts unauthenticated GETs (synthetic data
+// only) so the URL bar reflects the real FHIR REST path, not a proxy.
+// non-GET methods stay as spans (clicking can't POST/PUT/DELETE). opts.noLink
+// forces a non-link span (illustrative paths like `/Patient/{id}`).
 function urlChip(method, path, opts = {}) {
     const display = `${method} ${path}`;
     const hasPlaceholder = /\{[^}]+\}|\\\$/.test(path);
@@ -109,7 +109,7 @@ function urlChip(method, path, opts = {}) {
     const tag = linkable ? 'a' : 'span';
     const attrs = { class: 'url-chip with-copy' + (linkable ? ' linkable' : '') };
     if (linkable) {
-        attrs.href = `/ui/api/proxy?path=${encodeURIComponent(path)}`;
+        attrs.href = path;
         attrs.target = '_blank';
         attrs.rel = 'noopener';
         attrs.title = 'open live JSON from the server';
@@ -159,7 +159,7 @@ async function openResourceModal(rtype, rid) {
 function openBundleModal(pid, category, bundle) {
     openModalText(
         `Bundle/${bundle.id}`,
-        `GET /Binary/doc-${pid}-${category}  →  Bundle.type=document  (${bundle.entry?.length || 0} entries)`,
+        `GET /Bundle/${bundle.id}  →  Bundle.type=document  (${bundle.entry?.length || 0} entries)`,
         JSON.stringify(bundle, null, 2),
     );
 }
@@ -255,7 +255,7 @@ async function renderPatientList() {
             el('h1', {}, 'Patients'),
             el('div', { class: 'meta' },
                 `${patients.length} synthetic patients · ITI-78-style PDQm + IPA · all read-only · `,
-                el('a', { href: '/ui/api/proxy?path=/Patient', target: '_blank', rel: 'noopener', class: 'mono', style: 'color:var(--text-muted);' },
+                el('a', { href: '/Patient', target: '_blank', rel: 'noopener', class: 'mono', style: 'color:var(--text-muted);' },
                     'GET /Patient ↗'),
             ),
         );
@@ -513,7 +513,7 @@ async function renderPatientDetail(pid) {
             const meta = CATEGORY_LABELS[d.category];
             docRow.appendChild(el('a', { class: 'doc-card', href: `#/p/${pid}/doc/${d.category}` },
                 el('div', { class: 'label' }, `${meta.icon}  ${meta.label}`),
-                el('div', { class: 'sub' }, `GET /Binary/${d.binary}`),
+                el('div', { class: 'sub' }, `GET /Bundle/${d.bundle_id || '…'}`),
                 el('div', { class: 'open' }, 'open document →'),
             ));
         }
@@ -600,7 +600,7 @@ async function renderDocument(pid, category) {
             el('h1', {}, meta.icon, el('span', {}, meta.label)),
             el('div', { class: 'meta-row' }, `On-demand FHIR document Bundle (type=document) for Patient/${pid}`),
             el('div', { class: 'summary' },
-                summaryItem('FHIR REST', urlChip('GET', `/Binary/doc-${pid}-${category}`)),
+                summaryItem('FHIR REST', urlChip('GET', `/Bundle/${bundle.id}`)),
                 summaryItem('Bundle.id', el('span', { class: 'val mono' }, bundle.id || '—')),
                 summaryItem('Composition.id', el('span', { class: 'val mono' }, composition?.id || '—')),
                 summaryItem('Entries', el('span', { class: 'val' }, String(entries.length))),
@@ -1322,9 +1322,11 @@ async function renderDocumentsPage() {
                 el('code', {}, 'DocumentReference'),
                 ' (FHIR registry — the metadata pointing at a document), and ',
                 el('code', {}, 'Compiled Bundle'),
-                ' (the actual FHIR Bundle.type=document, materialised on demand from atomic resources at request time and served via ',
-                el('code', {}, 'GET /Binary/{id}'),
-                ' per the IHE MHD routing convention — "Binary" here is the URL prefix, not a blob).',
+                ' (the actual FHIR Bundle.type=document, materialised on demand from atomic resources at request time and served at ',
+                el('code', {}, 'GET /Bundle/{uuid}'),
+                '). Patient summaries are also available via the IPS operation ',
+                el('code', {}, 'GET /Patient/{id}/$summary'),
+                '.',
             ),
             buildDocumentsTable(docs.documents),
         );
@@ -1413,7 +1415,7 @@ function buildIti67Demo(bearer) {
             } }, 'Run ▶'),
         ),
         el('div', { class: 'demo-narrative' },
-            'Search the document registry. Returns a searchset Bundle of DocumentReferences with category, LOINC type, and the Binary URL for retrieval.',
+            'Search the document registry. Returns a searchset Bundle of DocumentReferences with category, LOINC type, and the Bundle URL for retrieval.',
         ),
         el('div', { class: 'demo-controls' },
             el('label', {}, 'patient: ', patIn),
@@ -1434,10 +1436,13 @@ function buildIti68Demo(bearer) {
             el('span', { class: 'demo-n' }, '68'),
             el('h3', {}, 'ITI-68 · retrieve a compiled document'),
             el('button', { class: 'btn-primary', onclick: async () => {
-                const path = `/Binary/doc-${patIn.value}-${catIn.value}`;
                 out.innerHTML = '';
-                out.appendChild(el('div', { class: 'meta' }, `GET ${path} …`));
+                out.appendChild(el('div', { class: 'meta' }, 'looking up Bundle id…'));
                 try {
+                    const lookup = await api(`/ui/api/bundle-id/${patIn.value}/${catIn.value}`);
+                    const path = lookup.path;
+                    out.innerHTML = '';
+                    out.appendChild(el('div', { class: 'meta' }, `GET ${path} …`));
                     const r = await fetch(path, { headers: { 'Authorization': `Bearer ${bearer}` } });
                     const body = await r.json();
                     renderTxResult(out, `GET ${path}`, r.status, body,
@@ -1446,7 +1451,7 @@ function buildIti68Demo(bearer) {
             } }, 'Run ▶'),
         ),
         el('div', { class: 'demo-narrative' },
-            'GET /Binary/{id} compiles a FHIR Bundle.type=document on demand from the atomic resources in the patient compartment. Bundle entries use absolute fullUrls so references resolve.',
+            'GET /Bundle/{uuid} compiles a FHIR Bundle.type=document on demand from the atomic resources in the patient compartment. The uuid is deterministic per (patient, category). Bundle entries use absolute fullUrls so references resolve.',
         ),
         el('div', { class: 'demo-controls' },
             el('label', {}, 'patient: ', patIn),
@@ -1794,10 +1799,12 @@ async function renderClientPage() {
                     el('span', { class: 'demo-n' }, '4'),
                     el('h3', {}, `Retrieve ${m.label} (ITI-68)`),
                 ),
-                el('div', { class: 'demo-narrative' }, `GET /Binary/doc-${state.pid}-${state.category} — compiled Bundle.type=document on demand.`),
+                el('div', { class: 'demo-narrative' }, `GET ${lookup.path} — compiled Bundle.type=document on demand.`),
                 el('div', { class: 'demo-out', id: 'step-doc-out' }, el('div', { class: 'meta' }, 'loading…')),
             );
-            const doc = await authedGet(`/Binary/doc-${state.pid}-${state.category}`);
+            // resolve the canonical Bundle uuid for (patient, category)
+        const lookup = await api(`/ui/api/bundle-id/${state.pid}/${state.category}`);
+        const doc = await authedGet(lookup.path);
             const docOut = document.getElementById('step-doc-out');
             docOut.innerHTML = '';
             const docEntries = doc.body.entry || [];
@@ -1808,7 +1815,7 @@ async function renderClientPage() {
             }, {});
             docOut.append(
                 el('div', { class: 'demo-result-head' },
-                    el('span', { class: 'mono' }, `GET /Binary/doc-${state.pid}-${state.category}`),
+                    el('span', { class: 'mono' }, `GET ${lookup.path}`),
                     el('span', { style: `font-weight:600;color:${doc.ok ? 'var(--accent)' : 'var(--danger)'};` },
                         `HTTP ${doc.status} · ${doc.ms} ms · ${docEntries.length} entries · ${(JSON.stringify(doc.body).length / 1024).toFixed(1)} KB`),
                 ),
@@ -1821,7 +1828,7 @@ async function renderClientPage() {
                 el('div', { class: 'btn-group', style: 'margin-top:8px;' },
                     el('a', { class: 'btn-primary', href: `#/p/${state.pid}/doc/${state.category}` }, 'Open in document viewer →'),
                     el('button', { class: 'btn-ghost', onclick: () => openBundleModal(state.pid, state.category, doc.body) }, '{ } view raw'),
-                    el('a', { class: 'btn-ghost', href: `/ui/api/proxy?path=/Binary/doc-${state.pid}-${state.category}`, target: '_blank', rel: 'noopener' }, 'open JSON in new tab'),
+                    el('a', { class: 'btn-ghost', href: lookup.path, target: '_blank', rel: 'noopener' }, 'open JSON in new tab'),
                 ),
             );
         }
@@ -1881,16 +1888,22 @@ async function renderQrPage() {
         // on a phone shows the real wire-level JSON returned by the server.
         // (Auth-gated FHIR endpoints are routed through /ui/api/proxy so the
         // phone gets JSON without needing a bearer.)
+        // canonical FHIR URLs — in dev mode the server serves these without
+        // a bearer (GET only) so scanning the QR opens real JSON in a phone
+        // browser. POST/PUT/DELETE still require a real token.
+        const pid = 'p-001';
+        const psBundleId = await api(`/ui/api/patients/${pid}`).then(d => d.documents.find(x => x.category === 'patient-summary')?.bundle_id);
         const urls = [
             { label: 'CapabilityStatement',         path: '/metadata',                                            kind: 'conformance' },
             { label: 'SMART configuration',         path: '/.well-known/smart-configuration',                     kind: 'conformance' },
             { label: 'Server JWKS',                 path: '/.well-known/jwks.json',                               kind: 'conformance' },
             { label: 'Health check',                path: '/healthz',                                             kind: 'conformance' },
-            { label: 'Patient/p-001',               path: '/ui/api/proxy?path=/Patient/p-001',                    kind: 'fhir' },
-            { label: 'Patient $everything',         path: '/ui/api/proxy?path=/Patient/p-001/%24everything',      kind: 'fhir' },
-            { label: 'Observation?patient=p-001',   path: '/ui/api/proxy?path=/Observation?patient=p-001',        kind: 'fhir' },
-            { label: 'DocumentReference search',    path: '/ui/api/proxy?path=/DocumentReference?patient=p-001',  kind: 'fhir' },
-            { label: 'Binary (Patient Summary)',    path: '/ui/api/proxy?path=/Binary/doc-p-001-patient-summary', kind: 'fhir' },
+            { label: 'Patient (read)',              path: `/Patient/${pid}`,                                      kind: 'fhir' },
+            { label: 'Patient $summary (IPS)',      path: `/Patient/${pid}/%24summary`,                           kind: 'fhir' },
+            { label: 'Patient $everything',         path: `/Patient/${pid}/%24everything`,                        kind: 'fhir' },
+            { label: 'Observation search',          path: `/Observation?patient=${pid}`,                          kind: 'fhir' },
+            { label: 'DocumentReference search',    path: `/DocumentReference?patient=${pid}`,                    kind: 'fhir' },
+            { label: 'Compiled Bundle (Pt Summary)', path: psBundleId ? `/Bundle/${psBundleId}` : `/Patient/${pid}/%24summary`, kind: 'fhir' },
             { label: 'Demo viewer (home)',          path: '/ui/',                                                 kind: 'ui' },
             { label: 'Implementer guide',           path: '/ui/#/implement',                                      kind: 'ui' },
             { label: 'Client registration',         path: '/ui/#/register',                                       kind: 'ui' },
@@ -1969,7 +1982,8 @@ async function renderImplementPage() {
                     patient_match: base + '/Patient/$match (POST Parameters)',
                     everything: base + '/Patient/p-001/$everything',
                     document_search: base + '/DocumentReference?patient=p-001',
-                    compiled_document: base + '/Binary/doc-p-001-patient-summary',
+                    compiled_document: base + '/Patient/p-001/$summary  (IPS Patient Summary operation)',
+                    bundle_lookup: base + '/Bundle/{uuid}  (uuids per category exposed in /ui/api/documents)',
                     submit: base + '/ (POST Bundle.type=transaction)',
                 },
             }, null, 2)),

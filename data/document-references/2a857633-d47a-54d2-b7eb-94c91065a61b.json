@@ -1,0 +1,47 @@
+{
+  "category": [
+    {
+      "coding": [
+        {
+          "code": "laboratory-report",
+          "display": "Laboratory Report",
+          "system": "http://hl7.eu/fhir/ig/eu-health-data-api/CodeSystem/eehrxf-document-priority-category"
+        }
+      ]
+    }
+  ],
+  "content": [
+    {
+      "attachment": {
+        "contentType": "application/fhir+json",
+        "url": "Bundle/1cdb796c-51aa-5f54-9e73-05ca675db412"
+      },
+      "format": {
+        "code": "urn:ihe:iti:xds-sd:text:2008",
+        "system": "http://ihe.net/fhir/ValueSet/IHE.FormatCode.codesystem"
+      }
+    }
+  ],
+  "date": "2024-04-15T10:00:00+02:00",
+  "description": "Laboratory Report for Sof\u00eda Garc\u00eda",
+  "id": "2a857633-d47a-54d2-b7eb-94c91065a61b",
+  "meta": {
+    "profile": [
+      "http://hl7.eu/fhir/ig/eu-health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
+    ]
+  },
+  "resourceType": "DocumentReference",
+  "status": "current",
+  "subject": {
+    "reference": "Patient/p-005"
+  },
+  "type": {
+    "coding": [
+      {
+        "code": "11502-2",
+        "display": "Laboratory report",
+        "system": "http://loinc.org"
+      }
+    ]
+  }
+}

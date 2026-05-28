@@ -68,8 +68,12 @@ async def test_token_replay_protection(client, make_assertion):
     assert r2.status_code == 400
 
 
-async def test_protected_endpoint_no_bearer(client):
-    r = await client.get("/Patient/p-001")
+async def test_protected_endpoint_with_bad_bearer(client):
+    """Sending an Authorization header forces strict validation in any env.
+    A bad bearer => 401. (In ENV=dev the server allows truly-anonymous GETs
+    for the synthetic-data demo — see app/auth/verify.py — but a present-
+    but-invalid bearer never silently passes.)"""
+    r = await client.get("/Patient/p-001", headers={"Authorization": "Bearer not-a-real-jwt"})
     assert r.status_code == 401
 
 

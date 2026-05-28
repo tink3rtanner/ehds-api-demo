@@ -1,0 +1,47 @@
+{
+  "category": [
+    {
+      "coding": [
+        {
+          "code": "imaging-report",
+          "display": "Medical Imaging",
+          "system": "http://hl7.eu/fhir/ig/eu-health-data-api/CodeSystem/eehrxf-document-priority-category"
+        }
+      ]
+    }
+  ],
+  "content": [
+    {
+      "attachment": {
+        "contentType": "application/fhir+json",
+        "url": "Bundle/08b7ef6f-6119-517c-b900-fbe7c8a8a3c6"
+      },
+      "format": {
+        "code": "urn:ihe:iti:xds-sd:text:2008",
+        "system": "http://ihe.net/fhir/ValueSet/IHE.FormatCode.codesystem"
+      }
+    }
+  ],
+  "date": "2024-04-15T10:00:00+02:00",
+  "description": "Medical Imaging for Anna M\u00fcller",
+  "id": "193be544-fc2f-524d-9742-482b35b4b3a0",
+  "meta": {
+    "profile": [
+      "http://hl7.eu/fhir/ig/eu-health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
+    ]
+  },
+  "resourceType": "DocumentReference",
+  "status": "current",
+  "subject": {
+    "reference": "Patient/p-001"
+  },
+  "type": {
+    "coding": [
+      {
+        "code": "18748-4",
+        "display": "Diagnostic imaging study",
+        "system": "http://loinc.org"
+      }
+    ]
+  }
+}

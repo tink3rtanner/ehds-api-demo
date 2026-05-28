@@ -1,0 +1,47 @@
+{
+  "category": [
+    {
+      "coding": [
+        {
+          "code": "imaging-report",
+          "display": "Medical Imaging",
+          "system": "http://hl7.eu/fhir/ig/eu-health-data-api/CodeSystem/eehrxf-document-priority-category"
+        }
+      ]
+    }
+  ],
+  "content": [
+    {
+      "attachment": {
+        "contentType": "application/fhir+json",
+        "url": "Bundle/7b09f804-b0f8-5b87-810e-577a5cfde0a9"
+      },
+      "format": {
+        "code": "urn:ihe:iti:xds-sd:text:2008",
+        "system": "http://ihe.net/fhir/ValueSet/IHE.FormatCode.codesystem"
+      }
+    }
+  ],
+  "date": "2024-04-15T10:00:00+02:00",
+  "description": "Medical Imaging for Jo\u00e3o Silva",
+  "id": "15ed5246-c759-56c1-8a8e-2b01cf39214f",
+  "meta": {
+    "profile": [
+      "http://hl7.eu/fhir/ig/eu-health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
+    ]
+  },
+  "resourceType": "DocumentReference",
+  "status": "current",
+  "subject": {
+    "reference": "Patient/p-006"
+  },
+  "type": {
+    "coding": [
+      {
+        "code": "18748-4",
+        "display": "Diagnostic imaging study",
+        "system": "http://loinc.org"
+      }
+    ]
+  }
+}

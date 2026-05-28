@@ -1,0 +1,47 @@
+{
+  "category": [
+    {
+      "coding": [
+        {
+          "code": "discharge-report",
+          "display": "Hospital Discharge Report",
+          "system": "http://hl7.eu/fhir/ig/eu-health-data-api/CodeSystem/eehrxf-document-priority-category"
+        }
+      ]
+    }
+  ],
+  "content": [
+    {
+      "attachment": {
+        "contentType": "application/fhir+json",
+        "url": "Bundle/b84b7d2b-afeb-58ae-bb56-235368ddd062"
+      },
+      "format": {
+        "code": "urn:ihe:iti:xds-sd:text:2008",
+        "system": "http://ihe.net/fhir/ValueSet/IHE.FormatCode.codesystem"
+      }
+    }
+  ],
+  "date": "2024-04-15T10:00:00+02:00",
+  "description": "Hospital Discharge Report for Jo\u00e3o Silva",
+  "id": "d9490af8-2d90-54c7-9fe4-869e7dfcd9dc",
+  "meta": {
+    "profile": [
+      "http://hl7.eu/fhir/ig/eu-health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
+    ]
+  },
+  "resourceType": "DocumentReference",
+  "status": "current",
+  "subject": {
+    "reference": "Patient/p-006"
+  },
+  "type": {
+    "coding": [
+      {
+        "code": "18842-5",
+        "display": "Discharge summary",
+        "system": "http://loinc.org"
+      }
+    ]
+  }
+}

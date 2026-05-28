@@ -99,8 +99,9 @@ async def api_patient_detail(pid: str) -> JSONResponse:
         if rt in hidden:
             continue
         buckets.setdefault(rt, []).append(r)
+    from app.fhir.ids import bundle_id as _bundle_id
     return JSONResponse({"patient": p, "buckets": buckets,
-                         "documents": [{"category": c, "binary": f"doc-{pid}-{c}"} for c in CATEGORIES]})
+                         "documents": [{"category": c, "bundle_id": _bundle_id(pid, c)} for c in CATEGORIES]})
 
 
 @router.get("/api/patients/{pid}/doc/{category}")
@@ -245,6 +246,23 @@ async def api_build_info() -> JSONResponse:
     })
 
 
+@router.get("/api/bundle-id/{pid}/{category}")
+async def api_bundle_id(pid: str, category: str) -> JSONResponse:
+    """resolve (patient, category) to the deterministic Bundle uuid.
+
+    used by client-side widgets that let the user pick a patient + category
+    and need to construct the canonical /Bundle/{uuid} URL.
+    """
+    _gate()
+    if category not in CATEGORIES:
+        raise HTTPException(status_code=404, detail="unknown category")
+    if store.read("Patient", pid) is None:
+        raise HTTPException(status_code=404, detail="patient not found")
+    from app.fhir.ids import bundle_id as _bid
+    bid = _bid(pid, category)
+    return JSONResponse({"bundle_id": bid, "path": f"/Bundle/{bid}"})
+
+
 @router.get("/api/documents")
 async def api_documents() -> JSONResponse:
     """list every document on the server.
@@ -280,21 +298,23 @@ async def api_documents() -> JSONResponse:
     # 2. on-demand compiled Bundles (one per patient × category).
     # served via GET /Binary/{id} per IHE MHD convention — the Binary URL is
     # the routing path, the response is a Bundle.type=document.
+    from app.fhir.ids import bundle_id as _bid
     patient_ids = sorted(p["id"] for p in store.list_all("Patient"))
     for pid in patient_ids:
         for cat in CATEGORIES:
+            bid = _bid(pid, cat)
             out.append({
                 "source": "Compiled Bundle",
-                "id": f"doc-{pid}-{cat}",
-                "fhir_path": f"/Binary/doc-{pid}-{cat}",
-                "binary_url": f"Binary/doc-{pid}-{cat}",
+                "id": bid,
+                "fhir_path": f"/Bundle/{bid}",
+                "binary_url": f"Bundle/{bid}",
                 "patient": pid,
                 "category_code": cat,
                 "category_display": cat.replace("-", " ").title(),
                 "type_code": "",
                 "type_display": "",
                 "date": "",
-                "description": "on-demand FHIR Bundle.type=document compiled from atomic resources (served via /Binary/{id} per IHE MHD)",
+                "description": "on-demand FHIR Bundle.type=document compiled from atomic resources, served at /Bundle/{id}",
             })
     return JSONResponse({"total": len(out), "documents": out})
 
@@ -529,10 +549,17 @@ async def api_endpoints() -> JSONResponse:
         {"label": "ITI-67 DocumentReference search", "method": "GET", "path": "/DocumentReference?patient={id}",
          "auth": "bearer",
          "curl": f"curl -s -H \"Authorization: Bearer $TOKEN\" '{base}/DocumentReference?patient=p-001'"},
-        {"label": "ITI-68 Binary retrieve (on-demand compiled Bundle)", "method": "GET",
-         "path": "/Binary/doc-{patient}-{category}",
+        {"label": "ITI-68 Bundle retrieve (on-demand compiled document)", "method": "GET",
+         "path": "/Bundle/{uuid}",
          "auth": "bearer",
-         "curl": f"curl -s -H \"Authorization: Bearer $TOKEN\" {base}/Binary/doc-p-001-patient-summary"},
+         "curl": (
+             f"# uuid is deterministic per (patient, category) — look it up via /ui/api/documents\n"
+             f"curl -s -H \"Authorization: Bearer $TOKEN\" {base}/Bundle/$BUNDLE_UUID"
+         )},
+        {"label": "IPS Patient Summary ($summary)", "method": "GET",
+         "path": "/Patient/{id}/$summary",
+         "auth": "bearer",
+         "curl": f"curl -s -H \"Authorization: Bearer $TOKEN\" {base}/Patient/p-001/\\$summary"},
         {"label": "ITI-105 submit Bundle",          "method": "POST", "path": "/",
          "auth": "bearer (system/Bundle.write)",
          "curl": (

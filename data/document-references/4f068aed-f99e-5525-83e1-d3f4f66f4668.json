@@ -1,0 +1,47 @@
+{
+  "category": [
+    {
+      "coding": [
+        {
+          "code": "discharge-report",
+          "display": "Hospital Discharge Report",
+          "system": "http://hl7.eu/fhir/ig/eu-health-data-api/CodeSystem/eehrxf-document-priority-category"
+        }
+      ]
+    }
+  ],
+  "content": [
+    {
+      "attachment": {
+        "contentType": "application/fhir+json",
+        "url": "Bundle/d5f598c9-4183-53a0-a96a-089c7c9e4d46"
+      },
+      "format": {
+        "code": "urn:ihe:iti:xds-sd:text:2008",
+        "system": "http://ihe.net/fhir/ValueSet/IHE.FormatCode.codesystem"
+      }
+    }
+  ],
+  "date": "2024-04-15T10:00:00+02:00",
+  "description": "Hospital Discharge Report for Hans Schmidt",
+  "id": "4f068aed-f99e-5525-83e1-d3f4f66f4668",
+  "meta": {
+    "profile": [
+      "http://hl7.eu/fhir/ig/eu-health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
+    ]
+  },
+  "resourceType": "DocumentReference",
+  "status": "current",
+  "subject": {
+    "reference": "Patient/p-002"
+  },
+  "type": {
+    "coding": [
+      {
+        "code": "18842-5",
+        "display": "Discharge summary",
+        "system": "http://loinc.org"
+      }
+    ]
+  }
+}

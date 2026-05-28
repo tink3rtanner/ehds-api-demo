@@ -209,6 +209,30 @@ async def read_patient(
     return JSONResponse(res, media_type="application/fhir+json")
 
 
+@router.get("/Patient/{rid}/$summary", name="patient_summary")
+async def patient_summary(
+    rid: str,
+    _p: Annotated[Principal, Depends(require_scope("system/Patient.read"))],
+) -> JSONResponse:
+    """IPS Patient Summary operation.
+
+    https://hl7.org/fhir/uv/ips/OperationDefinition-summary.html
+
+    Returns a FHIR Bundle.type=document containing the patient summary
+    (Composition + Patient + clinical resources). Identical content to
+    /Bundle/{deterministic-uuid} for category=patient-summary; this
+    operation gives clients the canonical IPS URL they expect.
+    """
+    from app.fhir import document as _dc
+    if store.read("Patient", rid) is None:
+        return JSONResponse(status_code=404, content=_oo("error", "not-found", f"Patient/{rid}"))
+    try:
+        bundle = _dc.compile_document(rid, "patient-summary")
+    except _dc.MissingResources as e:
+        return JSONResponse(status_code=422, content=_oo("error", "not-supported", str(e)))
+    return JSONResponse(bundle, media_type="application/fhir+json")
+
+
 @router.get("/Patient", name="search_Patient")
 async def search_patients(
     request: Request,

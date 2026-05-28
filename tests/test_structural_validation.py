@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from app.fhir.document import CATEGORY_TO_DOC_TYPE
+from app.fhir.ids import bundle_id
 from app.fhir.validate import structural_validate
 from scripts.seed import PANEL
 
@@ -37,7 +38,7 @@ def test_atomic_resource_is_structurally_valid(path):
 @pytest.mark.parametrize("category", CATEGORIES)
 async def test_compiled_documents_are_structurally_valid(client, auth_headers, category):
     for p in PANEL:
-        r = await client.get(f"/Binary/doc-{p.pid}-{category}", headers=auth_headers)
+        r = await client.get(f"/Bundle/{bundle_id(p.pid, category)}", headers=auth_headers)
         assert r.status_code == 200, r.text
         bundle = r.json()
         ok, problems = structural_validate(bundle)

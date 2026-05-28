@@ -8,34 +8,35 @@ from __future__ import annotations
 import pytest
 
 from app.fhir.document import CATEGORY_TO_DOC_TYPE
+from app.fhir.ids import docref_id
 
 pytestmark = pytest.mark.asyncio
 
-# number of seed DocumentReferences per patient is one per priority category
-_PER_PATIENT_DOCREFS = len(CATEGORY_TO_DOC_TYPE)
+# deterministic uuid ids for the seed DocumentReferences
+_SEED_DOCREF_IDS_P001 = {docref_id("p-001", c) for c in CATEGORY_TO_DOC_TYPE}
 
 
 async def test_iti67_search_by_patient(client, auth_headers):
     r = await client.get("/DocumentReference", headers=auth_headers,
                          params={"patient": "p-001"})
     assert r.status_code == 200
-    seed = [e for e in r.json()["entry"] if e["resource"]["id"].startswith("dr-p-")]
-    assert len(seed) == _PER_PATIENT_DOCREFS
+    seed = [e for e in r.json()["entry"] if e["resource"]["id"] in _SEED_DOCREF_IDS_P001]
+    assert len(seed) == len(_SEED_DOCREF_IDS_P001)
 
 
 async def test_iti67_search_by_status(client, auth_headers):
     r = await client.get("/DocumentReference", headers=auth_headers,
                          params={"patient": "p-001", "status": "current"})
     assert r.status_code == 200
-    seed = [e for e in r.json()["entry"] if e["resource"]["id"].startswith("dr-p-")]
-    assert len(seed) == _PER_PATIENT_DOCREFS
+    seed = [e for e in r.json()["entry"] if e["resource"]["id"] in _SEED_DOCREF_IDS_P001]
+    assert len(seed) == len(_SEED_DOCREF_IDS_P001)
 
 
 async def test_iti67_search_by_type(client, auth_headers):
     r = await client.get("/DocumentReference", headers=auth_headers,
                          params={"patient": "p-001", "type": "60591-5"})
     assert r.status_code == 200
-    seed = [e for e in r.json()["entry"] if e["resource"]["id"].startswith("dr-p-")]
+    seed = [e for e in r.json()["entry"] if e["resource"]["id"] in _SEED_DOCREF_IDS_P001]
     assert len(seed) == 1
     coding = seed[0]["resource"]["type"]["coding"][0]
     assert coding["code"] == "60591-5"
@@ -66,7 +67,9 @@ async def test_iti67_returns_empty_bundle_for_unknown_patient(client, auth_heade
 
 
 async def test_iti68_missing_scope_is_forbidden(client, make_assertion):
-    # mint a token without Binary.read
+    # mint a token without Binary.read (scope name preserved from MHD parlance;
+    # /Bundle/{id} read uses the same scope on this server)
+    from app.fhir.ids import bundle_id
     r = await client.post("/token", data={
         "grant_type": "client_credentials",
         "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
@@ -74,6 +77,6 @@ async def test_iti68_missing_scope_is_forbidden(client, make_assertion):
         "scope": "system/Patient.read",
     })
     bearer = r.json()["access_token"]
-    rr = await client.get("/Binary/doc-p-001-patient-summary",
+    rr = await client.get(f"/Bundle/{bundle_id('p-001', 'patient-summary')}",
                           headers={"Authorization": f"Bearer {bearer}"})
     assert rr.status_code == 403

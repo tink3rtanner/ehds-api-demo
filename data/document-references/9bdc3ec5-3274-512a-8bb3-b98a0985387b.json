@@ -1,0 +1,47 @@
+{
+  "category": [
+    {
+      "coding": [
+        {
+          "code": "discharge-report",
+          "display": "Hospital Discharge Report",
+          "system": "http://hl7.eu/fhir/ig/eu-health-data-api/CodeSystem/eehrxf-document-priority-category"
+        }
+      ]
+    }
+  ],
+  "content": [
+    {
+      "attachment": {
+        "contentType": "application/fhir+json",
+        "url": "Bundle/bfaa2a22-6f74-5e7d-9928-7966e20a85d9"
+      },
+      "format": {
+        "code": "urn:ihe:iti:xds-sd:text:2008",
+        "system": "http://ihe.net/fhir/ValueSet/IHE.FormatCode.codesystem"
+      }
+    }
+  ],
+  "date": "2024-04-15T10:00:00+02:00",
+  "description": "Hospital Discharge Report for Anna M\u00fcller",
+  "id": "9bdc3ec5-3274-512a-8bb3-b98a0985387b",
+  "meta": {
+    "profile": [
+      "http://hl7.eu/fhir/ig/eu-health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
+    ]
+  },
+  "resourceType": "DocumentReference",
+  "status": "current",
+  "subject": {
+    "reference": "Patient/p-001"
+  },
+  "type": {
+    "coding": [
+      {
+        "code": "18842-5",
+        "display": "Discharge summary",
+        "system": "http://loinc.org"
+      }
+    ]
+  }
+}

@@ -417,12 +417,15 @@ def _imaging_study(p: P) -> dict:
 
 
 def _docref(p: P, category: str) -> dict:
+    # late import so seed scripts can run without importing the full app
+    from app.fhir.ids import bundle_id as _bundle_id
+    from app.fhir.ids import docref_id as _docref_id
+
     type_coding = DOC_TYPES[category]
     cat_coding = CATEGORY_CODES[category]
-    binary_id = f"doc-{p.pid}-{category}"
     return {
         "resourceType": "DocumentReference",
-        "id": f"dr-{p.pid}-{category}",
+        "id": _docref_id(p.pid, category),
         "meta": {"profile": [EHDS_DOCREF_PROFILE]},
         "status": "current",
         "type": {"coding": [type_coding]},
@@ -433,7 +436,7 @@ def _docref(p: P, category: str) -> dict:
         "content": [{
             "attachment": {
                 "contentType": "application/fhir+json",
-                "url": f"Binary/{binary_id}",
+                "url": f"Bundle/{_bundle_id(p.pid, category)}",
             },
             "format": {"system": "http://ihe.net/fhir/ValueSet/IHE.FormatCode.codesystem", "code": "urn:ihe:iti:xds-sd:text:2008"},
         }],

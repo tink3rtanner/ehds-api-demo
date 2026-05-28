@@ -40,6 +40,7 @@ def _build_app() -> FastAPI:
     from app.routers import resource as resource_router
     from app.routers import docref as docref_router
     from app.routers import binary as binary_router
+    from app.routers import bundle as bundle_router
     from app.routers import everything as everything_router
     from app.routers import docsubmit as docsubmit_router
 
@@ -47,7 +48,8 @@ def _build_app() -> FastAPI:
     app.include_router(patient_router.router)
     app.include_router(everything_router.router)
     app.include_router(docref_router.router)
-    app.include_router(binary_router.router)
+    app.include_router(bundle_router.router)
+    app.include_router(binary_router.router)  # legacy 301 -> /Bundle/{id}
     app.include_router(resource_router.router)
     app.include_router(docsubmit_router.router)
 

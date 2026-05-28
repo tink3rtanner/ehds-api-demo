@@ -1,0 +1,47 @@
+{
+  "category": [
+    {
+      "coding": [
+        {
+          "code": "imaging-report",
+          "display": "Medical Imaging",
+          "system": "http://hl7.eu/fhir/ig/eu-health-data-api/CodeSystem/eehrxf-document-priority-category"
+        }
+      ]
+    }
+  ],
+  "content": [
+    {
+      "attachment": {
+        "contentType": "application/fhir+json",
+        "url": "Bundle/ee39ca2a-dd3e-5756-9236-5e2e600e3eb6"
+      },
+      "format": {
+        "code": "urn:ihe:iti:xds-sd:text:2008",
+        "system": "http://ihe.net/fhir/ValueSet/IHE.FormatCode.codesystem"
+      }
+    }
+  ],
+  "date": "2024-04-15T10:00:00+02:00",
+  "description": "Medical Imaging for Giulia Rossi",
+  "id": "f6cc15f6-c4d5-5bcc-9571-5d323e7ba1ca",
+  "meta": {
+    "profile": [
+      "http://hl7.eu/fhir/ig/eu-health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
+    ]
+  },
+  "resourceType": "DocumentReference",
+  "status": "current",
+  "subject": {
+    "reference": "Patient/p-003"
+  },
+  "type": {
+    "coding": [
+      {
+        "code": "18748-4",
+        "display": "Diagnostic imaging study",
+        "system": "http://loinc.org"
+      }
+    ]
+  }
+}

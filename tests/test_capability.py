@@ -10,7 +10,10 @@ EXPECTED_RESOURCES = {
     "MedicationRequest", "MedicationDispense", "Medication", "Immunization",
     "Observation", "Procedure", "DiagnosticReport", "ImagingStudy", "Encounter",
     "Specimen", "Practitioner", "PractitionerRole", "Organization", "Composition",
-    "DocumentReference", "Binary", "Bundle",
+    "DocumentReference", "Bundle",
+    # Binary is intentionally absent — compiled documents now live at
+    # /Bundle/{id} (FHIR-proper); the legacy /Binary/{id} route only does a
+    # 301 redirect for backward compat with older bookmarks.
 }
 
 

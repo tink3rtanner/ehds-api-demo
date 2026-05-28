@@ -34,6 +34,14 @@ def _extract_bearer(request: Request) -> str:
 
 
 def verify_bearer(request: Request) -> _Principal:
+    # in dev mode, ANONYMOUS GETs (no Authorization header) read synthetic
+    # data directly — so QR-scanned FHIR URLs render JSON in a phone browser
+    # without needing a bearer. ENV=dev only. If a bearer IS provided, it's
+    # validated strictly (preserves the auth-demo: missing scope still 403s).
+    if (not settings.is_prod
+            and request.method == "GET"
+            and "authorization" not in {k.lower() for k in request.headers.keys()}):
+        return _Principal(client_id="dev-anon", scopes=["system/*.read"])
     token = _extract_bearer(request)
     try:
         unverified_hdr = jwt.get_unverified_header(token)

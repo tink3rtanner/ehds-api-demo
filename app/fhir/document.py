@@ -22,11 +22,11 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import Any
-from uuid import NAMESPACE_URL, uuid4, uuid5  # noqa: F401  (uuid4 retained for callers)
 
 from app.config import settings
 from app.fhir import store
 from app.fhir.capability import PROFILE_EU_BUNDLE
+from app.fhir.ids import bundle_id, bundle_identifier, composition_id
 
 CATEGORY_TO_DOC_TYPE = {
     "patient-summary":   {"system": "http://loinc.org", "code": "60591-5", "display": "Patient summary Document"},
@@ -185,10 +185,10 @@ def compile_document(patient_id: str, category: str) -> dict[str, Any]:
     author_org = _author_organization(patient_id)
     author_practitioner = _author_practitioner()
 
-    composition_id = f"comp-{patient_id}-{category}"
+    comp_id = composition_id(patient_id, category)
     composition: dict[str, Any] = {
         "resourceType": "Composition",
-        "id": composition_id,
+        "id": comp_id,
         "status": "final",
         "type": {"coding": [CATEGORY_TO_DOC_TYPE[category]]},
         "category": [{"coding": [CATEGORY_TO_DOC_TYPE[category]]}],
@@ -245,19 +245,15 @@ def compile_document(patient_id: str, category: str) -> dict[str, Any]:
         seen_refs.add(ref)
         bundle_entries.append({"fullUrl": _full(r), "resource": r})
 
-    # bundle identifier: stable per (patient, category) so identical inputs
-    # produce identical bundles (matches the comment at the top of this file).
-    bundle_uuid = uuid5(NAMESPACE_URL, f"{base}/doc/{patient_id}/{category}")
-
     return {
         "resourceType": "Bundle",
-        "id": f"doc-{patient_id}-{category}",
+        "id": bundle_id(patient_id, category),
         "meta": {"profile": [PROFILE_EU_BUNDLE[category]]},
         "type": "document",
         "timestamp": composition["date"],
         "identifier": {
             "system": "urn:ietf:rfc:3986",
-            "value": f"urn:uuid:{bundle_uuid}",
+            "value": bundle_identifier(patient_id, category),
         },
         "entry": bundle_entries,
     }

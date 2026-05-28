@@ -36,6 +36,7 @@ FIRST_CLASS_RESOURCES: dict[str, dict[str, Any]] = {
         "operations": [
             {"name": "match", "definition": "http://hl7.org/fhir/OperationDefinition/Patient-match"},
             {"name": "everything", "definition": "http://hl7.org/fhir/OperationDefinition/Patient-everything"},
+            {"name": "summary", "definition": "http://hl7.org/fhir/uv/ips/OperationDefinition/summary"},
         ],
     },
     "AllergyIntolerance": {"interactions": ["read", "search-type"], "searchParams": ["_id", "patient", "clinical-status"]},
@@ -60,8 +61,10 @@ FIRST_CLASS_RESOURCES: dict[str, dict[str, Any]] = {
         "searchParams": ["_id", "patient", "category", "type", "status", "date"],
         "supportedProfile": [EHDS_DOCREF_PROFILE],
     },
-    "Binary": {"interactions": ["read"], "searchParams": []},
-    "Bundle": {"interactions": ["create"], "searchParams": []},  # ITI-105 submission target
+    # Binary is kept as a 301 redirect to /Bundle/{id} for legacy URLs; no
+    # standalone Binary resources are served. Bundle gets both read (compiled
+    # documents) and create (ITI-105 submission).
+    "Bundle": {"interactions": ["read", "create"], "searchParams": ["_id"]},
 }
 
 
