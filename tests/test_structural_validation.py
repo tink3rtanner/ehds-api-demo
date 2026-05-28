@@ -7,13 +7,14 @@ from pathlib import Path
 
 import pytest
 
+from app.fhir.document import CATEGORY_TO_DOC_TYPE
 from app.fhir.validate import structural_validate
 from scripts.seed import PANEL
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DATA = REPO_ROOT / "data"
-CATEGORIES = ["patient-summary", "laboratory-report", "discharge-report", "imaging-report"]
+CATEGORIES = list(CATEGORY_TO_DOC_TYPE.keys())
 
 
 def _all_resource_files() -> list[Path]:

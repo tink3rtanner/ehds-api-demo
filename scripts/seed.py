@@ -30,6 +30,7 @@ DOC_TYPES = {
     "laboratory-report": {"system": "http://loinc.org", "code": "11502-2", "display": "Laboratory report"},
     "discharge-report":  {"system": "http://loinc.org", "code": "18842-5", "display": "Discharge summary"},
     "imaging-report":    {"system": "http://loinc.org", "code": "18748-4", "display": "Diagnostic imaging study"},
+    "prescription":      {"system": "http://loinc.org", "code": "57833-6", "display": "Prescription for medication"},
 }
 
 CATEGORY_CS = "http://hl7.eu/fhir/ig/eu-health-data-api/CodeSystem/eehrxf-document-priority-category"
@@ -38,6 +39,7 @@ CATEGORY_CODES = {
     "laboratory-report": {"system": CATEGORY_CS, "code": "laboratory-report", "display": "Laboratory Report"},
     "discharge-report":  {"system": CATEGORY_CS, "code": "discharge-report",  "display": "Hospital Discharge Report"},
     "imaging-report":    {"system": CATEGORY_CS, "code": "imaging-report",    "display": "Medical Imaging"},
+    "prescription":      {"system": CATEGORY_CS, "code": "prescription",      "display": "ePrescription"},
 }
 
 @dataclass

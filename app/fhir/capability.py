@@ -11,12 +11,14 @@ from typing import Any
 
 from app.config import settings
 
-# canonical EU profile URLs (per the IGs we depend on)
+# canonical EU profile URLs (per the IGs we depend on). EHDS phase-1 priority
+# categories that are realistic to compile from an atomic resource store.
 PROFILE_EU_BUNDLE = {
-    "patient-summary": "http://hl7.eu/fhir/ig/eps/StructureDefinition/Bundle-eu-eps",
+    "patient-summary":   "http://hl7.eu/fhir/ig/eps/StructureDefinition/Bundle-eu-eps",
     "laboratory-report": "http://hl7.eu/fhir/ig/laboratory/StructureDefinition/Bundle-eu-lab",
-    "discharge-report": "http://hl7.eu/fhir/ig/hdr/StructureDefinition/Bundle-eu-hdr",
-    "imaging-report": "http://hl7.eu/fhir/ig/imaging/StructureDefinition/Bundle-eu-imaging",
+    "discharge-report":  "http://hl7.eu/fhir/ig/hdr/StructureDefinition/Bundle-eu-hdr",
+    "imaging-report":    "http://hl7.eu/fhir/ig/imaging/StructureDefinition/Bundle-eu-imaging",
+    "prescription":      "http://hl7.eu/fhir/ig/eu-health-data-api/StructureDefinition/Bundle-eu-prescription",
 }
 
 EHDS_DOCREF_PROFILE = "http://hl7.eu/fhir/ig/eu-health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"

@@ -20,10 +20,12 @@ from app.fhir import store
 router = APIRouter()
 
 
-# patient ids look like "p-001". category is one of the known set. anchor on
-# the known category suffixes to disambiguate the dash-separated id.
+# patient ids look like "p-001". the category suffix is one of the known set —
+# we anchor on the known suffixes to disambiguate the dash-separated id.
+# Source of truth: app.fhir.document.CATEGORY_TO_DOC_TYPE keys.
+_CATEGORY_ALT = "|".join(re.escape(k) for k in doc_compile.CATEGORY_TO_DOC_TYPE.keys())
 _BIN_ID_RE = re.compile(
-    r"^doc-(?P<patient>[A-Za-z0-9._]+(?:-[A-Za-z0-9._]+)*?)-(?P<category>patient-summary|laboratory-report|discharge-report|imaging-report)$"
+    rf"^doc-(?P<patient>[A-Za-z0-9._]+(?:-[A-Za-z0-9._]+)*?)-(?P<category>{_CATEGORY_ALT})$"
 )
 
 

@@ -26,7 +26,8 @@ pytestmark = [pytest.mark.asyncio, requires_validator]
 REPO_ROOT = Path(__file__).resolve().parent.parent
 JAR = REPO_ROOT / ".cache" / "validator_cli.jar"
 PANEL_IDS = [f"p-{i:03d}" for i in range(1, 11)]
-CATEGORIES = ["patient-summary", "laboratory-report", "discharge-report", "imaging-report"]
+from app.fhir.document import CATEGORY_TO_DOC_TYPE
+CATEGORIES = list(CATEGORY_TO_DOC_TYPE.keys())
 
 
 def _run_validator(resource: dict, *, version: str = "4.0.1", timeout: int = 240) -> tuple[bool, list[dict]]:

@@ -27,7 +27,7 @@ router = APIRouter(prefix="/ui")
 STATIC_DIR = Path(__file__).resolve().parent.parent.parent / "static"
 REPO_ROOT = STATIC_DIR.parent
 
-CATEGORIES = ["patient-summary", "laboratory-report", "discharge-report", "imaging-report"]
+CATEGORIES = ["patient-summary", "laboratory-report", "discharge-report", "imaging-report", "prescription"]
 
 
 def _is_prod() -> bool:
@@ -245,6 +245,58 @@ async def api_build_info() -> JSONResponse:
     })
 
 
+@router.get("/api/documents")
+async def api_documents() -> JSONResponse:
+    """list every document on the server.
+
+    sources two streams:
+      1. DocumentReference resources (the FHIR-side registry of documents)
+      2. all compiled-on-demand Bundles (10 patients × 5 priority categories)
+
+    used by the /ui#/documents page to render a sortable table of every
+    document the server can produce.
+    """
+    _gate()
+    out = []
+    # 1. registered DocumentReferences
+    for r in store.list_all("DocumentReference"):
+        cat = ((r.get("category") or [{}])[0].get("coding") or [{}])[0]
+        typ = ((r.get("type") or {}).get("coding") or [{}])[0]
+        subj = (r.get("subject") or {}).get("reference", "")
+        att = ((r.get("content") or [{}])[0].get("attachment") or {})
+        out.append({
+            "source": "DocumentReference",
+            "id": r["id"],
+            "fhir_path": f"/DocumentReference/{r['id']}",
+            "binary_url": att.get("url", ""),
+            "patient": subj.split("/", 1)[-1] if subj else "",
+            "category_code": cat.get("code", ""),
+            "category_display": cat.get("display", ""),
+            "type_code": typ.get("code", ""),
+            "type_display": typ.get("display", ""),
+            "date": r.get("date", ""),
+            "description": r.get("description", ""),
+        })
+    # 2. on-demand compiled Bundles (one per patient × category)
+    patient_ids = sorted(p["id"] for p in store.list_all("Patient"))
+    for pid in patient_ids:
+        for cat in CATEGORIES:
+            out.append({
+                "source": "Binary (compiled)",
+                "id": f"doc-{pid}-{cat}",
+                "fhir_path": f"/Binary/doc-{pid}-{cat}",
+                "binary_url": f"Binary/doc-{pid}-{cat}",
+                "patient": pid,
+                "category_code": cat,
+                "category_display": cat.replace("-", " ").title(),
+                "type_code": "",
+                "type_display": "",
+                "date": "",
+                "description": f"on-demand FHIR Bundle.type=document compiled from atomic resources",
+            })
+    return JSONResponse({"total": len(out), "documents": out})
+
+
 @router.get("/api/clients")
 async def api_list_clients() -> JSONResponse:
     """list registered clients (public JWKS only, no private material)."""
@@ -262,10 +314,22 @@ async def api_list_clients() -> JSONResponse:
     return JSONResponse({"clients": sorted(out, key=lambda r: r["client_id"])})
 
 
-# scopes we'll grant via the public registration UI (no Bundle.write etc.)
+# scopes the public registration UI may grant. Read-only by default. We don't
+# expose Bundle.write here — that's a meaningful capability (lets you submit
+# resources) so we require the CLI for it.
 _ALLOWED_REG_SCOPES = (
     "system/*.read",
     "system/Patient.read",
+    "system/Observation.read",
+    "system/Condition.read",
+    "system/MedicationStatement.read",
+    "system/MedicationRequest.read",
+    "system/AllergyIntolerance.read",
+    "system/Immunization.read",
+    "system/Procedure.read",
+    "system/DiagnosticReport.read",
+    "system/ImagingStudy.read",
+    "system/Encounter.read",
     "system/DocumentReference.read",
     "system/Binary.read",
 )

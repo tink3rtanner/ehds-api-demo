@@ -1169,6 +1169,114 @@ footer {
     max-height: none;
 }
 
+/* ---------- demo controls (resource browser, ITI playgrounds) ---------- */
+.demo-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    margin: 10px 0;
+}
+.demo-controls label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+.demo-controls input,
+.demo-controls select {
+    padding: 6px 9px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    font-family: inherit;
+    font-size: 13px;
+}
+
+/* ---------- QR cards ---------- */
+.qr-kind {
+    align-self: flex-start;
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+}
+.qr-kind.fhir       { color: var(--accent);  background: var(--accent-soft); }
+.qr-kind.conformance{ color: var(--info);    background: var(--info-soft); }
+.qr-kind.ui         { color: var(--text-faint); background: var(--surface-3); }
+
+/* ---------- client page ---------- */
+.client-controls .demo-controls { margin: 0; }
+.docref-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+.docref-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: border-color .12s ease, background-color .12s ease;
+    font-family: inherit;
+    text-align: left;
+}
+.docref-card:hover { border-color: var(--accent); }
+.docref-card.selected {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+}
+.docref-card .icon { font-size: 18px; margin-bottom: 4px; }
+.docref-card .label { font-size: 13px; font-weight: 600; }
+.patient-card-mini {
+    background: var(--surface-2);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin-top: 8px;
+}
+.patient-card-mini .name {
+    font-weight: 600;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.patient-card-mini .meta { color: var(--text-muted); font-size: 13px; margin-top: 4px; }
+
+/* ---------- register page: scope grid ---------- */
+.scope-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 4px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    background: var(--surface-2);
+}
+.scope-row {
+    display: grid;
+    grid-template-columns: 18px 1fr auto;
+    gap: 8px;
+    align-items: center;
+    padding: 4px 0;
+    cursor: pointer;
+    font-size: 12px;
+}
+.scope-row input { margin: 0; }
+.scope-row .mono { font-family: ui-monospace, monospace; color: var(--text); }
+.scope-row .sub { color: var(--text-faint); font-size: 11px; }
+
+/* ---------- documents page table tightening ---------- */
+.documents-table { font-size: 12.5px; }
+.documents-table td { padding: 8px 10px; }
+.documents-table .url-chip { font-size: 11px; }
+
 /* ---------- server page: dim resource-table rows that have 0 stored ---------- */
 .endpoints-table tr.empty-row td:first-child code { color: var(--text-faint); }
 .endpoints-table tr.empty-row td:first-child code::after {

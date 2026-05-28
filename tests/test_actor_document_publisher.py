@@ -10,7 +10,8 @@ import pytest
 
 pytestmark = pytest.mark.asyncio
 
-CATEGORIES = ["patient-summary", "laboratory-report", "discharge-report", "imaging-report"]
+from app.fhir.document import CATEGORY_TO_DOC_TYPE
+CATEGORIES = list(CATEGORY_TO_DOC_TYPE.keys())
 
 
 @pytest.mark.parametrize("category", CATEGORIES)

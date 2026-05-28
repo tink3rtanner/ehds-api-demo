@@ -1,0 +1,47 @@
+{
+  "category": [
+    {
+      "coding": [
+        {
+          "code": "prescription",
+          "display": "ePrescription",
+          "system": "http://hl7.eu/fhir/ig/eu-health-data-api/CodeSystem/eehrxf-document-priority-category"
+        }
+      ]
+    }
+  ],
+  "content": [
+    {
+      "attachment": {
+        "contentType": "application/fhir+json",
+        "url": "Binary/doc-p-009-prescription"
+      },
+      "format": {
+        "code": "urn:ihe:iti:xds-sd:text:2008",
+        "system": "http://ihe.net/fhir/ValueSet/IHE.FormatCode.codesystem"
+      }
+    }
+  ],
+  "date": "2024-04-15T10:00:00+02:00",
+  "description": "ePrescription for Astrid Lindberg",
+  "id": "dr-p-009-prescription",
+  "meta": {
+    "profile": [
+      "http://hl7.eu/fhir/ig/eu-health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
+    ]
+  },
+  "resourceType": "DocumentReference",
+  "status": "current",
+  "subject": {
+    "reference": "Patient/p-009"
+  },
+  "type": {
+    "coding": [
+      {
+        "code": "57833-6",
+        "display": "Prescription for medication",
+        "system": "http://loinc.org"
+      }
+    ]
+  }
+}

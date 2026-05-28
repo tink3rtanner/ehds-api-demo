@@ -7,7 +7,12 @@ from __future__ import annotations
 
 import pytest
 
+from app.fhir.document import CATEGORY_TO_DOC_TYPE
+
 pytestmark = pytest.mark.asyncio
+
+# number of seed DocumentReferences per patient is one per priority category
+_PER_PATIENT_DOCREFS = len(CATEGORY_TO_DOC_TYPE)
 
 
 async def test_iti67_search_by_patient(client, auth_headers):
@@ -15,7 +20,7 @@ async def test_iti67_search_by_patient(client, auth_headers):
                          params={"patient": "p-001"})
     assert r.status_code == 200
     seed = [e for e in r.json()["entry"] if e["resource"]["id"].startswith("dr-p-")]
-    assert len(seed) == 4
+    assert len(seed) == _PER_PATIENT_DOCREFS
 
 
 async def test_iti67_search_by_status(client, auth_headers):
@@ -23,7 +28,7 @@ async def test_iti67_search_by_status(client, auth_headers):
                          params={"patient": "p-001", "status": "current"})
     assert r.status_code == 200
     seed = [e for e in r.json()["entry"] if e["resource"]["id"].startswith("dr-p-")]
-    assert len(seed) == 4
+    assert len(seed) == _PER_PATIENT_DOCREFS
 
 
 async def test_iti67_search_by_type(client, auth_headers):

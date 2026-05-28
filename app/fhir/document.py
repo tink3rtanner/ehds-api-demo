@@ -33,6 +33,7 @@ CATEGORY_TO_DOC_TYPE = {
     "laboratory-report": {"system": "http://loinc.org", "code": "11502-2", "display": "Laboratory report"},
     "discharge-report":  {"system": "http://loinc.org", "code": "18842-5", "display": "Discharge summary"},
     "imaging-report":    {"system": "http://loinc.org", "code": "18748-4", "display": "Diagnostic imaging study"},
+    "prescription":      {"system": "http://loinc.org", "code": "57833-6", "display": "Prescription for medication"},
 }
 
 # section default LOINC codes used when we auto-build a Composition.
@@ -60,6 +61,7 @@ CATEGORY_SECTIONS: dict[str, list[str]] = {
     "discharge-report":  ["Encounter", "Condition", "MedicationRequest",
                           "MedicationStatement", "Procedure"],
     "imaging-report":    ["DiagnosticReport", "ImagingStudy"],
+    "prescription":      ["MedicationRequest"],
 }
 
 
