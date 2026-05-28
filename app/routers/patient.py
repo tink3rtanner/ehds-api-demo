@@ -61,10 +61,22 @@ def _pdqm_search(params: dict[str, list[str]]) -> list[dict]:
         # _id
         if (v := params.get("_id")) and p.get("id") != v[0]:
             return False
-        # identifier
+        # identifier — supports both `system|value` (preferred, FHIR-canonical)
+        # and bare `value` (loose; matches across systems — not recommended).
         if (v := params.get("identifier")):
-            wanted = v[0].split("|")[-1]
-            if not any((i.get("value") == wanted) for i in p.get("identifier", []) or []):
+            if "|" in v[0]:
+                wanted_system, wanted_value = v[0].split("|", 1)
+            else:
+                wanted_system, wanted_value = None, v[0]
+            hit = False
+            for i in p.get("identifier", []) or []:
+                if i.get("value") != wanted_value:
+                    continue
+                if wanted_system and i.get("system") != wanted_system:
+                    continue
+                hit = True
+                break
+            if not hit:
                 return False
         # name parts
         names = _gather_names(p)
