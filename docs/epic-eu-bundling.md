@@ -236,10 +236,27 @@ Submission: `scripts/submit_bundle.py` POSTed the patient-summary under
 `vps_bundler` → 201 Created, read-back 200 (574 KB). The demo's docsubmit only
 does structural validation, so EU-profile cleanliness isn't required to submit.
 
-- laboratory-report (EU Lab `Bundle-eu-lab`): not yet validated.
-- discharge-report (EU HDR `bundle-eu-hdr`, type fixed 34105-7): not yet validated.
-- imaging-report (EU Imaging): Camila sandbox has no ImagingStudy; needs a patient with imaging.
-- eP/eD (MPD resource profiles, no R4 document bundle): validate MedicationRequest/Dispense against `*-eu-mpd`.
+- laboratory-report (EU Lab `Bundle-eu-lab`): **validated, 23 errors (xfail).**
+  Profile wants exactly one DiagnosticReport (`one-dr`), a
+  `DiagnosticReportCompositionR5` extension, performer = Organization (we emit
+  Practitioner), Observation-eu-lab profile matches, and `dr-comp-*` SHALL
+  constraints (shared identifier/category/subject). Genuine compiler+data work.
+- discharge-report (EU HDR `bundle-eu-hdr`): **validated, 59 errors (xfail).**
+  Missing required `sectionHospitalCourse` slice, fixed `type` pattern, closed
+  section-entry target types, unresolved `patient-eu-core`/`CodeableConcept-uv-ips`.
+- imaging-report (EU Imaging `CompositionEuImaging`): **validated, 19 errors
+  (xfail).** `Composition.category` min 2, four required section slices
+  (imagingstudy/order/history/procedure), author slicing, `dr-comp-author-org`.
+- prescription (MPD): **FIXED** — the Bundle no longer stamps the *resource*
+  profile `MedicationRequest-eu-mpd` on itself (that made the validator treat
+  the Bundle as a MedicationRequest). It now validates clean as a profile-less
+  base-R4 document. (`PROFILE_EU_BUNDLE["prescription"] = None`.)
+- **patient-summary (EPS): passes** EU `bundle-eu-eps`.
+
+The three xfails above are tracked in `tests/test_profile_validation.py`
+(non-strict xfail) — flipping any to a pass will xpass and flag it. Each needs
+per-IG document restructuring + seed-data shape changes; see the per-category
+error breakdown above.
 
 Terminology note: Epic uses proprietary `open.epic.com` code systems on ~253
 Observation codes and its CPT/RxNorm/ICD codes are not in the IPS/EU free

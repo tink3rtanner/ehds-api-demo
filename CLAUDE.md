@@ -42,6 +42,10 @@ should run from this directory.
   (permissive submit, dev anon read, prescription-isn't-a-doc, etc.)
 - `docs/identity-cheatsheet.md` — slot↔uuid table, derivation chain,
   the 4 patient-reference search forms
+- `docs/resource-identity.md` — logical-id vs business-identifier,
+  literal vs logical refs, the "naturalization" recipe at ingest
+  boundaries, and an implementer work-plan for the ITI-105 submit
+  re-identification gap (ties to the HL7 Intermediaries White Paper)
 - `docs/audit-recipes.md` — jq snippets against the JSONL audit log
 - `docs/runbook.md` — on-call for TLS expiry, disk full, systemd fail,
   Caddy syntax
@@ -197,6 +201,16 @@ runs structural validation, persists the whole bundle to `data/inbox/`, and
 **mirrors every entry whose `resourceType` is in `store.SUPPORTED_TYPES`**
 into the type-folder store. It does not honour `entry.request.method/url` —
 any supported resource gets written regardless of what the bundle says.
+
+It DOES **naturalize** every mirrored entry via `app/fhir/naturalize.py`
+(`naturalize_bundle`): foreign ids are re-minted to local `uuid5`, internal
+references are rewritten, the original id is preserved as a
+`urn:ehds-demo:source-id` identifier, and `meta.source` records a back-link to
+the origin (resolvable via `GET /{Type}/{id}/$source`). So the stored id is NOT
+the submitter's id — callers follow `entry.response.location` or search the
+source identifier. The same `meta.source` stamping runs on the Epic
+`/Epic/$import` path (`epic_transform.transform_bundle(..., source_base=...)`).
+The full design + rationale is in **`docs/resource-identity.md`**.
 
 This is intentional (lowest-friction publish for synthetic-data demos) but
 slightly deviates from strict FHIR transaction semantics. Documented as a

@@ -40,13 +40,23 @@ async def test_round_trip_submission_then_access(client, auth_headers, pid):
     r = await client.post("/", headers=auth_headers, json=bundle)
     assert r.status_code == 201, r.text
 
-    follow = await client.get(f"/DocumentReference/{docref_id}", headers=auth_headers)
+    # the submission is naturalized to a LOCAL id; follow the returned location.
+    loc = r.json()["entry"][0]["response"]["location"]
+    assert loc.startswith("DocumentReference/")
+    local_docref_id = loc.split("/", 1)[1]
+    assert local_docref_id != docref_id
+
+    follow = await client.get(f"/{loc}", headers=auth_headers)
     assert follow.status_code == 200
     fetched = follow.json()
-    assert fetched["id"] == docref_id
+    assert fetched["id"] == local_docref_id
+    # subject ref to the (out-of-bundle) seeded patient is preserved, not rewritten
+    assert fetched["subject"]["reference"] == f"Patient/{pid}"
+    # original submission id preserved as a source identifier
+    assert {"system": "urn:ehds-demo:source-id", "value": docref_id} in fetched["identifier"]
 
     # the access provider's category-filtered search now returns the new ref too
     search = await client.get("/DocumentReference", headers=auth_headers,
                               params={"patient": pid, "category": "laboratory-report"})
     ids = [e["resource"]["id"] for e in search.json()["entry"]]
-    assert docref_id in ids
+    assert local_docref_id in ids

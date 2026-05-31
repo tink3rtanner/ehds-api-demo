@@ -18,15 +18,18 @@ from app.config import settings
 #
 # NOTE: `prescription` has no document-Bundle profile in R4. The R4
 # `hl7.fhir.eu.mpd` IG ships resource profiles only (MedicationRequest-eu-mpd
-# etc.) and its example bundles are `type: collection`. We keep the key so the
-# compiler can still emit a prescription document, but it is validated at the
-# resource-profile level, not as an EU document bundle.
-PROFILE_EU_BUNDLE = {
+# etc.) and its example bundles are `type: collection`. So its value is None:
+# the compiler still emits a prescription document Bundle, but it must NOT claim
+# `MedicationRequest-eu-mpd` as `Bundle.meta.profile` — that is a *resource*
+# profile, and stamping it on a Bundle makes the validator validate the whole
+# Bundle as a MedicationRequest (every `Bundle.*` element becomes "not allowed").
+# A profile-less prescription Bundle validates correctly as a base-R4 document.
+PROFILE_EU_BUNDLE: dict[str, str | None] = {
     "patient-summary":   "http://hl7.eu/fhir/eps/StructureDefinition/bundle-eu-eps",
     "laboratory-report": "http://hl7.eu/fhir/laboratory/StructureDefinition/Bundle-eu-lab",
     "discharge-report":  "http://hl7.eu/fhir/hdr/StructureDefinition/bundle-eu-hdr",
     "imaging-report":    "http://hl7.eu/fhir/imaging/StructureDefinition/BundleReportEuImaging",
-    "prescription":      "http://hl7.eu/fhir/mpd/StructureDefinition/MedicationRequest-eu-mpd",
+    "prescription":      None,
 }
 
 # Canonical EU Composition profile URLs per document category (entry[0]).

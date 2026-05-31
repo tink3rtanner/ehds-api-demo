@@ -27,6 +27,8 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
+from app.fhir.naturalize import set_source
+
 # IPS resource-level profile URIs (uv-ips 2.0.0)
 IPS_PROFILES: dict[str, str] = {
     "Patient": "http://hl7.org/fhir/uv/ips/StructureDefinition/Patient-uv-ips",
@@ -301,9 +303,16 @@ def transform_generic(res: dict[str, Any], epic_id: str) -> dict[str, Any]:
 
 def transform_bundle(
     epic_resources: list[dict[str, Any]],
+    *,
+    source_base: str | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, str], str | None]:
     """Transform a list of fetched Epic resources into IPS-shaped local
     resources with rewritten references.
+
+    `source_base`: the Epic FHIR base URL the resources were fetched from. When
+    given, every transformed resource gets a `meta.source` back-link to its
+    origin Epic resource URL (resolvable against Epic FHIR REST — the demo's
+    "open at source" affordance), since Epic exposes no MHD/document endpoint.
 
     Returns (local_resources, id_map, patient_local_id).
     """
@@ -357,6 +366,11 @@ def transform_bundle(
                 t["category"] = cats
         else:
             t = transform_generic(r, epic_id)
+        # back-link to the origin Epic resource URL (rtype is the *Epic* type,
+        # so a MedicationRequest->Statement still points at the request it came
+        # from). meta.source survives reference-rewriting (it's not a Reference).
+        if source_base:
+            set_source(t, f"{source_base.rstrip('/')}/{rtype}/{epic_id}")
         out.append(t)
 
     # Third pass: rewrite every reference.

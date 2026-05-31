@@ -76,6 +76,24 @@ def test_patient_is_re_id_d_and_tagged():
     assert EPIC_IDENTIFIER_SYSTEM in systems
 
 
+def test_source_base_stamps_meta_source():
+    base = "https://fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4"
+    locals_, _id_map, _pid = transform_bundle(
+        [_epic_patient(), _epic_condition("c-77")], source_base=base + "/",
+    )
+    pat = next(r for r in locals_ if r["resourceType"] == "Patient")
+    cond = next(r for r in locals_ if r["resourceType"] == "Condition")
+    # back-link points at the ORIGIN Epic resource URL (rstrip handles trailing /)
+    assert pat["meta"]["source"] == f"{base}/Patient/{EPIC_PID}"
+    assert cond["meta"]["source"] == f"{base}/Condition/c-77"
+
+
+def test_no_source_base_leaves_meta_source_unset():
+    locals_, _id_map, _pid = transform_bundle([_epic_patient()])
+    pat = next(r for r in locals_ if r["resourceType"] == "Patient")
+    assert "source" not in (pat.get("meta") or {})
+
+
 def test_references_rewritten_to_local_ids():
     locals_, _id_map, pid = transform_bundle([
         _epic_patient(),

@@ -93,8 +93,8 @@ def ingest_patient(
             # log via raise-and-collect would be nicer but we keep it simple here.
             print(f"  ! {rtype} search failed: {exc}")
 
-    # 2. transform
-    locals_, _id_map, patient_local_id = transform_bundle(fetched)
+    # 2. transform (stamp meta.source back-links to the Epic FHIR base we pulled from)
+    locals_, _id_map, patient_local_id = transform_bundle(fetched, source_base=client.fhir_base)
     if patient_local_id is None:
         raise RuntimeError("Patient resource missing from fetched bundle")
     patient_ref = f"Patient/{patient_local_id}"

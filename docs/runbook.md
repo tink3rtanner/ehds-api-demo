@@ -125,6 +125,67 @@ ehds.joshpriebe.com {
 to `/var/backups/Caddyfile.last-known-good` before every edit). Caddy's
 own config-history feature can be enabled too.
 
+## 5. Runaway process pegging the CPU
+
+**Symptom**: `uptime` load average sits near (or above) the core count
+(4 on this box) for a sustained period; the demo feels sluggish but
+`systemctl status ehds-api` is healthy. The app workers are NOT the
+culprit — they idle at ~0% between requests.
+
+**Diagnosis**:
+```bash
+ps -eo pid,ppid,pcpu,etimes,args --sort=-pcpu | head -8
+# inspect the top offender's lineage + working dir:
+ps -o pid,ppid,etime,args -p <pid>
+ls -l /proc/<pid>/cwd /proc/<pid>/exe
+```
+
+Known real incident (2026-05-31): an orphaned
+`ugrep -r 'bundle-eu-eps|composition-eu-eps' /` left behind by a dead
+remote-agent session pegged all 4 cores for 2.5 days. Its parent was a
+stale `bash -c` wrapper from a session that had exited. Tell-tale signs
+of this class: a `grep`/`find`/`ugrep` rooted at `/`, an `exe` symlink
+under `~/.claude/remote/...`, and a multi-day `etimes`.
+
+**Mitigation**: confirm it's safe to kill (orphaned search/loop, parent
+is a dead shell), then:
+```bash
+kill -TERM <pid>     # then SIGKILL if it ignores TERM
+```
+
+**Detection (already wired up)**: `ehds-cpu-watchdog.timer` runs
+`deploy/cpu-watchdog.sh` every 10 minutes. It flags any process holding
+a high lifetime-average %CPU (default ≥80) for longer than a floor age
+(default ≥1800 s) and logs a WARNING to the journal:
+```bash
+# did the watchdog ever fire?
+sudo journalctl -t ehds-cpu-watchdog --no-pager | tail -20
+# the timer itself:
+systemctl list-timers ehds-cpu-watchdog.timer
+sudo systemctl start ehds-cpu-watchdog.service   # run on demand
+```
+Thresholds are env-tunable (`EHDS_WATCHDOG_CPU`, `EHDS_WATCHDOG_MIN_ETIME`).
+It is detection-only by default; set `EHDS_WATCHDOG_KILL=1` (e.g. via a
+`systemctl edit` drop-in) to have it SIGTERM offenders automatically.
+
+**Root-cause follow-up**: orphans from remote-agent sessions are the
+usual source. If they recur, the watchdog log gives the cmdline to trace
+back to the originating session.
+
+## Note: submitted data and the multi-worker index
+
+The server runs gunicorn with 2 workers, each with its own in-process
+index cache (`app/fhir/store.py`). A historical bug made freshly
+submitted (ITI-105) data appear *intermittently* — a search would
+include or omit it depending on which worker answered, because a write
+only invalidated the handling worker's cache. This is **fixed**: each
+cache entry is now tagged with a cheap signature of the on-disk type-dir
+(file count + newest mtime) and re-validated on every read, so any worker
+notices another worker's writes. If you ever see submitted data flicker
+in/out again, suspect this mechanism — `tests/test_store_cache.py` is the
+regression guard, and a `systemctl restart ehds-api` is the immediate
+workaround.
+
 ## Diagnostic checklist for "site is down"
 
 When you don't know which of the four it is:
@@ -143,7 +204,7 @@ curl -fsS -o /dev/null -w '%{http_code}\n' https://ehds.joshpriebe.com/.well-kno
 
 # layer 4: app
 sudo systemctl status ehds-api
-curl -fsS http://127.0.0.1:8000/health
+curl -fsS http://127.0.0.1:8000/healthz
 
 # layer 5: disk + resources
 df -h /srv; free -h; uptime

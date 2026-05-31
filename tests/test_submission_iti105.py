@@ -37,9 +37,24 @@ async def test_submit_bundle_happy(client, auth_headers):
     assert body["resourceType"] == "Bundle"
     assert body["type"] == "transaction-response"
 
-    # the new DocumentReference is now queryable
-    follow = await client.get("/DocumentReference/incoming-1", headers=auth_headers)
+    # the submitted DocumentReference is naturalized to a LOCAL id; the foreign
+    # "incoming-1" id is no longer the resource id. Follow the returned location.
+    loc = body["entry"][0]["response"]["location"]
+    assert loc.startswith("DocumentReference/")
+    assert loc != "DocumentReference/incoming-1"
+    follow = await client.get(f"/{loc}", headers=auth_headers)
     assert follow.status_code == 200
+    # the original id is preserved on the resource as a source identifier
+    idents = follow.json().get("identifier", [])
+    assert {"system": "urn:ehds-demo:source-id", "value": "incoming-1"} in idents
+
+    # ...so the foreign id is still discoverable via identifier search.
+    by_origin = await client.get(
+        "/DocumentReference?identifier=urn:ehds-demo:source-id|incoming-1",
+        headers=auth_headers,
+    )
+    assert by_origin.status_code == 200
+    assert by_origin.json().get("total", 0) >= 1
 
 
 async def test_submit_rejects_non_bundle(client, auth_headers):

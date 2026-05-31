@@ -10,6 +10,7 @@ import pytest
 
 pytestmark = pytest.mark.asyncio
 
+from app.fhir.capability import PROFILE_EU_BUNDLE
 from app.fhir.document import CATEGORY_TO_DOC_TYPE
 from app.fhir.ids import bundle_id, docref_id
 
@@ -45,7 +46,12 @@ async def test_published_bundle_has_required_metadata(client, auth_headers, cate
     assert "id" in bundle
     assert "timestamp" in bundle
     assert "type" in bundle and bundle["type"] == "document"
-    assert "meta" in bundle and "profile" in bundle["meta"]
+    # prescription has no document-Bundle profile (PROFILE_EU_BUNDLE None); the
+    # rest must stamp one.
+    if PROFILE_EU_BUNDLE[category] is None:
+        assert "profile" not in (bundle.get("meta") or {})
+    else:
+        assert "meta" in bundle and "profile" in bundle["meta"]
     assert "identifier" in bundle
 
 

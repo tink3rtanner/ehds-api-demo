@@ -4,8 +4,14 @@ layout: data/<dir-for-type>/<id>.json
 each json file is a single FHIR resource.
 
 design notes:
-- the index is built lazily and cached in-process. mutations (writes via
-  ITI-105) bust the cache.
+- the index is built lazily and cached in-process. each cache entry is tagged
+  with a cheap signature of the on-disk type-dir (file count + newest mtime);
+  every read re-stats the dir and reloads when the signature changed. this
+  keeps the cache correct ACROSS PROCESSES: under gunicorn the service runs
+  multiple pre-forked workers, each with its own `_cache`, so a write handled
+  by one worker would otherwise be invisible to the others until restart. the
+  signature check means any worker notices another worker's add/update/delete
+  on its next read. `invalidate_cache` remains as an in-process fast-path.
 - "type -> dir" is a small static mapping; resources go in dirs based on the
   hyphenated lowercase form of the type, with a few overrides where natural.
 - searches are linear; with ~400 resources that's fine.
@@ -13,6 +19,7 @@ design notes:
 from __future__ import annotations
 
 import json
+import os
 import threading
 from collections.abc import Iterator
 from pathlib import Path
@@ -53,15 +60,46 @@ def dir_for_type(rtype: str) -> Path:
 
 
 _lock = threading.Lock()
-_cache: dict[str, dict[str, dict[str, Any]]] = {}
+# rtype -> (dir-signature, {id: resource}). the signature lets a worker detect
+# on-disk changes made by ANOTHER worker (or out-of-band) and reload.
+_cache: dict[str, tuple[tuple[int, int], dict[str, dict[str, Any]]]] = {}
+
+
+def _dir_signature(d: Path) -> tuple[int, int]:
+    """cheap fingerprint of a type-dir: (count of *.json, newest mtime_ns).
+
+    an add bumps the count, a delete drops it, and any add/update sets a file
+    mtime to "now" which exceeds the previously-recorded newest — so any
+    mutation changes the signature. one scandir + stat-per-entry, no file
+    reads, so it is cheap to run on every access.
+    """
+    count = 0
+    newest = 0
+    try:
+        with os.scandir(d) as it:
+            for entry in it:
+                if not entry.name.endswith(".json"):
+                    continue
+                count += 1
+                try:
+                    mtime = entry.stat().st_mtime_ns
+                except OSError:
+                    continue
+                if mtime > newest:
+                    newest = mtime
+    except FileNotFoundError:
+        pass
+    return (count, newest)
 
 
 def _load_type(rtype: str) -> dict[str, dict[str, Any]]:
     """load all resources of a given type, keyed by logical id."""
+    d = dir_for_type(rtype)
+    sig = _dir_signature(d)
     with _lock:
-        if rtype in _cache:
-            return _cache[rtype]
-        d = dir_for_type(rtype)
+        cached = _cache.get(rtype)
+        if cached is not None and cached[0] == sig:
+            return cached[1]
         out: dict[str, dict[str, Any]] = {}
         if d.exists():
             for fp in sorted(d.glob("*.json")):
@@ -71,7 +109,7 @@ def _load_type(rtype: str) -> dict[str, dict[str, Any]]:
                     continue
                 rid = res.get("id") or fp.stem
                 out[rid] = res
-        _cache[rtype] = out
+        _cache[rtype] = (sig, out)
         return out
 
 
@@ -255,21 +293,27 @@ def search(rtype: str, params: dict[str, list[str]]) -> list[dict[str, Any]]:
     return results
 
 
-def bundle_searchset(rtype: str, entries: list[dict[str, Any]], base_url: str | None = None) -> dict[str, Any]:
+def bundle_searchset(rtype: str, entries: list[dict[str, Any]], base_url: str | None = None,
+                     self_link: str | None = None) -> dict[str, Any]:
     base = base_url or settings.base_url
-    return {
+    out: dict[str, Any] = {
         "resourceType": "Bundle",
         "type": "searchset",
         "total": len(entries),
-        "entry": [
-            {
-                "fullUrl": f"{base}/{rtype}/{e['id']}",
-                "resource": e,
-                "search": {"mode": "match"},
-            }
-            for e in entries
-        ],
     }
+    # `self` link — the request URL that produced this searchset (FHIR searchset
+    # convention / White Paper base-scenario shape). Callers pass str(request.url).
+    if self_link:
+        out["link"] = [{"relation": "self", "url": self_link}]
+    out["entry"] = [
+        {
+            "fullUrl": f"{base}/{rtype}/{e['id']}",
+            "resource": e,
+            "search": {"mode": "match"},
+        }
+        for e in entries
+    ]
+    return out
 
 
 def all_referenced_resources_for_patient(pid: str) -> list[dict[str, Any]]:

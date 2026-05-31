@@ -70,6 +70,23 @@ async def search_docref(
         else:
             results = [r for r in results
                        if (r.get("subject", {}).get("reference", "")).endswith(f"Patient/{canonical}")]
+    # identifier token search (`system|value` preferred) — keeps DocumentReference
+    # in sync with the generic store.search, so an origin/source id is findable here too.
+    if (v := norm.get("identifier")):
+        ident = v[0]
+        if "|" in ident:
+            wanted_system, wanted_value = ident.split("|", 1)
+        else:
+            wanted_system, wanted_value = None, ident
+        def has_ident(r):
+            for i in r.get("identifier", []) or []:
+                if i.get("value") != wanted_value:
+                    continue
+                if wanted_system and i.get("system") != wanted_system:
+                    continue
+                return True
+            return False
+        results = [r for r in results if has_ident(r)]
     if (v := norm.get("status")):
         results = [r for r in results if r.get("status") == v[0]]
     if (v := norm.get("category")):
@@ -90,5 +107,5 @@ async def search_docref(
             return False
         results = [r for r in results if type_match(r)]
 
-    return JSONResponse(store.bundle_searchset("DocumentReference", results),
+    return JSONResponse(store.bundle_searchset("DocumentReference", results, self_link=str(request.url)),
                         media_type="application/fhir+json")

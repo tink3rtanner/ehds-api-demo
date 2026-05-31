@@ -39,7 +39,7 @@ def _scrub_epic_imports_after_test():
             try:
                 import json
                 res = json.loads(fp.read_text())
-            except Exception:
+            except Exception:  # noqa: S112  — skip unparseable files in cleanup scan
                 continue
             idents = res.get("identifier") or []
             if any(i.get("system") == EPIC_IDENTIFIER_SYSTEM for i in idents):
@@ -49,6 +49,8 @@ def _scrub_epic_imports_after_test():
 
 class FakeEpicClient:
     """Test-double that returns canned Epic-shaped resources by type."""
+
+    fhir_base = "https://fhir.example.org/api/FHIR/R4"
 
     def __init__(self, patient: dict[str, Any], compartment: dict[str, list[dict[str, Any]]]):
         self._patient = patient
@@ -137,6 +139,8 @@ def test_full_pipeline():
     systems = {i["system"] for i in stored_pat["identifier"]}
     assert SLOT_IDENTIFIER_SYSTEM in systems
     assert EPIC_IDENTIFIER_SYSTEM in systems
+    # meta.source back-link points at the Epic FHIR resource we pulled from
+    assert stored_pat["meta"]["source"] == f"{client.fhir_base}/Patient/test-epic-pid-full"
 
     # condition + allergy stored; medicationrequest became MedicationStatement
     assert summary.counts.get("Condition", 0) >= 1

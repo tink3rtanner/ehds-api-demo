@@ -254,7 +254,8 @@ async def search_patients(
     for k, v in request.query_params.multi_items():
         norm.setdefault(k, []).append(v)
     results = _pdqm_search(norm)
-    return JSONResponse(store.bundle_searchset("Patient", results), media_type="application/fhir+json")
+    return JSONResponse(store.bundle_searchset("Patient", results, self_link=str(request.url)),
+                        media_type="application/fhir+json")
 
 
 @router.post("/Patient/$match", name="patient_match")

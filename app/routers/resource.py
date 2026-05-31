@@ -45,7 +45,8 @@ def _attach(rtype: str) -> None:
         for k, v in request.query_params.multi_items():
             norm.setdefault(k, []).append(v)
         results = store.search(rtype, norm)
-        return JSONResponse(store.bundle_searchset(rtype, results), media_type="application/fhir+json")
+        return JSONResponse(store.bundle_searchset(rtype, results, self_link=str(request.url)),
+                            media_type="application/fhir+json")
 
 
 for _rtype in GENERIC_TYPES:

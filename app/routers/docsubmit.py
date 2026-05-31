@@ -6,10 +6,18 @@ Bundle.type=transaction whose entries contain a DocumentReference + Binary
 
 we:
   1. validate the bundle structurally via fhir.resources
-  2. assign ids where missing
-  3. persist the entire bundle to data/inbox/<bundle-id>.json
-  4. mirror constituent resources into the store so they're queryable
-  5. return the bundle (server-assigned ids) per FHIR transaction response semantics
+  2. persist the as-submitted bundle to data/inbox/<bundle-id>.json (evidence)
+  3. NATURALIZE the constituent resources into this server's local identity
+     space — local uuid5 ids, rewritten references, original ids preserved as
+     `urn:ehds-demo:source-id` identifiers, and `meta.source` back-links — then
+     mirror them into the store so they're queryable
+  4. return the bundle with the server-assigned (local) ids per FHIR
+     transaction-response semantics
+
+Naturalizing on the way in (rather than trusting foreign ids verbatim) keeps
+the store in one consistent identity space and stops external submissions from
+polluting the panel with foreign-id'd, dangling-reference resources. See
+`app/fhir/naturalize.py` and `docs/resource-identity.md`.
 """
 from __future__ import annotations
 
@@ -23,6 +31,7 @@ from fastapi.responses import JSONResponse
 from app.auth.verify import Principal, require_scope
 from app.config import settings
 from app.fhir import store
+from app.fhir.naturalize import naturalize_bundle
 from app.fhir.validate import structural_validate
 
 router = APIRouter()
@@ -50,24 +59,19 @@ async def submit_bundle(
         return JSONResponse(status_code=400, content={"resourceType": "OperationOutcome",
             "issue": [{"severity": "error", "code": "structure", "diagnostics": p} for p in problems]})
 
-    # ensure id
+    # ensure id, then persist the AS-SUBMITTED bundle as evidence (foreign ids
+    # intact) before we naturalize — the inbox is the original-of-record.
     body.setdefault("id", str(uuid.uuid4()))
     inbox_dir = settings.data_dir / "inbox"
     inbox_dir.mkdir(parents=True, exist_ok=True)
     (inbox_dir / f"{body['id']}.json").write_text(json.dumps(body, indent=2, sort_keys=True))
 
-    # mirror into store
+    # naturalize into local identity (local ids + rewritten refs + source
+    # back-links) and mirror into the store
     written: list[str] = []
-    for ent in body.get("entry", []) or []:
-        res = ent.get("resource")
-        if not isinstance(res, dict):
-            continue
-        rt = res.get("resourceType")
-        if rt not in store.SUPPORTED_TYPES:
-            continue
-        res.setdefault("id", str(uuid.uuid4()))
+    for res in naturalize_bundle(body):
         store.write(res)
-        written.append(f"{rt}/{res['id']}")
+        written.append(f"{res['resourceType']}/{res['id']}")
 
     return JSONResponse(
         status_code=201,

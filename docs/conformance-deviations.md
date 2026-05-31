@@ -19,14 +19,24 @@ PUT / DELETE / GET) and `entry.request.url` to specify how each entry
 should be processed; PUT honours the explicit id, POST mints one,
 conditional updates use search params.
 
-**We do**: write `resource.id` to `data/<resourceType>/<id>.json`
-unconditionally. We do not differentiate POST vs PUT; we do not honour
-conditional create. This is documented in
-`CapabilityStatement.implementation.description`.
+**We do**: we do not differentiate POST vs PUT and do not honour
+conditional create. We DO, however, **naturalize** every mirrored entry
+(since 2026-05) instead of trusting its foreign id: each resource is
+re-minted to a local `uuid5` id, internal references are rewritten to the
+new ids, the original id is preserved as a `urn:ehds-demo:source-id`
+identifier, and a `meta.source` back-link is recorded when derivable. So a
+submitter's `resource.id` is **not** the stored id — follow the
+`entry.response.location` in the transaction-response, or search by the
+preserved source identifier. The as-submitted bundle (foreign ids intact)
+is kept verbatim in `data/inbox/` as evidence. See
+`app/fhir/naturalize.py` and `docs/resource-identity.md`. This is
+documented in `CapabilityStatement.implementation.description`.
 
 **Why**: connectathon submitters ship bundles with inconsistent or
-absent `request` blocks, and friction here would block every demo. The
-mirror is "best effort, side-effect-free for the sender."
+absent `request` blocks, and friction here would block every demo.
+Naturalizing keeps the store in one consistent identity space (foreign
+ids don't collide with or pollute the canonical panel) while preserving a
+resolvable path back to the source.
 
 ## 2. Dev-mode anonymous read
 
@@ -62,7 +72,12 @@ not a narrative document. The relevant resources are
 **We do**: still expose `MedicationRequest` as a first-class searchable
 resource via the generic store. The `compile_document(category="prescription")`
 path is preserved (don't break URLs in existing QR codes / docrefs) but
-should be deprecated and eventually removed.
+should be deprecated and eventually removed. As of 2026-05-31 the prescription
+document Bundle carries **no `meta.profile`** (`PROFILE_EU_BUNDLE["prescription"]
+= None`): it previously stamped the *resource* profile `MedicationRequest-eu-mpd`
+on the Bundle, which made the validator validate the whole Bundle as a
+MedicationRequest and fail on every `Bundle.*` element. A profile-less
+prescription Bundle validates correctly as a base-R4 document.
 
 **Why this entry exists**: so the next agent doesn't "add prescription
 back to the IG-actor matrix" thinking it was missing. It's correctly

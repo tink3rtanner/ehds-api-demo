@@ -49,7 +49,12 @@ async def test_compile_document_for_all_patients(client, auth_headers, category)
         assert bundle["resourceType"] == "Bundle"
         assert bundle["type"] == "document"
         assert bundle["entry"][0]["resource"]["resourceType"] == "Composition"
-        assert bundle["meta"]["profile"] == [PROFILE_EU_BUNDLE[category]]
+        # prescription has no EU document-Bundle profile (PROFILE_EU_BUNDLE is
+        # None) — it must carry no meta.profile; the rest stamp theirs.
+        if PROFILE_EU_BUNDLE[category] is None:
+            assert "profile" not in (bundle.get("meta") or {})
+        else:
+            assert bundle["meta"]["profile"] == [PROFILE_EU_BUNDLE[category]]
         # patient is somewhere in the bundle
         types = {e["resource"]["resourceType"] for e in bundle["entry"]}
         assert "Patient" in types

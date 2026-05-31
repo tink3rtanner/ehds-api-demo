@@ -341,10 +341,9 @@ def compile_document(patient_id: str, category: str) -> dict[str, Any]:
         seen_refs.add(ref)
         bundle_entries.append({"fullUrl": _full(r), "resource": r})
 
-    return {
+    bundle = {
         "resourceType": "Bundle",
         "id": bundle_id(slot, category),
-        "meta": {"profile": [PROFILE_EU_BUNDLE[category]]},
         "type": "document",
         "timestamp": composition["date"],
         "identifier": {
@@ -353,3 +352,11 @@ def compile_document(patient_id: str, category: str) -> dict[str, Any]:
         },
         "entry": bundle_entries,
     }
+    # only stamp Bundle.meta.profile when the category HAS a document-Bundle
+    # profile. prescription has none (see capability.PROFILE_EU_BUNDLE) — a
+    # resource profile on a Bundle makes the validator reject every Bundle.*
+    # element.
+    bundle_profile = PROFILE_EU_BUNDLE.get(category)
+    if bundle_profile:
+        bundle["meta"] = {"profile": [bundle_profile]}
+    return bundle

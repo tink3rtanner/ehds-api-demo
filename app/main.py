@@ -45,6 +45,7 @@ def _build_app() -> FastAPI:
     from app.routers import metadata as metadata_router
     from app.routers import patient as patient_router
     from app.routers import resource as resource_router
+    from app.routers import source_link as source_link_router
 
     app.include_router(metadata_router.router)
     app.include_router(patient_router.router)
@@ -52,6 +53,7 @@ def _build_app() -> FastAPI:
     app.include_router(docref_router.router)
     app.include_router(bundle_router.router)
     app.include_router(binary_router.router)  # legacy 301 -> /Bundle/{id}
+    app.include_router(source_link_router.router)  # /{Type}/{id}/$source back-link
     app.include_router(resource_router.router)
     app.include_router(docsubmit_router.router)
     app.include_router(discovery_router.router)  # /register-client + /spec/*

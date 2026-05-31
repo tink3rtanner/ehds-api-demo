@@ -28,8 +28,10 @@ _DATA_DIR.mkdir(parents=True, exist_ok=True)
 # import lazily inside this block so the scripts.seed import doesn't trip
 # on env vars that haven't been set yet
 import sys as _sys
+
 _sys.path.insert(0, str(REPO_ROOT))
 from scripts.seed import seed as _seed  # noqa: E402
+
 _seed(_DATA_DIR, clean=True)
 
 # generate test client key (RSA) ONCE per session
