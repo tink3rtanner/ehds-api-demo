@@ -1,0 +1,11 @@
+[Unit]
+Description=EHDS CPU runaway watchdog (detection-only; logs to journal)
+Documentation=file:/srv/ehds-api/docs/runbook.md
+
+[Service]
+Type=oneshot
+Nice=10
+IOSchedulingClass=idle
+ExecStart=/srv/ehds-api/deploy/cpu-watchdog.sh
+# To enable auto-kill of flagged runaways, drop in an override setting:
+#   Environment=EHDS_WATCHDOG_KILL=1
