@@ -1,19 +1,14 @@
 {
-  "category": [
+  "author": [
     {
-      "coding": [
-        {
-          "code": "patient-summary",
-          "display": "Patient Summary",
-          "system": "http://hl7.eu/fhir/ig/eu-health-data-api/CodeSystem/eehrxf-document-priority-category"
-        }
-      ]
+      "reference": "Practitioner/5179834d-4066-5f95-9598-17e49b655a6b"
     }
   ],
   "content": [
     {
       "attachment": {
         "contentType": "application/fhir+json",
+        "creation": "2024-04-14T08:00:00+02:00",
         "url": "Bundle/86a23578-e36a-5b73-8fbf-b3144e60a9b7"
       },
       "format": {
@@ -22,15 +17,43 @@
       }
     }
   ],
+  "context": {
+    "encounter": [
+      {
+        "reference": "Encounter/739c5a06-5da3-56a5-ac70-da7a331351e1"
+      }
+    ],
+    "period": {
+      "end": "2024-04-12T16:00:00+02:00",
+      "start": "2024-04-10T09:00:00+02:00"
+    },
+    "related": [
+      {
+        "reference": "Encounter/739c5a06-5da3-56a5-ac70-da7a331351e1"
+      }
+    ]
+  },
   "date": "2024-04-15T10:00:00+02:00",
-  "description": "Patient Summary for Lucas Dubois",
+  "description": "Patient summary Document for Lucas Dubois",
   "id": "4ade5f4c-23a8-50a5-af4b-af64eb8091c9",
   "meta": {
+    "lastUpdated": "2024-04-15T10:00:00+02:00",
     "profile": [
-      "http://hl7.eu/fhir/ig/eu-health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
+      "http://hl7.eu/fhir/health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
     ]
   },
   "resourceType": "DocumentReference",
+  "securityLabel": [
+    {
+      "coding": [
+        {
+          "code": "N",
+          "display": "normal",
+          "system": "http://terminology.hl7.org/CodeSystem/v3-Confidentiality"
+        }
+      ]
+    }
+  ],
   "status": "current",
   "subject": {
     "reference": "Patient/bb60d799-64a9-5eb4-b57f-ee3e35c305ef"

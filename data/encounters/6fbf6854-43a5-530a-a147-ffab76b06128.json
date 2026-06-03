@@ -15,8 +15,28 @@
     }
   ],
   "resourceType": "Encounter",
+  "serviceType": {
+    "coding": [
+      {
+        "code": "394802001",
+        "display": "General medicine",
+        "system": "http://snomed.info/sct"
+      }
+    ]
+  },
   "status": "finished",
   "subject": {
     "reference": "Patient/77b1da4d-6d76-5a21-ac84-5984e9465ff8"
-  }
+  },
+  "type": [
+    {
+      "coding": [
+        {
+          "code": "32485007",
+          "display": "Hospital admission",
+          "system": "http://snomed.info/sct"
+        }
+      ]
+    }
+  ]
 }

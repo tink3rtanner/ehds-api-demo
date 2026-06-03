@@ -151,6 +151,47 @@ EHDS-shaped but not IPS-profiled.
 **Why**: connectathon scope. Adding strict IPS profile conformance is
 tracked separately.
 
+## 8. `DocumentReference.category` carries the LOINC document class, not the priority category
+
+Aligned with euridice-org `eu-health-data-api` PR #88 (DocumentReference
+`.type` / `.category` — MHD / base FHIR alignment), 2026-06.
+
+**We do**: seeded DocumentReferences put the coarse **LOINC document-class**
+code on the wire in `.category` — Laboratory `26436-6`, Imaging `18748-4`,
+Discharge `18842-5` — and **omit `.category` entirely** for Patient Summary and
+ePrescription (a summary/prescription is a single fixed `.type`, not a coarse
+class to filter on). `.type` keeps the precise per-category LOINC document type
+and inherits the base-FHIR binding (no EU-specific value-set constraint).
+
+**Spec previously said** (and our old seed did): `.category` carried an
+EHDS *priority-category* CodeSystem code (`patient-summary`, `laboratory-report`,
+…). PR #88 demotes that CodeSystem to a **ConceptMap source** — it is correlated
+to the class codes via `EehrxfMhdDocumentReferenceCM` but is **off the wire**.
+
+**Implication**: `GET /DocumentReference?category=laboratory-report` no longer
+matches; query the class code (`category=26436-6`). The priority-category slugs
+survive only as internal compiler keys, never as emitted codings.
+
+## 9. XDS context params (`setting`/`facility`/`event`/`author.*`) are chained, not stored
+
+The MHD ITI-67 search params that became SHALL in PR #87 and describe clinical
+*context* are resolved by **chaining through the document's reference graph** to
+the referenced `Encounter` / `Practitioner`, rather than being denormalised onto
+`DocumentReference.context.*`. Full design + the param→element map in
+`docs/document-search-chaining.md`.
+
+**Spec says**: these are searchable parameters on DocumentReference; it does not
+mandate *where* the server sources the values from — XDS registries traditionally
+copy them onto the document entry.
+
+**We do**: read them live off the Encounter/Practitioner the bundle was broken
+open into, so the metadata can't drift from the resources it describes. The
+specific mapping (`setting`→`Encounter.serviceType`, `facility`→`Encounter.class`,
+`event`→`Encounter.type`) is a documented local decision.
+
+**Why**: we already naturalize and store the constituent resources with the
+reference graph intact, so a single source of truth beats a denormalised copy.
+
 ## Adding to this list
 
 If you make a change that intentionally deviates from a referenced

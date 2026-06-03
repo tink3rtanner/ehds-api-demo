@@ -1,11 +1,16 @@
 {
+  "author": [
+    {
+      "reference": "Practitioner/5bf1874d-1d78-544f-9cb1-5890529ee61c"
+    }
+  ],
   "category": [
     {
       "coding": [
         {
-          "code": "laboratory-report",
-          "display": "Laboratory Report",
-          "system": "http://hl7.eu/fhir/ig/eu-health-data-api/CodeSystem/eehrxf-document-priority-category"
+          "code": "26436-6",
+          "display": "Laboratory Studies (set)",
+          "system": "http://loinc.org"
         }
       ]
     }
@@ -14,6 +19,7 @@
     {
       "attachment": {
         "contentType": "application/fhir+json",
+        "creation": "2024-04-14T08:00:00+02:00",
         "url": "Bundle/c3560e8f-0bcd-52b1-9d14-cbd7bc535010"
       },
       "format": {
@@ -22,15 +28,43 @@
       }
     }
   ],
+  "context": {
+    "encounter": [
+      {
+        "reference": "Encounter/4e50696a-ac07-59a8-8778-dcff5b00eaad"
+      }
+    ],
+    "period": {
+      "end": "2024-04-12T16:00:00+02:00",
+      "start": "2024-04-10T09:00:00+02:00"
+    },
+    "related": [
+      {
+        "reference": "Encounter/4e50696a-ac07-59a8-8778-dcff5b00eaad"
+      }
+    ]
+  },
   "date": "2024-04-15T10:00:00+02:00",
-  "description": "Laboratory Report for Emma Jansen",
+  "description": "Laboratory report for Emma Jansen",
   "id": "ae7c8e70-3077-5dc1-b02c-800a4e2de7c0",
   "meta": {
+    "lastUpdated": "2024-04-15T10:00:00+02:00",
     "profile": [
-      "http://hl7.eu/fhir/ig/eu-health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
+      "http://hl7.eu/fhir/health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
     ]
   },
   "resourceType": "DocumentReference",
+  "securityLabel": [
+    {
+      "coding": [
+        {
+          "code": "N",
+          "display": "normal",
+          "system": "http://terminology.hl7.org/CodeSystem/v3-Confidentiality"
+        }
+      ]
+    }
+  ],
   "status": "current",
   "subject": {
     "reference": "Patient/d0a3a011-53d6-5fe9-b5d6-03a597b9deac"

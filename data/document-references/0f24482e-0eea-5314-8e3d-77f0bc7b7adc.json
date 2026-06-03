@@ -1,11 +1,16 @@
 {
+  "author": [
+    {
+      "reference": "Practitioner/b7d2fbc4-44ca-578f-9a27-64579f6e130b"
+    }
+  ],
   "category": [
     {
       "coding": [
         {
-          "code": "imaging-report",
-          "display": "Medical Imaging",
-          "system": "http://hl7.eu/fhir/ig/eu-health-data-api/CodeSystem/eehrxf-document-priority-category"
+          "code": "18748-4",
+          "display": "Diagnostic imaging study",
+          "system": "http://loinc.org"
         }
       ]
     }
@@ -14,6 +19,7 @@
     {
       "attachment": {
         "contentType": "application/fhir+json",
+        "creation": "2024-04-14T08:00:00+02:00",
         "url": "Bundle/f75f2cba-5da5-51ca-8d05-aa157e17ace0"
       },
       "format": {
@@ -22,15 +28,43 @@
       }
     }
   ],
+  "context": {
+    "encounter": [
+      {
+        "reference": "Encounter/29a4a08a-b6f0-527f-af0a-3074f3711142"
+      }
+    ],
+    "period": {
+      "end": "2024-04-12T16:00:00+02:00",
+      "start": "2024-04-10T09:00:00+02:00"
+    },
+    "related": [
+      {
+        "reference": "Encounter/29a4a08a-b6f0-527f-af0a-3074f3711142"
+      }
+    ]
+  },
   "date": "2024-04-15T10:00:00+02:00",
-  "description": "Medical Imaging for Hans Schmidt",
+  "description": "Diagnostic imaging study for Hans Schmidt",
   "id": "0f24482e-0eea-5314-8e3d-77f0bc7b7adc",
   "meta": {
+    "lastUpdated": "2024-04-15T10:00:00+02:00",
     "profile": [
-      "http://hl7.eu/fhir/ig/eu-health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
+      "http://hl7.eu/fhir/health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
     ]
   },
   "resourceType": "DocumentReference",
+  "securityLabel": [
+    {
+      "coding": [
+        {
+          "code": "N",
+          "display": "normal",
+          "system": "http://terminology.hl7.org/CodeSystem/v3-Confidentiality"
+        }
+      ]
+    }
+  ],
   "status": "current",
   "subject": {
     "reference": "Patient/341dafb4-0ae4-5fe4-84c3-61c9ac871ebb"

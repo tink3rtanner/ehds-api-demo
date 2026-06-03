@@ -1,19 +1,14 @@
 {
-  "category": [
+  "author": [
     {
-      "coding": [
-        {
-          "code": "prescription",
-          "display": "ePrescription",
-          "system": "http://hl7.eu/fhir/ig/eu-health-data-api/CodeSystem/eehrxf-document-priority-category"
-        }
-      ]
+      "reference": "Practitioner/baf80266-57d9-53e4-89a3-0b83cc51a672"
     }
   ],
   "content": [
     {
       "attachment": {
         "contentType": "application/fhir+json",
+        "creation": "2024-04-14T08:00:00+02:00",
         "url": "Bundle/439b7461-dbe9-5715-bc53-604234fa9e1b"
       },
       "format": {
@@ -22,15 +17,43 @@
       }
     }
   ],
+  "context": {
+    "encounter": [
+      {
+        "reference": "Encounter/d0a5b2aa-e115-5de7-af59-11e7f31e66f5"
+      }
+    ],
+    "period": {
+      "end": "2024-04-12T16:00:00+02:00",
+      "start": "2024-04-10T09:00:00+02:00"
+    },
+    "related": [
+      {
+        "reference": "Encounter/d0a5b2aa-e115-5de7-af59-11e7f31e66f5"
+      }
+    ]
+  },
   "date": "2024-04-15T10:00:00+02:00",
-  "description": "ePrescription for Sof\u00eda Garc\u00eda",
+  "description": "Prescription for medication for Sof\u00eda Garc\u00eda",
   "id": "36c8f83e-4a6f-505b-b12f-c3e08220cbda",
   "meta": {
+    "lastUpdated": "2024-04-15T10:00:00+02:00",
     "profile": [
-      "http://hl7.eu/fhir/ig/eu-health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
+      "http://hl7.eu/fhir/health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
     ]
   },
   "resourceType": "DocumentReference",
+  "securityLabel": [
+    {
+      "coding": [
+        {
+          "code": "N",
+          "display": "normal",
+          "system": "http://terminology.hl7.org/CodeSystem/v3-Confidentiality"
+        }
+      ]
+    }
+  ],
   "status": "current",
   "subject": {
     "reference": "Patient/fc282042-de09-5096-b1d0-30458f7deae7"

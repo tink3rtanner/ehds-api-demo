@@ -1,19 +1,14 @@
 {
-  "category": [
+  "author": [
     {
-      "coding": [
-        {
-          "code": "patient-summary",
-          "display": "Patient Summary",
-          "system": "http://hl7.eu/fhir/ig/eu-health-data-api/CodeSystem/eehrxf-document-priority-category"
-        }
-      ]
+      "reference": "Practitioner/9011903c-e948-5e36-93ba-a35d041e3ed1"
     }
   ],
   "content": [
     {
       "attachment": {
         "contentType": "application/fhir+json",
+        "creation": "2024-04-14T08:00:00+02:00",
         "url": "Bundle/8e4a761f-3abc-59d8-8ef0-01b952fce30d"
       },
       "format": {
@@ -22,15 +17,43 @@
       }
     }
   ],
+  "context": {
+    "encounter": [
+      {
+        "reference": "Encounter/973b14f6-614e-5036-9768-45ece585d130"
+      }
+    ],
+    "period": {
+      "end": "2024-04-12T16:00:00+02:00",
+      "start": "2024-04-10T09:00:00+02:00"
+    },
+    "related": [
+      {
+        "reference": "Encounter/973b14f6-614e-5036-9768-45ece585d130"
+      }
+    ]
+  },
   "date": "2024-04-15T10:00:00+02:00",
-  "description": "Patient Summary for Astrid Lindberg",
+  "description": "Patient summary Document for Astrid Lindberg",
   "id": "01cb3bf3-d538-599a-b550-ee0ea371c233",
   "meta": {
+    "lastUpdated": "2024-04-15T10:00:00+02:00",
     "profile": [
-      "http://hl7.eu/fhir/ig/eu-health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
+      "http://hl7.eu/fhir/health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
     ]
   },
   "resourceType": "DocumentReference",
+  "securityLabel": [
+    {
+      "coding": [
+        {
+          "code": "N",
+          "display": "normal",
+          "system": "http://terminology.hl7.org/CodeSystem/v3-Confidentiality"
+        }
+      ]
+    }
+  ],
   "status": "current",
   "subject": {
     "reference": "Patient/ce4be6f8-848e-594f-b0f4-56a74971b854"

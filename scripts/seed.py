@@ -38,9 +38,12 @@ from app.fhir.ids import (
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_DATA_DIR = REPO_ROOT / "data"
 
-EHDS_DOCREF_PROFILE = "http://hl7.eu/fhir/ig/eu-health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
+EHDS_DOCREF_PROFILE = "http://hl7.eu/fhir/health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
 
-# canonical loinc codes for each priority category
+# canonical loinc codes for each priority category — DocumentReference.type
+# (the clinically precise document type). Inherits the MHD Minimal / base FHIR
+# binding (any LOINC document type), per euridice-org PR #88; these are the
+# specific types our compiler emits per category.
 DOC_TYPES = {
     "patient-summary":   {"system": "http://loinc.org", "code": "60591-5", "display": "Patient summary Document"},
     "laboratory-report": {"system": "http://loinc.org", "code": "11502-2", "display": "Laboratory report"},
@@ -49,13 +52,21 @@ DOC_TYPES = {
     "prescription":      {"system": "http://loinc.org", "code": "57833-6", "display": "Prescription for medication"},
 }
 
-CATEGORY_CS = "http://hl7.eu/fhir/ig/eu-health-data-api/CodeSystem/eehrxf-document-priority-category"
-CATEGORY_CODES = {
-    "patient-summary":   {"system": CATEGORY_CS, "code": "patient-summary",   "display": "Patient Summary"},
-    "laboratory-report": {"system": CATEGORY_CS, "code": "laboratory-report", "display": "Laboratory Report"},
-    "discharge-report":  {"system": CATEGORY_CS, "code": "discharge-report",  "display": "Hospital Discharge Report"},
-    "imaging-report":    {"system": CATEGORY_CS, "code": "imaging-report",    "display": "Medical Imaging"},
-    "prescription":      {"system": CATEGORY_CS, "code": "prescription",      "display": "ePrescription"},
+# DocumentReference.category carries the coarse LOINC *document class* code on
+# the wire (the FHIR document-classcodes set), per euridice-org PR #88
+# (DocumentReference .type / .category — MHD / base FHIR alignment). The EHDS
+# regulatory priority categories are policy groupings, correlated to these class
+# codes by the IG's EehrxfMhdDocumentReferenceCM ConceptMap — they are NOT
+# emitted on the wire any more (the priority-category CodeSystem was demoted to
+# a ConceptMap source). Patient Summary and ePrescription have no document-class
+# mapping (a summary/prescription is a single fixed type, not a coarse class to
+# filter on) so they carry no `.category` — identified by `.type` alone.
+DOCREF_CATEGORY_CLASS: dict[str, dict | None] = {
+    "patient-summary":   None,
+    "laboratory-report": {"system": "http://loinc.org", "code": "26436-6", "display": "Laboratory Studies (set)"},
+    "discharge-report":  {"system": "http://loinc.org", "code": "18842-5", "display": "Discharge summary"},
+    "imaging-report":    {"system": "http://loinc.org", "code": "18748-4", "display": "Diagnostic imaging study"},
+    "prescription":      None,
 }
 
 
@@ -346,6 +357,12 @@ def _observation(p: P, idx: int) -> dict:
 
 
 def _encounter(p: P, idx: int) -> dict:
+    # `class` (care-setting type), `serviceType` (clinical specialty / practice
+    # setting) and `type` (kind of clinical act) are the source of truth for the
+    # XDS-era MHD DocumentReference search params facility / setting / event,
+    # which this server resolves by CHAINING DocumentReference.context.encounter
+    # here rather than denormalising the values onto the DocumentReference.
+    # See docs/document-search-chaining.md.
     return {
         "resourceType": "Encounter",
         "id": child_id(p.pid, "Encounter", idx),
@@ -353,6 +370,13 @@ def _encounter(p: P, idx: int) -> dict:
         "class": {"system": "http://terminology.hl7.org/CodeSystem/v3-ActCode",
                   "code": "IMP" if idx == 0 else "AMB",
                   "display": "inpatient encounter" if idx == 0 else "ambulatory"},
+        # serviceType -> MHD `setting` (practice setting / clinical specialty)
+        "serviceType": {"coding": [{"system": "http://snomed.info/sct",
+                                     "code": "394802001", "display": "General medicine"}]},
+        # type -> MHD `event` (main clinical act documented)
+        "type": [{"coding": [{"system": "http://snomed.info/sct",
+                              "code": "32485007" if idx == 0 else "185349003",
+                              "display": "Hospital admission" if idx == 0 else "Encounter for check up"}]}],
         "subject": {"reference": _patient_ref(p.pid)},
         "period": {"start": "2024-04-10T09:00:00+02:00", "end": "2024-04-12T16:00:00+02:00"},
         "reasonCode": [{"text": "Post-operative recovery" if idx == 0 else "Routine check-up"}],
@@ -430,25 +454,54 @@ def _imaging_study(p: P) -> dict:
 
 def _docref(p: P, category: str) -> dict:
     type_coding = DOC_TYPES[category]
-    cat_coding = CATEGORY_CODES[category]
-    return {
+    cat_coding = DOCREF_CATEGORY_CLASS[category]
+    # The DocumentReference is a thin spine: the clinical context that backs the
+    # MHD setting/facility/event/author search params is NOT copied onto it.
+    # Instead it references the real Practitioner (author) and Encounter
+    # (context.encounter) — encounter 0 is the inpatient stay — and ITI-67 search
+    # resolves those params by chaining through these refs. See docref.py and
+    # docs/document-search-chaining.md.
+    pract_ref = f"Practitioner/{practitioner_id(p.pid)}"
+    enc_ref = f"Encounter/{child_id(p.pid, 'Encounter', 0)}"
+    dr = {
         "resourceType": "DocumentReference",
+        # meta.lastUpdated backs the MHD `_lastupdated` search param.
+        "meta": {"profile": [EHDS_DOCREF_PROFILE], "lastUpdated": "2024-04-15T10:00:00+02:00"},
         "id": docref_id(p.pid, category),
-        "meta": {"profile": [EHDS_DOCREF_PROFILE]},
         "status": "current",
         "type": {"coding": [type_coding]},
-        "category": [{"coding": [cat_coding]}],
         "subject": {"reference": _patient_ref(p.pid)},
+        # date = metadata indexing time (backs `date`); distinct from
+        # content.attachment.creation = clinical document creation (backs `creation`).
         "date": "2024-04-15T10:00:00+02:00",
-        "description": f"{cat_coding['display']} for {p.given[0]} {p.family}",
+        "author": [{"reference": pract_ref}],
+        # securityLabel backs the MHD `security-label` search param.
+        "securityLabel": [{"coding": [{
+            "system": "http://terminology.hl7.org/CodeSystem/v3-Confidentiality",
+            "code": "N", "display": "normal"}]}],
+        "context": {
+            "encounter": [{"reference": enc_ref}],
+            # context.period backs `period` directly; the chained Encounter.period
+            # backs it too (either resolves the same window).
+            "period": {"start": "2024-04-10T09:00:00+02:00", "end": "2024-04-12T16:00:00+02:00"},
+            # context.related backs the MHD `related` search param.
+            "related": [{"reference": enc_ref}],
+        },
+        "description": f"{type_coding['display']} for {p.given[0]} {p.family}",
         "content": [{
             "attachment": {
                 "contentType": "application/fhir+json",
                 "url": f"Bundle/{bundle_id(p.pid, category)}",
+                "creation": "2024-04-14T08:00:00+02:00",
             },
             "format": {"system": "http://ihe.net/fhir/ValueSet/IHE.FormatCode.codesystem", "code": "urn:ihe:iti:xds-sd:text:2008"},
         }],
     }
+    # `.category` carries the coarse LOINC document-class code (PR #88); Patient
+    # Summary and ePrescription have no class mapping, so they carry none.
+    if cat_coding is not None:
+        dr["category"] = [{"coding": [cat_coding]}]
+    return dr
 
 
 def _ensure_dirs(base: Path) -> None:

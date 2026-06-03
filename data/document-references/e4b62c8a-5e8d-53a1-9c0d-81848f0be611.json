@@ -1,11 +1,16 @@
 {
+  "author": [
+    {
+      "reference": "Practitioner/fcb50ed0-9748-56c3-94f8-d4221239a9d6"
+    }
+  ],
   "category": [
     {
       "coding": [
         {
-          "code": "discharge-report",
-          "display": "Hospital Discharge Report",
-          "system": "http://hl7.eu/fhir/ig/eu-health-data-api/CodeSystem/eehrxf-document-priority-category"
+          "code": "18842-5",
+          "display": "Discharge summary",
+          "system": "http://loinc.org"
         }
       ]
     }
@@ -14,6 +19,7 @@
     {
       "attachment": {
         "contentType": "application/fhir+json",
+        "creation": "2024-04-14T08:00:00+02:00",
         "url": "Bundle/a71c88dc-0b80-5939-953c-7f5bac37582f"
       },
       "format": {
@@ -22,15 +28,43 @@
       }
     }
   ],
+  "context": {
+    "encounter": [
+      {
+        "reference": "Encounter/6fbf6854-43a5-530a-a147-ffab76b06128"
+      }
+    ],
+    "period": {
+      "end": "2024-04-12T16:00:00+02:00",
+      "start": "2024-04-10T09:00:00+02:00"
+    },
+    "related": [
+      {
+        "reference": "Encounter/6fbf6854-43a5-530a-a147-ffab76b06128"
+      }
+    ]
+  },
   "date": "2024-04-15T10:00:00+02:00",
-  "description": "Hospital Discharge Report for Mikko Virtanen",
+  "description": "Discharge summary for Mikko Virtanen",
   "id": "e4b62c8a-5e8d-53a1-9c0d-81848f0be611",
   "meta": {
+    "lastUpdated": "2024-04-15T10:00:00+02:00",
     "profile": [
-      "http://hl7.eu/fhir/ig/eu-health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
+      "http://hl7.eu/fhir/health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
     ]
   },
   "resourceType": "DocumentReference",
+  "securityLabel": [
+    {
+      "coding": [
+        {
+          "code": "N",
+          "display": "normal",
+          "system": "http://terminology.hl7.org/CodeSystem/v3-Confidentiality"
+        }
+      ]
+    }
+  ],
   "status": "current",
   "subject": {
     "reference": "Patient/77b1da4d-6d76-5a21-ac84-5984e9465ff8"

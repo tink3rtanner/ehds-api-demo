@@ -231,6 +231,81 @@ def _match_token(res: dict[str, Any], field: str, value: str) -> bool:
     return False
 
 
+# ---------- chained-search building blocks ----------
+# These generalise the one-off `patient.identifier` chaining above so any MHD
+# ITI-67 search parameter that is really a property of a *referenced* clinical
+# resource (author -> Practitioner, context.encounter -> Encounter) can be
+# resolved by walking the reference graph at query time, rather than
+# denormalising the value onto the DocumentReference. See
+# docs/document-search-chaining.md.
+
+def resolve_reference(ref: str | None) -> dict[str, Any] | None:
+    """Load the target of a literal ``Type/id`` reference from the store.
+
+    Tolerates absolute references (``http://host/Type/id``) and bare relative
+    ones (``Type/id``) by taking the trailing two path segments. Returns None
+    when the reference is unparseable, points at an unsupported type, or the
+    target is not held locally.
+    """
+    if not isinstance(ref, str) or "/" not in ref:
+        return None
+    parts = ref.rstrip("/").split("/")
+    rtype, rid = parts[-2], parts[-1]
+    if rtype not in _TYPE_TO_DIR:
+        return None
+    return read(rtype, rid)
+
+
+def token_in(value: Any, wanted: str) -> bool:
+    """True if a FHIR token search value matches anywhere in ``value``.
+
+    ``value`` may be a Coding, a CodeableConcept, a code string, or a list of
+    any of those. ``wanted`` is ``code`` or ``system|code`` — the system half is
+    accepted but only the code is matched (the demo never collides on code).
+    """
+    target = wanted.split("|")[-1]
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return value == target
+    for c in _walk(value):
+        if isinstance(c, dict) and (c.get("code") == target or c.get("value") == target):
+            return True
+    return False
+
+
+_DATE_PREFIXES = ("eq", "ne", "gt", "lt", "ge", "le", "sa", "eb", "ap")
+
+
+def match_date(query: str, target: str | None) -> bool:
+    """FHIR ``date`` parameter match against an ISO-8601 instant/date/dateTime.
+
+    Honours the comparison prefixes (eq/ne/gt/lt/ge/le/sa/eb/ap). Comparison is
+    lexical on the ISO string, which is order-correct for the consistently
+    formatted timestamps this server emits. ``eq``/``ne`` compare on the shared
+    prefix so a day-granularity query (``2024-04-15``) matches a dateTime that
+    starts with it. ``ap`` is treated as ``eq`` (approximate ≈ same instant).
+    """
+    if not target or not query:
+        return False
+    prefix, val = "eq", query
+    if len(query) >= 2 and query[:2] in _DATE_PREFIXES:
+        prefix, val = query[:2], query[2:]
+    if prefix in ("eq", "ap"):
+        return target.startswith(val)
+    if prefix == "ne":
+        return not target.startswith(val)
+    if prefix in ("gt", "sa"):
+        return target > val
+    if prefix in ("lt", "eb"):
+        return target < val
+    if prefix == "ge":
+        return target >= val
+    if prefix == "le":
+        return target <= val
+    return target.startswith(val)
+
+
 def search(rtype: str, params: dict[str, list[str]]) -> list[dict[str, Any]]:
     """tiny generic search; resource-specific routers may layer additional logic."""
     results = list(list_all(rtype))

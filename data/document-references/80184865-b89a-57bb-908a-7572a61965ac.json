@@ -1,19 +1,14 @@
 {
-  "category": [
+  "author": [
     {
-      "coding": [
-        {
-          "code": "patient-summary",
-          "display": "Patient Summary",
-          "system": "http://hl7.eu/fhir/ig/eu-health-data-api/CodeSystem/eehrxf-document-priority-category"
-        }
-      ]
+      "reference": "Practitioner/a831227b-d992-5422-a609-3901ca6ae594"
     }
   ],
   "content": [
     {
       "attachment": {
         "contentType": "application/fhir+json",
+        "creation": "2024-04-14T08:00:00+02:00",
         "url": "Bundle/f67ff437-7626-5607-b1e7-8c3a60d7b234"
       },
       "format": {
@@ -22,15 +17,43 @@
       }
     }
   ],
+  "context": {
+    "encounter": [
+      {
+        "reference": "Encounter/2138bb5a-40a3-514d-a484-1beb5b10d0e0"
+      }
+    ],
+    "period": {
+      "end": "2024-04-12T16:00:00+02:00",
+      "start": "2024-04-10T09:00:00+02:00"
+    },
+    "related": [
+      {
+        "reference": "Encounter/2138bb5a-40a3-514d-a484-1beb5b10d0e0"
+      }
+    ]
+  },
   "date": "2024-04-15T10:00:00+02:00",
-  "description": "Patient Summary for Jo\u00e3o Silva",
+  "description": "Patient summary Document for Jo\u00e3o Silva",
   "id": "80184865-b89a-57bb-908a-7572a61965ac",
   "meta": {
+    "lastUpdated": "2024-04-15T10:00:00+02:00",
     "profile": [
-      "http://hl7.eu/fhir/ig/eu-health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
+      "http://hl7.eu/fhir/health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
     ]
   },
   "resourceType": "DocumentReference",
+  "securityLabel": [
+    {
+      "coding": [
+        {
+          "code": "N",
+          "display": "normal",
+          "system": "http://terminology.hl7.org/CodeSystem/v3-Confidentiality"
+        }
+      ]
+    }
+  ],
   "status": "current",
   "subject": {
     "reference": "Patient/35b51960-8d92-5aa1-8b7f-61523c35a272"

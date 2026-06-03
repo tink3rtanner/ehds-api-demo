@@ -1,11 +1,16 @@
 {
+  "author": [
+    {
+      "reference": "Practitioner/fcb50ed0-9748-56c3-94f8-d4221239a9d6"
+    }
+  ],
   "category": [
     {
       "coding": [
         {
-          "code": "laboratory-report",
-          "display": "Laboratory Report",
-          "system": "http://hl7.eu/fhir/ig/eu-health-data-api/CodeSystem/eehrxf-document-priority-category"
+          "code": "26436-6",
+          "display": "Laboratory Studies (set)",
+          "system": "http://loinc.org"
         }
       ]
     }
@@ -14,6 +19,7 @@
     {
       "attachment": {
         "contentType": "application/fhir+json",
+        "creation": "2024-04-14T08:00:00+02:00",
         "url": "Bundle/53a5cc95-e5c2-5d77-a978-6a022d12cb66"
       },
       "format": {
@@ -22,15 +28,43 @@
       }
     }
   ],
+  "context": {
+    "encounter": [
+      {
+        "reference": "Encounter/6fbf6854-43a5-530a-a147-ffab76b06128"
+      }
+    ],
+    "period": {
+      "end": "2024-04-12T16:00:00+02:00",
+      "start": "2024-04-10T09:00:00+02:00"
+    },
+    "related": [
+      {
+        "reference": "Encounter/6fbf6854-43a5-530a-a147-ffab76b06128"
+      }
+    ]
+  },
   "date": "2024-04-15T10:00:00+02:00",
-  "description": "Laboratory Report for Mikko Virtanen",
+  "description": "Laboratory report for Mikko Virtanen",
   "id": "91da6259-d10c-5595-aff7-12ae514ecefe",
   "meta": {
+    "lastUpdated": "2024-04-15T10:00:00+02:00",
     "profile": [
-      "http://hl7.eu/fhir/ig/eu-health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
+      "http://hl7.eu/fhir/health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
     ]
   },
   "resourceType": "DocumentReference",
+  "securityLabel": [
+    {
+      "coding": [
+        {
+          "code": "N",
+          "display": "normal",
+          "system": "http://terminology.hl7.org/CodeSystem/v3-Confidentiality"
+        }
+      ]
+    }
+  ],
   "status": "current",
   "subject": {
     "reference": "Patient/77b1da4d-6d76-5a21-ac84-5984e9465ff8"

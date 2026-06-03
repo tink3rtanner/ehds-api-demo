@@ -1,19 +1,14 @@
 {
-  "category": [
+  "author": [
     {
-      "coding": [
-        {
-          "code": "patient-summary",
-          "display": "Patient Summary",
-          "system": "http://hl7.eu/fhir/ig/eu-health-data-api/CodeSystem/eehrxf-document-priority-category"
-        }
-      ]
+      "reference": "Practitioner/e8b79c7a-d079-50d2-8690-809b16701c2c"
     }
   ],
   "content": [
     {
       "attachment": {
         "contentType": "application/fhir+json",
+        "creation": "2024-04-14T08:00:00+02:00",
         "url": "Bundle/e00af379-422c-53c2-804e-09d170360cc6"
       },
       "format": {
@@ -22,15 +17,43 @@
       }
     }
   ],
+  "context": {
+    "encounter": [
+      {
+        "reference": "Encounter/6d402b14-1436-5b27-9190-ea1ee64d42c5"
+      }
+    ],
+    "period": {
+      "end": "2024-04-12T16:00:00+02:00",
+      "start": "2024-04-10T09:00:00+02:00"
+    },
+    "related": [
+      {
+        "reference": "Encounter/6d402b14-1436-5b27-9190-ea1ee64d42c5"
+      }
+    ]
+  },
   "date": "2024-04-15T10:00:00+02:00",
-  "description": "Patient Summary for Anna M\u00fcller",
+  "description": "Patient summary Document for Anna M\u00fcller",
   "id": "8c90add5-db25-5f43-ad72-076fa3642e44",
   "meta": {
+    "lastUpdated": "2024-04-15T10:00:00+02:00",
     "profile": [
-      "http://hl7.eu/fhir/ig/eu-health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
+      "http://hl7.eu/fhir/health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
     ]
   },
   "resourceType": "DocumentReference",
+  "securityLabel": [
+    {
+      "coding": [
+        {
+          "code": "N",
+          "display": "normal",
+          "system": "http://terminology.hl7.org/CodeSystem/v3-Confidentiality"
+        }
+      ]
+    }
+  ],
   "status": "current",
   "subject": {
     "reference": "Patient/08e3cb00-6b3e-5d00-bb40-04b7a2114011"

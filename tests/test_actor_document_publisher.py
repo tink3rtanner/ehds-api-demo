@@ -22,15 +22,19 @@ SEED_DOCREF_IDS = {docref_id("p-001", c) for c in CATEGORIES}
 
 @pytest.mark.parametrize("category", CATEGORIES)
 async def test_publisher_emits_docref_with_eu_profile(client, auth_headers, category):
+    # select each category's seed DocumentReference by its LOINC document `type`
+    # (a unique per-category code) — `.category` is no longer the priority slug
+    # and is absent entirely for patient-summary / prescription (PR #88).
     r = await client.get("/DocumentReference", headers=auth_headers,
-                         params={"patient": "p-001", "category": category})
+                         params={"patient": "p-001", "type": CATEGORY_TO_DOC_TYPE[category]["code"]})
     assert r.status_code == 200
     body = r.json()
     seed = [e for e in body["entry"] if e["resource"]["id"] in SEED_DOCREF_IDS]
     assert len(seed) == 1
     docref = seed[0]["resource"]
     profiles = docref.get("meta", {}).get("profile", [])
-    assert any("eu-health-data-api" in p for p in profiles), profiles
+    # canonical EHDS DocumentReference profile (hl7.eu/fhir/health-data-api/...)
+    assert any("health-data-api" in p for p in profiles), profiles
 
 
 @pytest.mark.parametrize("category", CATEGORIES)

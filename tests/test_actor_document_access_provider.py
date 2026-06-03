@@ -44,8 +44,10 @@ async def test_iti67_search_by_type(client, auth_headers):
 
 async def test_iti68_retrieve_compiled_bundle(client, auth_headers):
     # 1. find a docref
+    # category search now filters on the LOINC document-class code (PR #88);
+    # 18748-4 = Diagnostic imaging study (the imaging document class).
     listing = (await client.get("/DocumentReference", headers=auth_headers,
-                                params={"patient": "p-001", "category": "imaging-report"})).json()
+                                params={"patient": "p-001", "category": "18748-4"})).json()
     docref = listing["entry"][0]["resource"]
     url = docref["content"][0]["attachment"]["url"]
     # 2. retrieve the referenced binary

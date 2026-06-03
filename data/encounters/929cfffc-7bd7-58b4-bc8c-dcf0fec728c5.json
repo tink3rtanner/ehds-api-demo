@@ -15,8 +15,28 @@
     }
   ],
   "resourceType": "Encounter",
+  "serviceType": {
+    "coding": [
+      {
+        "code": "394802001",
+        "display": "General medicine",
+        "system": "http://snomed.info/sct"
+      }
+    ]
+  },
   "status": "finished",
   "subject": {
     "reference": "Patient/341dafb4-0ae4-5fe4-84c3-61c9ac871ebb"
-  }
+  },
+  "type": [
+    {
+      "coding": [
+        {
+          "code": "185349003",
+          "display": "Encounter for check up",
+          "system": "http://snomed.info/sct"
+        }
+      ]
+    }
+  ]
 }

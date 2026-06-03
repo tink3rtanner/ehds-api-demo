@@ -1,11 +1,16 @@
 {
+  "author": [
+    {
+      "reference": "Practitioner/5179834d-4066-5f95-9598-17e49b655a6b"
+    }
+  ],
   "category": [
     {
       "coding": [
         {
-          "code": "laboratory-report",
-          "display": "Laboratory Report",
-          "system": "http://hl7.eu/fhir/ig/eu-health-data-api/CodeSystem/eehrxf-document-priority-category"
+          "code": "26436-6",
+          "display": "Laboratory Studies (set)",
+          "system": "http://loinc.org"
         }
       ]
     }
@@ -14,6 +19,7 @@
     {
       "attachment": {
         "contentType": "application/fhir+json",
+        "creation": "2024-04-14T08:00:00+02:00",
         "url": "Bundle/0fc58b26-cd9a-54ba-a699-070fca0e5421"
       },
       "format": {
@@ -22,15 +28,43 @@
       }
     }
   ],
+  "context": {
+    "encounter": [
+      {
+        "reference": "Encounter/739c5a06-5da3-56a5-ac70-da7a331351e1"
+      }
+    ],
+    "period": {
+      "end": "2024-04-12T16:00:00+02:00",
+      "start": "2024-04-10T09:00:00+02:00"
+    },
+    "related": [
+      {
+        "reference": "Encounter/739c5a06-5da3-56a5-ac70-da7a331351e1"
+      }
+    ]
+  },
   "date": "2024-04-15T10:00:00+02:00",
-  "description": "Laboratory Report for Lucas Dubois",
+  "description": "Laboratory report for Lucas Dubois",
   "id": "7c214599-0863-5ced-ade5-b742bc096b66",
   "meta": {
+    "lastUpdated": "2024-04-15T10:00:00+02:00",
     "profile": [
-      "http://hl7.eu/fhir/ig/eu-health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
+      "http://hl7.eu/fhir/health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
     ]
   },
   "resourceType": "DocumentReference",
+  "securityLabel": [
+    {
+      "coding": [
+        {
+          "code": "N",
+          "display": "normal",
+          "system": "http://terminology.hl7.org/CodeSystem/v3-Confidentiality"
+        }
+      ]
+    }
+  ],
   "status": "current",
   "subject": {
     "reference": "Patient/bb60d799-64a9-5eb4-b57f-ee3e35c305ef"

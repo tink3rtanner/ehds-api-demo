@@ -1,11 +1,16 @@
 {
+  "author": [
+    {
+      "reference": "Practitioner/b7d2fbc4-44ca-578f-9a27-64579f6e130b"
+    }
+  ],
   "category": [
     {
       "coding": [
         {
-          "code": "discharge-report",
-          "display": "Hospital Discharge Report",
-          "system": "http://hl7.eu/fhir/ig/eu-health-data-api/CodeSystem/eehrxf-document-priority-category"
+          "code": "18842-5",
+          "display": "Discharge summary",
+          "system": "http://loinc.org"
         }
       ]
     }
@@ -14,6 +19,7 @@
     {
       "attachment": {
         "contentType": "application/fhir+json",
+        "creation": "2024-04-14T08:00:00+02:00",
         "url": "Bundle/d5f598c9-4183-53a0-a96a-089c7c9e4d46"
       },
       "format": {
@@ -22,15 +28,43 @@
       }
     }
   ],
+  "context": {
+    "encounter": [
+      {
+        "reference": "Encounter/29a4a08a-b6f0-527f-af0a-3074f3711142"
+      }
+    ],
+    "period": {
+      "end": "2024-04-12T16:00:00+02:00",
+      "start": "2024-04-10T09:00:00+02:00"
+    },
+    "related": [
+      {
+        "reference": "Encounter/29a4a08a-b6f0-527f-af0a-3074f3711142"
+      }
+    ]
+  },
   "date": "2024-04-15T10:00:00+02:00",
-  "description": "Hospital Discharge Report for Hans Schmidt",
+  "description": "Discharge summary for Hans Schmidt",
   "id": "4f068aed-f99e-5525-83e1-d3f4f66f4668",
   "meta": {
+    "lastUpdated": "2024-04-15T10:00:00+02:00",
     "profile": [
-      "http://hl7.eu/fhir/ig/eu-health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
+      "http://hl7.eu/fhir/health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
     ]
   },
   "resourceType": "DocumentReference",
+  "securityLabel": [
+    {
+      "coding": [
+        {
+          "code": "N",
+          "display": "normal",
+          "system": "http://terminology.hl7.org/CodeSystem/v3-Confidentiality"
+        }
+      ]
+    }
+  ],
   "status": "current",
   "subject": {
     "reference": "Patient/341dafb4-0ae4-5fe4-84c3-61c9ac871ebb"

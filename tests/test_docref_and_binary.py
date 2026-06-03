@@ -14,6 +14,10 @@ SEED_DOCREF_IDS = {docref_id(p.pid, c) for p in PANEL for c in CATEGORIES}
 
 
 async def test_docref_per_patient_per_category(client, auth_headers):
+    # one DocumentReference per priority category per patient. `.type` carries
+    # the per-category LOINC document type; `.category` carries the LOINC
+    # document-class code where one is defined (PR #88).
+    type_codes = {t["code"] for t in DOC_TYPES.values()}
     for p in PANEL:
         r = await client.get("/DocumentReference", headers=auth_headers,
                              params={"patient": p.pid})
@@ -21,22 +25,22 @@ async def test_docref_per_patient_per_category(client, auth_headers):
         body = r.json()
         seed_entries = [e for e in body["entry"] if e["resource"]["id"] in SEED_DOCREF_IDS]
         assert len(seed_entries) == len(CATEGORIES), f"{p.pid}: {len(seed_entries)}"
-        cats_seen = set()
-        for e in seed_entries:
-            for cc in e["resource"]["category"]:
-                for c in cc["coding"]:
-                    cats_seen.add(c["code"])
-        assert set(CATEGORIES) <= cats_seen
+        types_seen = {c["code"]
+                      for e in seed_entries
+                      for c in e["resource"]["type"]["coding"]}
+        assert type_codes <= types_seen
 
 
 async def test_docref_filter_by_category(client, auth_headers):
-    # the `patient=` search param accepts either uuid or the slot identifier
+    # category search filters on the LOINC document-class code now (PR #88);
+    # 26436-6 is the Laboratory Studies (set) class. `patient=` accepts the slot.
     r = await client.get("/DocumentReference", headers=auth_headers,
-                         params={"patient": "p-001", "category": "laboratory-report"})
+                         params={"patient": "p-001", "category": "26436-6"})
     assert r.status_code == 200
     body = r.json()
     seed_entries = [e for e in body["entry"] if e["resource"]["id"] in SEED_DOCREF_IDS]
     assert len(seed_entries) == 1
+    assert seed_entries[0]["resource"]["id"] == docref_id("p-001", "laboratory-report")
 
 
 @pytest.mark.parametrize("category", CATEGORIES)

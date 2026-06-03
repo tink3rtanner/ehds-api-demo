@@ -75,9 +75,35 @@ FIRST_CLASS_RESOURCES: dict[str, dict[str, Any]] = {
     "PractitionerRole": {"interactions": ["read", "search-type"], "searchParams": ["_id", "practitioner", "organization"]},
     "Organization": {"interactions": ["read", "search-type"], "searchParams": ["_id", "identifier", "name"]},
     "Composition": {"interactions": ["read", "search-type"], "searchParams": ["_id", "patient", "type"]},
+    # DocumentReference advertises the MHD ITI-67 Document Responder search set
+    # as SHALL (euridice-org PR #87). Params are dict-form so each carries an
+    # explicit FHIR type and a capabilitystatement-expectation. The XDS-era
+    # context params (setting/facility/event) and author.* are implemented by
+    # CHAINING to the referenced Encounter/Practitioner — see
+    # app/routers/docref.py and docs/document-search-chaining.md.
     "DocumentReference": {
         "interactions": ["read", "search-type"],
-        "searchParams": ["_id", "patient", "category", "type", "status", "date"],
+        "searchParams": [
+            {"name": "_id", "type": "token", "expectation": "SHALL"},
+            {"name": "patient", "type": "reference", "expectation": "SHALL"},
+            {"name": "patient.identifier", "type": "token", "expectation": "SHALL"},
+            {"name": "identifier", "type": "token", "expectation": "SHALL"},
+            {"name": "category", "type": "token", "expectation": "SHALL"},
+            {"name": "type", "type": "token", "expectation": "SHALL"},
+            {"name": "status", "type": "token", "expectation": "SHALL"},
+            {"name": "date", "type": "date", "expectation": "SHALL"},
+            {"name": "creation", "type": "date", "expectation": "SHALL"},
+            {"name": "period", "type": "date", "expectation": "SHALL"},
+            {"name": "_lastupdated", "type": "date", "expectation": "SHALL"},
+            {"name": "format", "type": "token", "expectation": "SHALL"},
+            {"name": "security-label", "type": "token", "expectation": "SHALL"},
+            {"name": "related", "type": "reference", "expectation": "SHALL"},
+            {"name": "setting", "type": "token", "expectation": "SHALL"},
+            {"name": "facility", "type": "token", "expectation": "SHALL"},
+            {"name": "event", "type": "token", "expectation": "SHALL"},
+            {"name": "author.given", "type": "string", "expectation": "SHALL"},
+            {"name": "author.family", "type": "string", "expectation": "SHALL"},
+        ],
         "supportedProfile": [EHDS_DOCREF_PROFILE],
     },
     # Binary is kept as a 301 redirect to /Bundle/{id} for legacy URLs; no
@@ -85,6 +111,27 @@ FIRST_CLASS_RESOURCES: dict[str, dict[str, Any]] = {
     # documents) and create (ITI-105 submission).
     "Bundle": {"interactions": ["read", "create"], "searchParams": ["_id"]},
 }
+
+
+_EXPECTATION_URL = "http://hl7.org/fhir/StructureDefinition/capabilitystatement-expectation"
+_TOKEN_PARAMS = {"gender", "status", "clinical-status", "category", "intent", "code"}
+
+
+def _search_param_entry(p: str | dict[str, Any]) -> dict[str, Any]:
+    """Build one CapabilityStatement.rest.resource.searchParam entry.
+
+    Accepts either a bare name (legacy, type inferred) or a dict
+    ``{"name", "type", "expectation"}``. A dict's ``expectation`` is emitted as
+    the capabilitystatement-expectation extension (SHALL/SHOULD/MAY), which is
+    how the MHD Document Responder conformance level is declared (PR #87).
+    """
+    if isinstance(p, dict):
+        out: dict[str, Any] = {"name": p["name"], "type": p.get("type", "string")}
+        if exp := p.get("expectation"):
+            out["extension"] = [{"url": _EXPECTATION_URL, "valueCode": exp}]
+        return out
+    ptype = "token" if "identifier" in p or p in _TOKEN_PARAMS else "string"
+    return {"name": p, "type": ptype}
 
 
 def _resource_entries() -> list[dict[str, Any]]:
@@ -95,10 +142,7 @@ def _resource_entries() -> list[dict[str, Any]]:
             "interaction": [{"code": code} for code in spec["interactions"]],
         }
         if spec.get("searchParams"):
-            entry["searchParam"] = [
-                {"name": p, "type": "token" if "identifier" in p or p in ("gender", "status", "clinical-status", "category", "intent") else "string"}
-                for p in spec["searchParams"]
-            ]
+            entry["searchParam"] = [_search_param_entry(p) for p in spec["searchParams"]]
         if spec.get("operations"):
             entry["operation"] = spec["operations"]
         if spec.get("supportedProfile"):
