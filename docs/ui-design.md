@@ -99,10 +99,11 @@ non-localhost host) step 1 falls back to the viewer token and says so.
   least one validated document.
 * **Validation states**: `pending`, `validated`, `failed` (error count and
   distinct issues), `unavailable` (validator could not answer: jar or packages
-  missing, JVM crash, terminology-server timeout), with retry. The validator
-  talks to a terminology server (`EHDS_VALIDATOR_TX`, default tx.fhir.org);
-  offline runs produce spurious slice errors on IPS/EPS bundles. See
-  `app/fhir/validation_queue.py`.
+  missing, JVM crash, terminology-server timeout), with retry. The validator runs
+  offline by default (`EHDS_VALIDATOR_TX=n/a`); the one offline artefact
+  (slice ambiguity on `Bundle.entry`) is downgraded to a labelled warning and
+  the badge reads "Validated · offline". A terminology server URL gives the
+  full verdict. See `app/fhir/validation_queue.py`.
 * Nothing about the submitter is displayed or collected. "Source" is the host
   of `meta.source` / an absolute `fullUrl`.
 

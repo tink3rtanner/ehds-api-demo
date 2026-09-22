@@ -18,10 +18,17 @@ from app.fhir import validation_queue as vq
 
 @pytest.fixture(autouse=True)
 def _isolated_queue(monkeypatch):
-    """Each test gets a fresh worker + no leftover records."""
+    """Each test gets a fresh worker, no leftover records, and the inbox
+    bundles it wrote are removed again (the coverage tests count the inbox)."""
+    inbox = settings.data_dir / "inbox"
+    inbox.mkdir(parents=True, exist_ok=True)
+    before = {p.name for p in inbox.glob("*.json")}
     vq._reset_for_tests()
     yield
     vq._reset_for_tests()
+    for p in inbox.glob("*.json"):
+        if p.name not in before:
+            p.unlink()
 
 
 def _write_inbox(bundle_id: str, category_code: str = "60591-5") -> dict:
@@ -182,9 +189,9 @@ def test_collapse_issues_folds_repeated_errors():
     assert "[N]" in top["text"]
 
 
-def test_validator_command_uses_terminology_server_and_every_eu_package(tmp_path, monkeypatch):
-    """Offline (-tx n/a) yields spurious slice errors on IPS/EPS bundles, so the
-    default is a real terminology server; every .tgz in the package dir is loaded."""
+def test_validator_command_pins_tx_setting_and_every_eu_package(tmp_path, monkeypatch):
+    """The -tx flag follows settings (offline by default) and every .tgz in the
+    package dir is loaded."""
 
     pkgs = tmp_path / "pkgs"
     pkgs.mkdir()
@@ -193,9 +200,28 @@ def test_validator_command_uses_terminology_server_and_every_eu_package(tmp_path
     import dataclasses
     monkeypatch.setattr(vq, "settings", dataclasses.replace(settings, eu_packages_dir=pkgs))
     cmd = vq.validator_command(tmp_path / "in.json", tmp_path / "out.json", "http://hl7.eu/fhir/eps/StructureDefinition/bundle-eu-eps")
-    assert cmd[cmd.index("-tx") + 1] == settings.validator_tx
-    assert settings.validator_tx.startswith("https://")
+    assert cmd[cmd.index("-tx") + 1] == settings.validator_tx == "n/a"
     assert cmd[cmd.index("-version") + 1] == "4.0.1"
     assert [cmd[i + 1] for i, a in enumerate(cmd) if a == "-ig"] == [str(pkgs / "base.tgz"), str(pkgs / "eps.tgz")]
     assert cmd[cmd.index("-profile") + 1].endswith("bundle-eu-eps")
     assert any(a.startswith("-Duser.home=") for a in cmd)
+
+
+def test_offline_downgrades_only_the_slice_ambiguity_artefact():
+    """Offline, 'matches more than one slice' on Bundle.entry becomes a labelled
+    warning; a genuine error in the same report still fails the bundle."""
+    slice_err = {"severity": "error", "expression": ["Bundle.entry[3]"],
+                 "details": {"text": "Profile http://hl7.eu/fhir/eps/StructureDefinition/bundle-eu-eps|1.0.0-ci-build, "
+                                     "Element matches more than one slice - observation-pregnancy-edd, observation-vital-signs"}}
+    real_err = {"severity": "error", "expression": ["Bundle.entry[0].resource"],
+                "details": {"text": "Composition.subject: minimum required = 1, but only found 0"}}
+    offline = vq.collapse_issues([slice_err, slice_err, real_err], offline=True)
+    assert offline["errors"] == 1 and offline["downgraded"] == 2 and offline["warnings"] == 2
+    assert any(i["text"].startswith("[offline slice ambiguity]") and i["count"] == 2 for i in offline["issues"])
+    assert any(i["severity"] == "error" and "Composition.subject" in i["text"] for i in offline["issues"])
+    # clean apart from the artefact -> passes offline
+    clean = vq.collapse_issues([slice_err], offline=True)
+    assert clean["errors"] == 0 and clean["downgraded"] == 1
+    # with a terminology server nothing is downgraded
+    online = vq.collapse_issues([slice_err], offline=False)
+    assert online["errors"] == 1 and online["downgraded"] == 0

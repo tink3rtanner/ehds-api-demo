@@ -139,8 +139,10 @@ export function statusBadge(status) {
 
 export function validationBadge(v, { compact = false } = {}) {
   const state = v?.state || 'unknown';
+  const offline = v?.downgraded > 0;
   const map = {
-    validated: ['ok', 'check', 'Validated', 'No errors against the EU profile'],
+    validated: ['ok', 'check', offline ? 'Validated · offline' : 'Validated',
+      offline ? `No errors against the EU profile; ${v.downgraded} offline slice-ambiguity finding(s) downgraded to warnings (no terminology server)` : 'No errors against the EU profile'],
     failed: ['danger', 'x', `Failed${v?.errors != null ? ` · ${v.errors}` : ''}`, `${v?.errors ?? '?'} error(s) against the EU profile`],
     pending: ['info', 'clock', 'Validating…', 'Queued for the HL7 validator'],
     unavailable: ['warn', 'alert', 'Validator unavailable', v?.reason || 'The validator could not give an answer'],

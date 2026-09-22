@@ -27,16 +27,22 @@ Implementation notes
 * The java process is started with ``-Duser.home=<validator_home>`` so its
   package cache (``.fhir/packages``) persists under the data dir instead of an
   ephemeral PrivateTmp $HOME.
-* It talks to a terminology server (``settings.validator_tx``, default
-  tx.fhir.org). Running offline (``EHDS_VALIDATOR_TX=n/a``) is faster but
-  produces *spurious* "element matches more than one slice" errors on IPS/EPS
-  bundles, because the entry slices are discriminated by value-set bindings
-  the validator then cannot evaluate (see docs/epic-eu-bundling.md). A tx
-  outage surfaces as ``unavailable`` (no report is produced), never as
-  ``failed``, and the single worker thread keeps the load on tx.fhir.org to
-  one run at a time. Budget: a warm offline run is ~2-5 min; with tx.fhir.org
-  the first run of a category can take 10-20 min while the terminology cache
-  fills, hence the generous default ``EHDS_VALIDATION_TIMEOUT_SECONDS``.
+* It runs **offline by default** (``-tx n/a``, ``EHDS_VALIDATOR_TX``). A real
+  terminology server gives the complete verdict, but the validator's tx client
+  hung for 20-140 minutes per bundle against tx.fhir.org from the demo box
+  (2026-09-22), which turns every badge into a 30-minute ``unavailable``.
+  Offline is deterministic and takes 2-5 minutes warm.
+* Offline has exactly one known artefact: "Element matches more than one
+  slice" on ``Bundle.entry`` against the IPS/EPS bundle profiles, because
+  those slices are discriminated by value-set bindings the validator cannot
+  evaluate without terminology (documented in docs/epic-eu-bundling.md; the
+  same bundles validate with 0 errors when a tx server is reachable). When
+  running offline, :func:`collapse_issues` downgrades *that* pattern to a
+  clearly labelled warning and counts it in ``downgraded``; every other error
+  still fails the bundle. The record carries ``tx`` and ``notes`` so nobody
+  mistakes an offline pass for a full one.
+* A tx outage or JVM failure surfaces as ``unavailable`` (no report), never as
+  ``failed``; the single worker thread runs one job at a time.
 * ``_run_validator`` and ``_validator_available`` are module attributes so
   tests inject fakes without a JVM.
 """
@@ -150,17 +156,42 @@ def _normalise(text: str) -> str:
     return _LONG_TOKEN_RE.sub("<id>", _INDEX_RE.sub("[N]", text))
 
 
-def collapse_issues(issues: list[dict[str, Any]], *, top: int = 25) -> dict[str, Any]:
+# The one validator finding that is an artefact of running without a
+# terminology server: slice discrimination on Bundle.entry by resource profile
+# needs value-set membership the validator cannot compute offline.
+_OFFLINE_SLICE_RE = re.compile(r"Element matches more than one slice")
+OFFLINE_NOTE = ("ran offline (-tx n/a): 'matches more than one slice' errors on Bundle.entry are a "
+                "terminology artefact and were downgraded to warnings; set EHDS_VALIDATOR_TX for the full verdict")
+
+
+def _is_offline_artefact(issue: dict[str, Any]) -> bool:
+    text = _issue_text(issue)
+    return bool(_OFFLINE_SLICE_RE.search(text)) and "Bundle.entry" in text
+
+
+def collapse_issues(issues: list[dict[str, Any]], *, top: int = 25, offline: bool = False) -> dict[str, Any]:
     """Summarise a validator OperationOutcome issue list: counts plus the
-    distinct error/warning messages with how often each occurred."""
-    errors = [i for i in issues if i.get("severity") in ("error", "fatal")]
+    distinct error/warning messages with how often each occurred. With
+    ``offline=True`` the known slice-discrimination artefact is downgraded to a
+    labelled warning and counted separately."""
+    errors: list[dict[str, Any]] = []
     warnings = [i for i in issues if i.get("severity") == "warning"]
+    downgraded: list[dict[str, Any]] = []
+    for i in issues:
+        if i.get("severity") not in ("error", "fatal"):
+            continue
+        if offline and _is_offline_artefact(i):
+            downgraded.append(i)
+        else:
+            errors.append(i)
     out: list[dict[str, Any]] = []
-    for sev, group in (("error", errors), ("warning", warnings)):
+    groups = [("error", errors, ""), ("warning", warnings, ""), ("warning", downgraded, "[offline slice ambiguity] ")]
+    for sev, group, prefix in groups:
         counted = Counter(_normalise(_issue_text(i)) for i in group)
         for text, n in counted.most_common(top):
-            out.append({"severity": sev, "text": text[:300], "count": n})
-    return {"errors": len(errors), "warnings": len(warnings), "issues": out}
+            out.append({"severity": sev, "text": (prefix + text)[:300], "count": n})
+    return {"errors": len(errors), "warnings": len(warnings) + len(downgraded), "downgraded": len(downgraded),
+            "issues": out}
 
 
 def validator_command(src: Path, out: Path, profile: str | None) -> list[str]:
@@ -193,8 +224,11 @@ def _run_validator(bundle: dict[str, Any], category: str | None, profile: str | 
             tail = (proc.stderr or proc.stdout or "").strip().splitlines()[-5:]
             raise RuntimeError("validator produced no report: " + " | ".join(tail))
         report = json.loads(out.read_text())
-    summary = collapse_issues(report.get("issue", []))
+    offline = (settings.validator_tx or "n/a").lower() == "n/a"
+    summary = collapse_issues(report.get("issue", []), offline=offline)
     summary["ok"] = summary["errors"] == 0
+    summary["tx"] = settings.validator_tx or "n/a"
+    summary["notes"] = [OFFLINE_NOTE] if offline and summary["downgraded"] else []
     return summary
 
 
@@ -241,9 +275,11 @@ def _process(key: str) -> None:
             "state": VALIDATED if result["ok"] else FAILED,
             "category": category,
             "profile": profile,
-            "tx": settings.validator_tx,
+            "tx": result.get("tx", settings.validator_tx),
             "errors": result.get("errors", 0),
             "warnings": result.get("warnings", 0),
+            "downgraded": result.get("downgraded", 0),
+            "notes": result.get("notes", []),
             "issues": result.get("issues", []),
             "reason": None,
             "finished": _now(),

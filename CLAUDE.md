@@ -216,10 +216,12 @@ written before tagging existed.
 `app/fhir/validation_queue.py`: `POST /` returns 201 first, then queues the
 as-submitted bundle for the java validator (`-ig` every `.tgz` under
 `settings.eu_packages_dir`, `-profile` per category from
-`capability.PROFILE_EU_BUNDLE`, `-tx settings.validator_tx` (default
-tx.fhir.org; `n/a` is offline but yields spurious "matches more than one
-slice" errors on IPS/EPS bundles), `-Duser.home=settings.validator_home` so
-the package cache survives the unit's PrivateTmp `$HOME`). Records live in
+`capability.PROFILE_EU_BUNDLE`, `-tx settings.validator_tx` (default `n/a`:
+offline; the one offline artefact, "matches more than one slice" on
+Bundle.entry, is downgraded to a labelled warning and counted as
+`downgraded`; a tx server URL gives the full verdict but the validator's tx
+client hung for 20+ min per bundle from the box), `-Duser.home=settings.validator_home`
+so the package cache survives the unit's PrivateTmp `$HOME`). Records live in
 `data/validation/<key>.json` with state `pending|validated|failed|unavailable`;
 `unavailable` is deliberately distinct from `failed`. Reference documents use
 the same path via `enqueue_reference`. Tests point `EHDS_VALIDATOR_JAR` at a

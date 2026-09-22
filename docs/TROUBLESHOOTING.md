@@ -181,10 +181,13 @@ as executable`, the systemd unit has `MemoryDenyWriteExecute=true`; the JVM's
 JIT needs W+X pages. `deploy/ehds-api.service` sets it to `false` for this
 reason; reinstall the unit and `systemctl daemon-reload`.
 
-A different symptom, every reference document `failed` with "Element matches
-more than one slice - observation-pregnancy-edd, …": the validator ran offline
-(`EHDS_VALIDATOR_TX=n/a`). Those are terminology artefacts, not bundle bugs
-(`docs/epic-eu-bundling.md`); point it at a terminology server and re-queue.
+Badges read "Validated · offline" with downgraded warnings: expected. The
+default is offline (`EHDS_VALIDATOR_TX=n/a`) and the one offline artefact
+("Element matches more than one slice" on Bundle.entry, a terminology
+artefact per `docs/epic-eu-bundling.md`) is downgraded, never hidden. Setting
+`EHDS_VALIDATOR_TX=https://tx.fhir.org` gives the full verdict, but on
+2026-09-22 the validator's terminology client hung 20-140 min per bundle from
+this box, which is why offline is the default.
 
 **Fix**: `./fetch_validator.sh`; copy the `hl7.fhir.eu.*.tgz` packages into
 `.cache/eu-packages/`; check `build-info.validator.reason`; then re-queue with

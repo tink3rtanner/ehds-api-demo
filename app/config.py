@@ -33,7 +33,7 @@ class Settings:
     eu_packages_dir: Path      # folder of hl7.fhir.eu.* .tgz packages fed to the validator via -ig
     validator_home: Path       # java user.home for the validator, so its package cache persists
     validation_timeout_seconds: int
-    validator_tx: str          # terminology server for the validator; "n/a" = offline (spurious slice errors)
+    validator_tx: str          # terminology server for the validator; "n/a" = offline (default; see validation_queue)
 
     @property
     def is_prod(self) -> bool:
@@ -63,7 +63,7 @@ def load() -> Settings:
         eu_packages_dir=_path("EHDS_EU_PACKAGES_DIR", str(root / ".cache" / "eu-packages")),
         validator_home=_path("EHDS_VALIDATOR_HOME", str(data_dir / "validator-home")),
         validation_timeout_seconds=int(os.environ.get("EHDS_VALIDATION_TIMEOUT_SECONDS", "1800")),
-        validator_tx=os.environ.get("EHDS_VALIDATOR_TX", "https://tx.fhir.org"),
+        validator_tx=os.environ.get("EHDS_VALIDATOR_TX", "n/a"),
     )
 
 
