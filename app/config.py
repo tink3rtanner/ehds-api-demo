@@ -62,7 +62,7 @@ def load() -> Settings:
         token_ttl_seconds=int(os.environ.get("EHDS_TOKEN_TTL_SECONDS", "900")),
         eu_packages_dir=_path("EHDS_EU_PACKAGES_DIR", str(root / ".cache" / "eu-packages")),
         validator_home=_path("EHDS_VALIDATOR_HOME", str(data_dir / "validator-home")),
-        validation_timeout_seconds=int(os.environ.get("EHDS_VALIDATION_TIMEOUT_SECONDS", "600")),
+        validation_timeout_seconds=int(os.environ.get("EHDS_VALIDATION_TIMEOUT_SECONDS", "1800")),
         validator_tx=os.environ.get("EHDS_VALIDATOR_TX", "https://tx.fhir.org"),
     )
 

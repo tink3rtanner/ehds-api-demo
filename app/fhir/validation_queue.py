@@ -34,7 +34,9 @@ Implementation notes
   the validator then cannot evaluate (see docs/epic-eu-bundling.md). A tx
   outage surfaces as ``unavailable`` (no report is produced), never as
   ``failed``, and the single worker thread keeps the load on tx.fhir.org to
-  one run at a time.
+  one run at a time. Budget: a warm offline run is ~2-5 min; with tx.fhir.org
+  the first run of a category can take 10-20 min while the terminology cache
+  fills, hence the generous default ``EHDS_VALIDATION_TIMEOUT_SECONDS``.
 * ``_run_validator`` and ``_validator_available`` are module attributes so
   tests inject fakes without a JVM.
 """

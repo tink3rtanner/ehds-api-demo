@@ -61,7 +61,7 @@ sudo nano /etc/ehds-api/env
 # optional:
 #   EHDS_EU_PACKAGES_DIR=/srv/ehds-api/.cache/eu-packages   # HL7 EU IG .tgz packages for validation
 #   EHDS_VALIDATOR_HOME=/srv/ehds-api/data/validator-home   # java user.home for the validator's package cache
-#   EHDS_VALIDATION_TIMEOUT_SECONDS=600
+#   EHDS_VALIDATION_TIMEOUT_SECONDS=1800   # tx.fhir.org can make a first run take 10-20 min
 #   EHDS_VALIDATOR_TX=https://tx.fhir.org   # terminology server; "n/a" = offline (spurious slice errors)
 # leave other defaults
 
