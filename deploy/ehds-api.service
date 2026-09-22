@@ -32,7 +32,11 @@ ProtectKernelModules=true
 ProtectControlGroups=true
 RestrictSUIDSGID=true
 LockPersonality=true
-MemoryDenyWriteExecute=true
+# MemoryDenyWriteExecute must stay OFF: the async EU-profile validation spawns
+# the HL7 java validator from this unit and the JVM's JIT needs W+X pages
+# ("Failed to mark memory page as executable" otherwise). Everything else
+# in the hardening set is kept.
+MemoryDenyWriteExecute=false
 ReadWritePaths=/srv/ehds-api/data /var/log/ehds-api
 
 [Install]

@@ -175,6 +175,12 @@ jar (`EHDS_VALIDATOR_JAR`) and a folder of HL7 Europe IG packages
 or java is not installed, or the first run timed out while downloading the
 validator's own dependencies into `EHDS_VALIDATOR_HOME`.
 
+If `build-info.validator.reason` is null but every record ends `unavailable`
+with `Error occurred during initialization of VM … Failed to mark memory page
+as executable`, the systemd unit has `MemoryDenyWriteExecute=true`; the JVM's
+JIT needs W+X pages. `deploy/ehds-api.service` sets it to `false` for this
+reason; reinstall the unit and `systemctl daemon-reload`.
+
 A different symptom, every reference document `failed` with "Element matches
 more than one slice - observation-pregnancy-edd, …": the validator ran offline
 (`EHDS_VALIDATOR_TX=n/a`). Those are terminology artefacts, not bundle bugs
