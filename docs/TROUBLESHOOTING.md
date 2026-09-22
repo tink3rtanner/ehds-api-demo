@@ -175,6 +175,11 @@ jar (`EHDS_VALIDATOR_JAR`) and a folder of HL7 Europe IG packages
 or java is not installed, or the first run timed out while downloading the
 validator's own dependencies into `EHDS_VALIDATOR_HOME`.
 
+A different symptom, every reference document `failed` with "Element matches
+more than one slice - observation-pregnancy-edd, …": the validator ran offline
+(`EHDS_VALIDATOR_TX=n/a`). Those are terminology artefacts, not bundle bugs
+(`docs/epic-eu-bundling.md`); point it at a terminology server and re-queue.
+
 **Fix**: `./fetch_validator.sh`; copy the `hl7.fhir.eu.*.tgz` packages into
 `.cache/eu-packages/`; check `build-info.validator.reason`; then re-queue with
 `POST /ui/api/submissions/{id}/validate` (or the "Run again" button). The

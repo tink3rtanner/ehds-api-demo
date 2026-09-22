@@ -26,9 +26,15 @@ Implementation notes
   ``status`` consistently.
 * The java process is started with ``-Duser.home=<validator_home>`` so its
   package cache (``.fhir/packages``) persists under the data dir instead of an
-  ephemeral PrivateTmp $HOME. ``-tx n/a`` keeps it offline: terminology
-  checks against tx.fhir.org are the single biggest source of flakiness and
-  are not what the badge is about.
+  ephemeral PrivateTmp $HOME.
+* It talks to a terminology server (``settings.validator_tx``, default
+  tx.fhir.org). Running offline (``EHDS_VALIDATOR_TX=n/a``) is faster but
+  produces *spurious* "element matches more than one slice" errors on IPS/EPS
+  bundles, because the entry slices are discriminated by value-set bindings
+  the validator then cannot evaluate (see docs/epic-eu-bundling.md). A tx
+  outage surfaces as ``unavailable`` (no report is produced), never as
+  ``failed``, and the single worker thread keeps the load on tx.fhir.org to
+  one run at a time.
 * ``_run_validator`` and ``_validator_available`` are module attributes so
   tests inject fakes without a JVM.
 """
@@ -155,22 +161,27 @@ def collapse_issues(issues: list[dict[str, Any]], *, top: int = 25) -> dict[str,
     return {"errors": len(errors), "warnings": len(warnings), "issues": out}
 
 
+def validator_command(src: Path, out: Path, profile: str | None) -> list[str]:
+    """The exact java invocation, so tests can pin it without a JVM."""
+    cmd = ["java", f"-Duser.home={settings.validator_home}", "-jar", str(settings.validator_jar), str(src),
+           "-version", "4.0.1", "-tx", settings.validator_tx or "n/a", "-output", str(out)]
+    for tgz in sorted(settings.eu_packages_dir.glob("*.tgz")):
+        cmd += ["-ig", str(tgz)]
+    if profile:
+        cmd += ["-profile", profile]
+    return cmd
+
+
 def _run_validator(bundle: dict[str, Any], category: str | None, profile: str | None) -> dict[str, Any]:
     """Run the HL7 java validator against ``bundle``. Returns
     ``{"ok", "errors", "warnings", "issues"}``; raises on anything that is
     not a verdict (timeout, crash, unparseable output). Swapped by tests."""
-    home = settings.validator_home
-    home.mkdir(parents=True, exist_ok=True)
+    settings.validator_home.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as td:
         src = Path(td) / "input.json"
         src.write_text(json.dumps(bundle))
         out = Path(td) / "out.json"
-        cmd = ["java", f"-Duser.home={home}", "-jar", str(settings.validator_jar), str(src),
-               "-version", "4.0.1", "-tx", "n/a", "-output", str(out)]
-        for tgz in sorted(settings.eu_packages_dir.glob("*.tgz")):
-            cmd += ["-ig", str(tgz)]
-        if profile:
-            cmd += ["-profile", profile]
+        cmd = validator_command(src, out, profile)
         started = time.monotonic()
         proc = subprocess.run(cmd, capture_output=True, text=True,
                               timeout=settings.validation_timeout_seconds)
@@ -228,6 +239,7 @@ def _process(key: str) -> None:
             "state": VALIDATED if result["ok"] else FAILED,
             "category": category,
             "profile": profile,
+            "tx": settings.validator_tx,
             "errors": result.get("errors", 0),
             "warnings": result.get("warnings", 0),
             "issues": result.get("issues", []),

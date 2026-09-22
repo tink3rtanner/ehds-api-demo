@@ -180,3 +180,22 @@ def test_collapse_issues_folds_repeated_errors():
     top = out["issues"][0]
     assert top["severity"] == "error" and top["count"] == 40
     assert "[N]" in top["text"]
+
+
+def test_validator_command_uses_terminology_server_and_every_eu_package(tmp_path, monkeypatch):
+    """Offline (-tx n/a) yields spurious slice errors on IPS/EPS bundles, so the
+    default is a real terminology server; every .tgz in the package dir is loaded."""
+
+    pkgs = tmp_path / "pkgs"
+    pkgs.mkdir()
+    for name in ("eps", "base"):
+        (pkgs / f"{name}.tgz").write_bytes(b"")
+    import dataclasses
+    monkeypatch.setattr(vq, "settings", dataclasses.replace(settings, eu_packages_dir=pkgs))
+    cmd = vq.validator_command(tmp_path / "in.json", tmp_path / "out.json", "http://hl7.eu/fhir/eps/StructureDefinition/bundle-eu-eps")
+    assert cmd[cmd.index("-tx") + 1] == settings.validator_tx
+    assert settings.validator_tx.startswith("https://")
+    assert cmd[cmd.index("-version") + 1] == "4.0.1"
+    assert [cmd[i + 1] for i, a in enumerate(cmd) if a == "-ig"] == [str(pkgs / "base.tgz"), str(pkgs / "eps.tgz")]
+    assert cmd[cmd.index("-profile") + 1].endswith("bundle-eu-eps")
+    assert any(a.startswith("-Duser.home=") for a in cmd)
