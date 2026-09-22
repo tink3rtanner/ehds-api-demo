@@ -83,6 +83,7 @@ class RegisteredClient:
     client_id: str
     jwks: dict[str, Any]
     scopes: tuple[str, ...]
+    registered_at: str | None = None  # ISO-8601 UTC; None for registrations that predate the field
 
 
 def load_clients() -> dict[str, RegisteredClient]:
@@ -96,6 +97,7 @@ def load_clients() -> dict[str, RegisteredClient]:
             client_id=entry["client_id"],
             jwks=entry["jwks"],
             scopes=tuple(entry.get("scopes", ["system/*.read"])),
+            registered_at=entry.get("registered_at"),
         )
     return out
 
@@ -106,8 +108,13 @@ def upsert_client(client_id: str, jwks: dict[str, Any], scopes: list[str]) -> No
     path.parent.mkdir(parents=True, exist_ok=True)
     raw = json.loads(path.read_text()) if path.exists() else {"clients": []}
     raw.setdefault("clients", [])
+    previous = next((c for c in raw["clients"] if c["client_id"] == client_id), None)
     raw["clients"] = [c for c in raw["clients"] if c["client_id"] != client_id]
-    raw["clients"].append({"client_id": client_id, "jwks": jwks, "scopes": scopes})
+    from datetime import UTC, datetime
+    registered_at = (previous or {}).get("registered_at") or datetime.now(UTC).isoformat(
+        timespec="seconds").replace("+00:00", "Z")
+    raw["clients"].append({"client_id": client_id, "jwks": jwks, "scopes": scopes,
+                           "registered_at": registered_at})
     path.write_text(json.dumps(raw, indent=2, sort_keys=True))
 
 
@@ -136,7 +143,8 @@ def patch_client(client_id: str,
     path.write_text(json.dumps(raw, indent=2, sort_keys=True))
     return RegisteredClient(client_id=found["client_id"],
                             jwks=found["jwks"],
-                            scopes=tuple(found["scopes"]))
+                            scopes=tuple(found["scopes"]),
+                            registered_at=found.get("registered_at"))
 
 
 def delete_client(client_id: str) -> bool:

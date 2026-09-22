@@ -29,6 +29,15 @@
     }
   ],
   "issued": "2024-04-11T15:00:00+02:00",
+  "meta": {
+    "tag": [
+      {
+        "code": "reference",
+        "display": "Reference example",
+        "system": "urn:ehds-demo:origin"
+      }
+    ]
+  },
   "performer": [
     {
       "reference": "Practitioner/e8b79c7a-d079-50d2-8690-809b16701c2c"

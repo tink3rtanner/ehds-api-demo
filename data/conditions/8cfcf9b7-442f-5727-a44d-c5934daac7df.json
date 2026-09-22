@@ -28,6 +28,15 @@
     "text": "Asthma"
   },
   "id": "8cfcf9b7-442f-5727-a44d-c5934daac7df",
+  "meta": {
+    "tag": [
+      {
+        "code": "reference",
+        "display": "Reference example",
+        "system": "urn:ehds-demo:origin"
+      }
+    ]
+  },
   "recordedDate": "2023-04-15",
   "resourceType": "Condition",
   "subject": {

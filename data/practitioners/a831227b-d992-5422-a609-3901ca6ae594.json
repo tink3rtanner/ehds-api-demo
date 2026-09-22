@@ -6,6 +6,15 @@
       "value": "DOC-00006"
     }
   ],
+  "meta": {
+    "tag": [
+      {
+        "code": "reference",
+        "display": "Reference example",
+        "system": "urn:ehds-demo:origin"
+      }
+    ]
+  },
   "name": [
     {
       "family": "Bianchi",

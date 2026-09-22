@@ -10,5 +10,14 @@
     "text": "Metformin HCl 500 mg"
   },
   "id": "9fcfdf94-b305-5994-92d6-9a1f2c63614d",
+  "meta": {
+    "tag": [
+      {
+        "code": "reference",
+        "display": "Reference example",
+        "system": "urn:ehds-demo:origin"
+      }
+    ]
+  },
   "resourceType": "Medication"
 }

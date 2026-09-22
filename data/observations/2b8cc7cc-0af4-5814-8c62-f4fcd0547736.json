@@ -21,6 +21,15 @@
   },
   "effectiveDateTime": "2024-03-01",
   "id": "2b8cc7cc-0af4-5814-8c62-f4fcd0547736",
+  "meta": {
+    "tag": [
+      {
+        "code": "reference",
+        "display": "Reference example",
+        "system": "urn:ehds-demo:origin"
+      }
+    ]
+  },
   "resourceType": "Observation",
   "status": "final",
   "subject": {

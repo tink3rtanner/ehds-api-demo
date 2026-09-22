@@ -29,6 +29,10 @@ class Settings:
     rate_limit_per_min: int
     body_max_bytes: int
     token_ttl_seconds: int
+    # EU-profile validation (asynchronous, badge-only — see app/fhir/validation_queue.py)
+    eu_packages_dir: Path      # folder of hl7.fhir.eu.* .tgz packages fed to the validator via -ig
+    validator_home: Path       # java user.home for the validator, so its package cache persists
+    validation_timeout_seconds: int
 
     @property
     def is_prod(self) -> bool:
@@ -55,6 +59,9 @@ def load() -> Settings:
         rate_limit_per_min=int(os.environ.get("EHDS_RATE_LIMIT_PER_MIN", "240")),
         body_max_bytes=int(os.environ.get("EHDS_BODY_MAX_BYTES", str(5 * 1024 * 1024))),
         token_ttl_seconds=int(os.environ.get("EHDS_TOKEN_TTL_SECONDS", "900")),
+        eu_packages_dir=_path("EHDS_EU_PACKAGES_DIR", str(root / ".cache" / "eu-packages")),
+        validator_home=_path("EHDS_VALIDATOR_HOME", str(data_dir / "validator-home")),
+        validation_timeout_seconds=int(os.environ.get("EHDS_VALIDATION_TIMEOUT_SECONDS", "600")),
     )
 
 

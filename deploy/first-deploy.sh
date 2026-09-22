@@ -16,6 +16,12 @@ pip install --quiet -e ".[dev]"
 
 echo "==> caching HL7 validator jar (skip if already present)"
 ./fetch_validator.sh
+mkdir -p .cache/eu-packages
+if ! ls .cache/eu-packages/*.tgz >/dev/null 2>&1; then
+  echo "    note: no HL7 Europe IG packages in .cache/eu-packages/ — async EU-profile"
+  echo "    validation will report 'validator unavailable' until you copy the"
+  echo "    hl7.fhir.eu.*.tgz packages there (see HANDOFF.md step 3)."
+fi
 
 echo "==> running tests (~30s without java; ~8min with the validator path)"
 # The 4 tests in test_profile_validation.py::test_compiled_documents_pass_r4_validation

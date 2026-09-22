@@ -29,6 +29,7 @@ import uuid
 from typing import Any
 
 from app.fhir.ids import EHDS_NAMESPACE
+from app.fhir.origin import COMMUNITY, tag_origin
 from app.fhir.store import SUPPORTED_TYPES
 
 # business-identifier system under which we stash a naturalized resource's
@@ -95,7 +96,8 @@ def _local_id(origin_key: str | None) -> str:
 
 
 def naturalize_bundle(bundle: dict[str, Any], *,
-                      source_base: str | None = None) -> list[dict[str, Any]]:
+                      source_base: str | None = None,
+                      submission_id: str | None = None) -> list[dict[str, Any]]:
     """Return the supported resources of `bundle`, naturalized into local
     identity with origin back-links. Does NOT mutate `bundle` (so the caller
     can still persist the as-submitted original as evidence).
@@ -105,6 +107,10 @@ def naturalize_bundle(bundle: dict[str, Any], *,
     (it is the literal source). Otherwise `source_base` + `Type/<foreign-id>`
     is used. With neither, the origin id is still preserved as an identifier
     but no resolvable `meta.source` can be recorded.
+
+    `submission_id`: the inbox bundle id this came in with. Every emitted
+    resource is tagged ``community`` (see `app.fhir.origin`) — replacing any
+    origin tag the submitter may have claimed — and linked to the submission.
     """
     entries = bundle.get("entry") or []
 
@@ -142,6 +148,7 @@ def naturalize_bundle(bundle: dict[str, Any], *,
             set_source(res, p["full_url"])
         elif source_base and p["old_id"]:
             set_source(res, f"{source_base.rstrip('/')}/{p['rt']}/{p['old_id']}")
+        tag_origin(res, COMMUNITY, submission_id=submission_id)
         out.append(res)
 
     _rewrite_refs(out, id_map)

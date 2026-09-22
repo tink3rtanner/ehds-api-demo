@@ -70,6 +70,12 @@ os.environ["EHDS_CLIENT_REGISTRY"] = str(_CLIENT_REGISTRY_PATH)
 os.environ["EHDS_JWKS_PATH"] = str(_JWKS_PATH)
 os.environ["EHDS_RATE_LIMIT_PER_MIN"] = "100000"
 os.environ["ENV"] = "dev"
+# The async EU-profile validation queue must never spawn the real java
+# validator during the fast suite: point it at a jar that does not exist so
+# every record resolves to state=unavailable immediately. The heavy
+# test_profile_validation.py addresses the real jar by path, not via settings.
+os.environ["EHDS_VALIDATOR_JAR"] = str(_TEST_ROOT / "no-validator.jar")
+os.environ["EHDS_EU_PACKAGES_DIR"] = str(_TEST_ROOT / "no-eu-packages")
 
 # ---------- fixtures ----------
 import jwt

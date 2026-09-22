@@ -35,6 +35,8 @@ data/keys/
 data/clients.json
 data/inbox/
 data/audit/
+data/validation/
+data/validator-home/
 
 # Epic-submitted (or any externally-sourced) resources accumulate in
 # data/<type>/<id>.json with provider-shaped ids. Only the deterministic

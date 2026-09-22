@@ -32,7 +32,12 @@ jobs:
         run: ruff check app tests scripts
 
       - name: tests (no validator jar — fast layers only)
-        run: pytest -q
+        run: pytest -q --ignore=tests/test_ui_smoke.py
+
+      - name: browser smoke test (playwright + chromium)
+        run: |
+          python -m playwright install --with-deps chromium
+          pytest -q tests/test_ui_smoke.py
 
       - name: cache validator jar
         run: ./fetch_validator.sh

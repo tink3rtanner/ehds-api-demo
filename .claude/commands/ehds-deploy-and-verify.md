@@ -40,8 +40,13 @@ public URL.
    # d) on-demand document compilation + reverse index — patient-summary for p-001
    PID=$(python3 -c 'from app.fhir.ids import patient_id; print(patient_id("p-001"))')
    BID=$(python3 -c 'from app.fhir.ids import bundle_id; print(bundle_id("p-001","patient-summary"))')
-   curl -fsS "$BASE/Bundle/$BID" | jq -e '.type == "document"'
+   TOKEN=$(curl -fsS -X POST $BASE/ui/api/viewer-token | jq -r .access_token)   # the FHIR surface needs a bearer
+   curl -fsS -H "Authorization: Bearer $TOKEN" "$BASE/Bundle/$BID" | jq -e '.type == "document"'
+   # e) agent entry point + the UI shell
+   curl -fsS -H 'Accept: application/json' $BASE/ | jq -e '.pillars | length == 6'
+   curl -fsS $BASE/ui/ | grep -q 'type="module"'
    ```
+   Note (c) also needs the bearer now: `curl -fsS -H "Authorization: Bearer $TOKEN" "$BASE/Patient?identifier=urn:ehds-demo:slot|p-001"`.
 5. **If any step fails**, dump the last 50 systemd lines and the most
    recent 3 audit entries:
    ```bash
@@ -54,8 +59,12 @@ public URL.
 - This skill assumes the on-box `deploy` user with passwordless sudo for
   `systemctl restart ehds-api`. If running as a different user, skip the
   restart and rely on whatever your remote-restart mechanism is.
-- The 4 endpoints exercise: auth/discovery, FHIR conformance, identifier
-  search + slot indirection, and document compilation + reverse index.
+- The endpoints exercise: auth/discovery, FHIR conformance, identifier
+  search + slot indirection, document compilation + reverse index, the
+  root discovery document and the static UI mount.
+- After a deploy that touched `scripts/seed.py` or `app/fhir/origin.py`, run
+  `python -m scripts.seed && python -m scripts.backfill_origin` on the box so
+  the live store carries origin tags (see docs/TROUBLESHOOTING.md).
   A regression in any of the cross-file invariants in `CLAUDE.md` will
   trip at least one.
 - `/health` is not gated; the 4 FHIR endpoints are read-only and work

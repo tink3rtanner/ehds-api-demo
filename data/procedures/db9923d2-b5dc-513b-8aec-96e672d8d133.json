@@ -10,6 +10,15 @@
     "text": "Surgical procedure"
   },
   "id": "db9923d2-b5dc-513b-8aec-96e672d8d133",
+  "meta": {
+    "tag": [
+      {
+        "code": "reference",
+        "display": "Reference example",
+        "system": "urn:ehds-demo:origin"
+      }
+    ]
+  },
   "performedDateTime": "2023-08-22",
   "resourceType": "Procedure",
   "status": "completed",

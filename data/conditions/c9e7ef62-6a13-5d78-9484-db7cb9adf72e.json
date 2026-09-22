@@ -28,6 +28,15 @@
     "text": "Chronic obstructive lung disease"
   },
   "id": "c9e7ef62-6a13-5d78-9484-db7cb9adf72e",
+  "meta": {
+    "tag": [
+      {
+        "code": "reference",
+        "display": "Reference example",
+        "system": "urn:ehds-demo:origin"
+      }
+    ]
+  },
   "recordedDate": "2023-04-15",
   "resourceType": "Condition",
   "subject": {

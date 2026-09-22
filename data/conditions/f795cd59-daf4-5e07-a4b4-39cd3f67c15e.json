@@ -28,6 +28,15 @@
     "text": "Chronic kidney disease"
   },
   "id": "f795cd59-daf4-5e07-a4b4-39cd3f67c15e",
+  "meta": {
+    "tag": [
+      {
+        "code": "reference",
+        "display": "Reference example",
+        "system": "urn:ehds-demo:origin"
+      }
+    ]
+  },
   "recordedDate": "2023-04-15",
   "resourceType": "Condition",
   "subject": {

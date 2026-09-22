@@ -150,6 +150,50 @@ or do it manually after each pull.
 and `/etc/caddy/Caddyfile` has `reverse_proxy 127.0.0.1:8000`. Caddy
 reload: `sudo systemctl reload caddy`.
 
+## "GET /Patient/… returns 401 without a bearer, it used to work"
+
+**Symptom**: a QR code, a bookmark or a script that read FHIR resources with no
+`Authorization` header now gets `401 missing bearer token`.
+
+**Root cause**: the dev-mode anonymous-read shortcut was removed (see
+`docs/conformance-deviations.md` §2). The FHIR surface is authorised in every
+environment.
+
+**Fix**: mint a token (register a client at `/register-client`, sign an
+assertion, `POST /token`; the UI's Connect page does it in the browser), or
+open the UI route instead: `/ui/#/patients/{id}` and `/ui/#/documents/{bundleId}`
+render the same content with the page's read-only viewer token.
+
+## Every submission's badge says "Validator unavailable"
+
+**Symptom**: the Coverage page shows `unavailable` for every submission;
+`/ui/api/build-info` reports `validator.available: false`.
+
+**Root cause**: `app/fhir/validation_queue.py` needs both the java validator
+jar (`EHDS_VALIDATOR_JAR`) and a folder of HL7 Europe IG packages
+(`EHDS_EU_PACKAGES_DIR`, default `.cache/eu-packages/*.tgz`). Either is missing,
+or java is not installed, or the first run timed out while downloading the
+validator's own dependencies into `EHDS_VALIDATOR_HOME`.
+
+**Fix**: `./fetch_validator.sh`; copy the `hl7.fhir.eu.*.tgz` packages into
+`.cache/eu-packages/`; check `build-info.validator.reason`; then re-queue with
+`POST /ui/api/submissions/{id}/validate` (or the "Run again" button). The
+service runs with `ProtectHome=true`, so the packages must live under
+`/srv/ehds-api`, not under `~`.
+
+## Patients or resources show "Origin unknown" in the UI
+
+**Symptom**: cards carry a grey `Origin unknown` badge instead of `Reference`
+or `Community`; the coverage map ignores them.
+
+**Root cause**: the resource was written before origin tagging existed
+(`app/fhir/origin.py`), so it has no `urn:ehds-demo:origin` tag.
+
+**Fix**: `python -m scripts.seed` (re-stamps the reference panel without
+touching `inbox/`) then `python -m scripts.backfill_origin` (tags everything
+else as community and links it to the inbox bundle it came from by
+recomputing the naturalised id).
+
 ## Adding a new entry
 
 When you fix something new, append a section here following the format:

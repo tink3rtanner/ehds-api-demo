@@ -5,6 +5,15 @@
     "system": "http://terminology.hl7.org/CodeSystem/v3-ActCode"
   },
   "id": "a4acea57-ba6d-57a3-8ff6-bf9332986419",
+  "meta": {
+    "tag": [
+      {
+        "code": "reference",
+        "display": "Reference example",
+        "system": "urn:ehds-demo:origin"
+      }
+    ]
+  },
   "period": {
     "end": "2024-04-12T16:00:00+02:00",
     "start": "2024-04-10T09:00:00+02:00"

@@ -1,66 +1,44 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>EHDS Demo · FHIR Server Viewer</title>
-    <link rel="stylesheet" href="/ui/styles.css" />
-    <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='28'>🩺</text></svg>" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EU Health Data API · reference implementation</title>
+  <meta name="description" content="A FHIR R4 reference implementation of the HL7 Europe Health Data API exchange layer: SMART Backend Services, PDQm patient lookup, MHD document search and retrieve, IPA resource access. Synthetic data only." />
+  <meta name="color-scheme" content="light" />
+  <link rel="stylesheet" href="/ui/app.css" />
+  <link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%232a6f6b'/><path d='M9 16h14M16 9v14' stroke='white' stroke-width='3.5' stroke-linecap='round'/></svg>" />
 </head>
 <body>
-    <header class="app-header">
-        <div class="brand">
-            <span class="dot"></span>
-            <div>
-                <div class="title">EHDS Demo</div>
-                <div class="subtitle">EU Health Data API · FHIR R4 · synthetic data</div>
-            </div>
-        </div>
-        <nav>
-            <a href="#/" data-nav>Home</a>
-            <span class="nav-group-label">Explore</span>
-            <a href="#/patients" data-nav>Patients</a>
-            <a href="#/documents" data-nav>Documents</a>
-            <a href="#/resources" data-nav>Resources</a>
-            <a href="#/qr" data-nav>QR</a>
-            <span class="nav-group-label">Build</span>
-            <a href="#/client" data-nav>Client</a>
-            <a href="#/implement" data-nav>Implement</a>
-            <a href="#/register" data-nav>Register</a>
-            <a href="#/authorization" data-nav>Auth</a>
-            <a href="#/endpoints" data-nav>Endpoints</a>
-            <a href="#/server" data-nav>Server</a>
-            <a href="#/logs" data-nav>Logs</a>
-        </nav>
-    </header>
-    <main id="app">
-        <div class="loading">loading…</div>
-    </main>
-    <footer>
-        <span>EHDS Demo · open-source · Apache-2.0</span>
-        <span class="footer-tags" id="footer-tags"></span>
-    </footer>
-
-    <!-- JSON viewer modal -->
-    <div id="json-modal" class="modal-overlay" hidden>
-        <div class="modal">
-            <div class="modal-head">
-                <div class="modal-title">
-                    <span id="modal-title-text">FHIR resource</span>
-                    <span class="muted" id="modal-url"></span>
-                </div>
-                <div class="modal-actions">
-                    <button class="btn-ghost" id="modal-copy">Copy JSON</button>
-                    <button class="btn-ghost" id="modal-close" aria-label="close">✕</button>
-                </div>
-            </div>
-            <pre class="json-dump" id="modal-body"></pre>
-        </div>
-    </div>
-
-    <!-- toast -->
-    <div id="toast" class="toast" hidden></div>
-
-    <script src="/ui/main.js"></script>
+  <a class="skip" href="#app">Skip to content</a>
+  <header class="app-header">
+    <a class="brand" href="#/" aria-label="EU Health Data API home">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-text">
+        <span class="brand-title">EU Health Data API</span>
+        <span class="brand-sub">reference implementation · FHIR R4 · synthetic data</span>
+      </span>
+    </a>
+    <button class="nav-toggle btn btn-ghost" id="nav-toggle" aria-expanded="false" aria-controls="nav" aria-label="Menu"></button>
+    <nav id="nav" class="nav" aria-label="Sections">
+      <a href="#/" data-nav="story">Story</a>
+      <a href="#/patients" data-nav="patients">Patients</a>
+      <a href="#/documents" data-nav="documents">Documents</a>
+      <a href="#/coverage" data-nav="coverage">Coverage</a>
+      <a href="#/connect" data-nav="connect">Connect</a>
+      <a href="#/activity" data-nav="activity">Activity</a>
+      <label class="tech-toggle" title="Show the requests behind every screen by default">
+        <input type="checkbox" id="tech-toggle" /> <span>Technical</span>
+      </label>
+    </nav>
+  </header>
+  <main id="app" tabindex="-1">
+    <div class="spinner"><span class="dot"></span><span>Loading…</span></div>
+  </main>
+  <footer class="app-footer">
+    <span>Reference implementation of the <a href="https://build.fhir.org/ig/euridice-org/eu-health-data-api/en/" target="_blank" rel="noopener">HL7 Europe Health Data API</a> · Apache-2.0 · every patient is synthetic</span>
+    <span class="footer-tags" id="footer-tags"></span>
+  </footer>
+  <script type="module" src="/ui/app.js"></script>
 </body>
 </html>

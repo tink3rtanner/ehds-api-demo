@@ -10,6 +10,15 @@
     "text": "Appendectomy"
   },
   "id": "27079f9f-89dd-55de-ae03-0befd8238b20",
+  "meta": {
+    "tag": [
+      {
+        "code": "reference",
+        "display": "Reference example",
+        "system": "urn:ehds-demo:origin"
+      }
+    ]
+  },
   "performedDateTime": "2023-08-22",
   "resourceType": "Procedure",
   "status": "completed",

@@ -10,5 +10,14 @@
     "text": "Atorvastatin 10 mg tablet"
   },
   "id": "3426b33c-d67e-5647-a06a-e1354abb76a8",
+  "meta": {
+    "tag": [
+      {
+        "code": "reference",
+        "display": "Reference example",
+        "system": "urn:ehds-demo:origin"
+      }
+    ]
+  },
   "resourceType": "Medication"
 }

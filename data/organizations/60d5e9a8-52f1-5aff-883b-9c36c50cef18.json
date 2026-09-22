@@ -12,6 +12,15 @@
       "value": "ORG-0001"
     }
   ],
+  "meta": {
+    "tag": [
+      {
+        "code": "reference",
+        "display": "Reference example",
+        "system": "urn:ehds-demo:origin"
+      }
+    ]
+  },
   "name": "Demo General Hospital",
   "resourceType": "Organization",
   "telecom": [

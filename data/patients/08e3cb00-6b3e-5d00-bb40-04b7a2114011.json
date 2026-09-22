@@ -41,6 +41,13 @@
   "meta": {
     "profile": [
       "http://hl7.eu/fhir/StructureDefinition/Patient-eu"
+    ],
+    "tag": [
+      {
+        "code": "reference",
+        "display": "Reference example",
+        "system": "urn:ehds-demo:origin"
+      }
     ]
   },
   "name": [

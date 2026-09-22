@@ -3,6 +3,15 @@
     "collectedDateTime": "2024-03-01T08:30:00+01:00"
   },
   "id": "10dc5d9b-24d5-53a6-99d6-eb2b4602aaad",
+  "meta": {
+    "tag": [
+      {
+        "code": "reference",
+        "display": "Reference example",
+        "system": "urn:ehds-demo:origin"
+      }
+    ]
+  },
   "resourceType": "Specimen",
   "status": "available",
   "subject": {

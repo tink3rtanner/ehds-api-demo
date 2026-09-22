@@ -10,6 +10,15 @@
     "text": "Diagnostic procedure"
   },
   "id": "ae0cae82-dc68-5cad-a086-b36423ccb10d",
+  "meta": {
+    "tag": [
+      {
+        "code": "reference",
+        "display": "Reference example",
+        "system": "urn:ehds-demo:origin"
+      }
+    ]
+  },
   "performedDateTime": "2023-08-22",
   "resourceType": "Procedure",
   "status": "completed",

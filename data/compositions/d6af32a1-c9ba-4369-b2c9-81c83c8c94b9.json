@@ -41,6 +41,17 @@
   "meta": {
     "profile": [
       "http://hl7.eu/fhir/imaging/r5/StructureDefinition/Report-ImComposition"
+    ],
+    "tag": [
+      {
+        "code": "community",
+        "display": "Community submission",
+        "system": "urn:ehds-demo:origin"
+      },
+      {
+        "code": "74822fd5-f359-4e68-a49a-9c888f929aef",
+        "system": "urn:ehds-demo:submission"
+      }
     ]
   },
   "resourceType": "Composition",

@@ -167,7 +167,7 @@ def build_capability_statement() -> dict[str, Any]:
             "description": (
                 "EHDS Demo FHIR Server — synthetic data. SMART Backend Services. "
                 "Self-service client registration at /register-client. "
-                "Implementer guide at /ui/#/implement. OpenAPI at /openapi.json. "
+                "Start at GET / (discovery document) or /llms.txt. OpenAPI at /openapi.json. "
                 "Five EHDS priority categories compiled on demand at /Bundle/{uuid} "
                 "(see /spec/all-bundle-ids for the full uuid list, or "
                 "/Patient/{id}/$summary for the canonical IPS operation)."

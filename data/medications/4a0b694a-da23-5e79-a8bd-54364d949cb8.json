@@ -10,5 +10,14 @@
     "text": "Lisinopril 10 mg tablet"
   },
   "id": "4a0b694a-da23-5e79-a8bd-54364d949cb8",
+  "meta": {
+    "tag": [
+      {
+        "code": "reference",
+        "display": "Reference example",
+        "system": "urn:ehds-demo:origin"
+      }
+    ]
+  },
   "resourceType": "Medication"
 }

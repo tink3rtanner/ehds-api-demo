@@ -21,6 +21,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.fhir import store
+from app.fhir.origin import COMMUNITY, tag_origin
 from app.sources.epic_client import EpicClient
 from app.sources.epic_transform import (
     SUPPORTED,
@@ -120,6 +121,7 @@ def ingest_patient(
     counts: Counter[str] = Counter()
     if not dry_run:
         for r in locals_:
+            tag_origin(r, COMMUNITY)
             try:
                 store.write(r)
             except KeyError:

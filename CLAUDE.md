@@ -6,10 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Minimum-viable FHIR R4 server implementing the EU Health Data API (EHDS) IG.
 Synthetic data only. File-backed storage. SMART Backend Services auth (JWT
-client assertion). Five EHDS priority-category documents compiled on demand
+client assertion; **the FHIR surface always requires a bearer**, there is no
+anonymous read). Five EHDS priority-category documents compiled on demand
 as `Bundle.type=document` (patient-summary, laboratory-report, discharge-report,
-imaging-report, prescription). Ships a read-only viewer at `/ui` for
-connectathon demos.
+imaging-report, prescription). `GET /` is a discovery document for agents
+(`/llms.txt` in prose). Ships a human-facing UI at `/ui/` (vanilla ES modules,
+no build step) that tells the exchange story, runs a guided scenario with a
+real browser-side SMART client, and shows patients, documents, a coverage map
+and the audit log. **Read `docs/ui-design.md` before touching `static/`.**
 
 `README.md` has the IG-actor matrix and pretty-stack quickstart.
 `HANDOFF.md` has the full VPS bring-up runbook.
@@ -53,6 +57,8 @@ should run from this directory.
   HL7 EU document bundling pipeline. **The transformation log at the
   bottom is a primary deliverable** — keep it current as new categories
   validate clean.
+- `docs/ui-design.md` — the UI's purpose, decisions, information
+  architecture, component system and the backend surface it relies on
 
 ### Epic → EU transform pipeline
 
@@ -93,6 +99,17 @@ pytest -q -k 'match'                                    # by keyword
 # lint (CI fails on any error)
 ruff check app tests scripts
 ruff check --fix app tests scripts
+
+# browser smoke test (playwright; skips without chromium). point at a local
+# chromium with EHDS_CHROMIUM=/path/to/chrome when `playwright install` was not run
+pytest -q tests/test_ui_smoke.py
+
+# after any change to seeded data shapes: re-stamp origins on the live store
+python -m scripts.seed                # no --clean: keeps inbox/, submissions
+python -m scripts.backfill_origin     # tag non-seeded resources as community + link to inbox bundle
+
+# regenerate the coverage map asset (Natural Earth via world-atlas, stdlib only)
+python scripts/build_europe_map.py
 
 # seed deterministically (data/ accumulates ITI-105 submissions; reseed wipes it)
 python -m scripts.seed --clean
@@ -167,16 +184,63 @@ Our server advertises `fhirVersion 4.0.1` and produces R4-shaped bundles
 where it's `0..1`. Without the R4B import the validator silently rejects every
 valid R4 bundle and accepts garbage instead.
 
-### Auth has a dev-mode anonymous-read shortcut
+### Auth: a bearer is always required
 
-`app/auth/verify.py`: in `ENV=dev`, GET requests with **no** `Authorization`
-header read synthetic data anonymously (so QR codes resolve in a phone
-browser). Sending an `Authorization` header — even an invalid one — triggers
-strict validation. `ENV=prod` requires a bearer always.
+`app/auth/verify.py`: every FHIR request needs `Authorization: Bearer`, in
+`ENV=dev` as well as prod. (The old dev-mode anonymous-GET shortcut is gone;
+`docs/conformance-deviations.md` §2.) The UI mints itself a read-only token at
+`POST /ui/api/viewer-token` (client `ui-viewer`, scope `system/*.read`) and
+sends it on every FHIR call; the scenario and the Connect page register a
+real client in the browser (Web Crypto RSA key, `app/../static/lib/smart.js`)
+and mint via `/token` like any external client would.
 
 The signing-alg check honours the registered key's `kty`: RSA keys verify
 with `RSAAlgorithm`, EC keys with `ECAlgorithm`. Alg/kty mismatch is a 401
 with the reason in `error_description`.
+
+### Origin tags and country derivation — `app/fhir/origin.py`
+
+Every stored resource carries a `meta.tag` with system `urn:ehds-demo:origin`:
+`reference` (stamped by `scripts/seed.py`) or `community` (stamped by
+`naturalize_bundle` at every ingest boundary, together with a
+`urn:ehds-demo:submission|<inbox id>` tag). A submitter cannot claim
+`reference`; naturalize replaces whatever tag came in. The UI badges by these
+tags; `app/fhir/coverage.py` derives a submission's country from
+`Patient.address.country` (fallback custodian → any Organization → unknown)
+and its category from the DocumentReference/Composition LOINC type. No client
+data is used for attribution. `scripts/backfill_origin.py` migrates a store
+written before tagging existed.
+
+### EU-profile validation is asynchronous and never a gate
+
+`app/fhir/validation_queue.py`: `POST /` returns 201 first, then queues the
+as-submitted bundle for the java validator (`-ig` every `.tgz` under
+`settings.eu_packages_dir`, `-profile` per category from
+`capability.PROFILE_EU_BUNDLE`, `-tx n/a`, `-Duser.home=settings.validator_home`
+so the package cache survives the unit's PrivateTmp `$HOME`). Records live in
+`data/validation/<key>.json` with state `pending|validated|failed|unavailable`;
+`unavailable` is deliberately distinct from `failed`. Reference documents use
+the same path via `enqueue_reference`. Tests point `EHDS_VALIDATOR_JAR` at a
+missing file so nothing spawns java; `tests/test_validation_queue.py` injects
+a fake runner.
+
+### One source for every example URL — `app/fhir/examples.py`
+
+`live_examples()` resolves the reference patient and her bundle ids from the
+store at request time. `smart-configuration.example_endpoints`, `GET /`,
+`/llms.txt` and `/ui/api/examples` all read from it; the frontend never
+hard-codes an id (`tests/test_ui_api.py` greps `static/` for slot labels used
+as ids). If you add an example, add it there.
+
+### The UI never reads FHIR through a back door
+
+`app/routers/ui.py` serves only non-FHIR helpers (viewer token, examples,
+coverage, submissions, validation records, audit, build/server info, QR).
+Everything FHIR on screen went through the public routers with a bearer, and
+every page's "Requests behind this page" drawer lists those calls
+(`static/lib/api.js` records them). Static files are mounted by `app/main.py`
+at `/ui` **after** the API router so `/ui/api/*` wins. Both are absent when
+`ENV=prod`.
 
 ### Discovery is layered
 
@@ -230,8 +294,11 @@ request to both the python logger AND `data/audit/audit-YYYY-MM-DD.jsonl`.
 Secrets are scrubbed; the JWT-claimed `client_id` is parsed (without
 signature verification) so 401s still show who claimed to call.
 
-`/ui/api/audit` + `/ui/api/audit/stats` read the JSONL files;
-`/ui/#/logs` is the viewer.
+`app/audit_log.py` reads the JSONL files for `/ui/api/audit` +
+`/ui/api/audit/stats`; `/ui/#/activity` is the viewer. Entries are classified
+`fhir|ui|noise` (scanner probes for `wp-config.php` etc.) and queries default
+to `scope=fhir`. The `X-Demo-Run` header is persisted as `run` so the UI's
+scenario can show its own receipt.
 
 ## Things that are tracked vs not
 
@@ -246,8 +313,9 @@ Also gitignored: `data/clients.json` (runtime registry, seeded from
 
 ## CI
 
-`.github/workflows/ci.yml` runs ruff lint → `pytest -q` → fetch validator jar
-→ `pytest tests/test_profile_validation.py`. Lint failures block; the
-profile-validation step needs Java 21. Per-file ruff ignores live in
+`.github/workflows/ci.yml` runs ruff lint → `pytest -q` (minus the browser
+test) → `playwright install chromium` + `pytest tests/test_ui_smoke.py` →
+fetch validator jar → `pytest tests/test_profile_validation.py`. Lint failures
+block; the profile-validation step needs Java 21. Per-file ruff ignores live in
 `pyproject.toml` (E402 / B904 for tests with intentional late imports;
 S110/S310/S603/S607/B008 globally where the patterns are vetted).

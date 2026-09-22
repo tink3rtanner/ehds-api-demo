@@ -9,6 +9,15 @@
   "medicationReference": {
     "reference": "Medication/0624284e-3e73-5e41-a3b5-660fdc4ee122"
   },
+  "meta": {
+    "tag": [
+      {
+        "code": "reference",
+        "display": "Reference example",
+        "system": "urn:ehds-demo:origin"
+      }
+    ]
+  },
   "resourceType": "MedicationStatement",
   "status": "active",
   "subject": {

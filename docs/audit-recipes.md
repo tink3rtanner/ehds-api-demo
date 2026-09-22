@@ -5,7 +5,7 @@
 actually ask in incident response. Each file is one JSON line per
 request, written by `StructuredLogMiddleware` in `app/security.py`.
 
-The same data is browsable at https://ehds.joshpriebe.com/ui/#/logs.
+The same data is browsable at https://ehds.joshpriebe.com/ui/#/activity (scanner noise is hidden by default; `scope=all` shows everything).
 
 ## Common entry shape
 
@@ -139,8 +139,9 @@ a separate job; recent files are plain JSONL.)
 ## Programmatic API
 
 The UI viewer reads two endpoints:
-- `GET /ui/api/audit?from=…&to=…&client_id=…` — paginated entries
-- `GET /ui/api/audit/stats?date=…` — pre-aggregated counts
+- `GET /ui/api/audit?scope=fhir|ui|noise|all&client_id=…&patient=…&run=…&method=…&status_min=…&days=…&limit=…` — newest-first entries (`app/audit_log.py`)
+- `GET /ui/api/audit/stats?days=…&scope=…` — pre-aggregated counts, grouped by collapsed route (`/Patient/{id}`)
+- `run` is the `X-Demo-Run` header the UI's scenario sends, so one guided run can be pulled out as a receipt
 
 These accept the same parameters as the jq filters above.
 

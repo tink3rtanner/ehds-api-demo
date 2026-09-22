@@ -38,23 +38,15 @@ Naturalizing keeps the store in one consistent identity space (foreign
 ids don't collide with or pollute the canonical panel) while preserving a
 resolvable path back to the source.
 
-## 2. Dev-mode anonymous read
+## 2. Dev-mode anonymous read — removed
 
-In `ENV=dev`, **GET** requests with **no `Authorization` header at all**
-get a `dev-anon` principal with `system/*.read` scope (see
-`app/auth/verify.py`).
-
-**Spec says**: SMART Backend Services requires a bearer always.
-
-**We do**: shortcut for QR-code-on-phone demos so a fresh browser can
-resolve a Bundle URL without first running a `/token` flow. Sending
-*any* `Authorization` header — even `Bearer junk` — disables this and
-goes through strict checks.
-
-**Why**: phone browsers can't run the JWT client_assertion handshake.
-The shortcut is gated to GET only and to `ENV=dev`.
-
-`ENV=prod` enforces bearer always.
+Until 2026-09 an `ENV=dev` server let header-less GETs through with a
+`dev-anon` principal so QR codes could open raw JSON on a phone. That shortcut
+is gone: the FHIR surface requires a bearer in every environment. The UI
+carries its own read-only viewer token (`POST /ui/api/viewer-token`, scope
+`system/*.read`) and QR codes land on the UI, so nothing needs unauthenticated
+reads any more. A present-but-invalid bearer is still a 401; a missing one is
+now a 401 too (`WWW-Authenticate: Bearer`).
 
 ## 3. The "5th priority category" prescription was a modeling bug
 

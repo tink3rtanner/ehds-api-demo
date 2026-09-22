@@ -18,9 +18,12 @@ CATEGORIES = list(CATEGORY_TO_DOC_TYPE.keys())
 
 
 def _all_resource_files() -> list[Path]:
+    """every stored FHIR resource: only the store's type dirs, never the
+    bookkeeping dirs beside them (inbox/, audit/, validation/, validator-home/, keys/)."""
+    from app.fhir.store import _TYPE_TO_DIR
     out: list[Path] = []
     for sub in DATA.iterdir():
-        if sub.name == "inbox" or not sub.is_dir():
+        if not sub.is_dir() or sub.name not in _TYPE_TO_DIR.values():
             continue
         out.extend(sub.glob("*.json"))
     return out

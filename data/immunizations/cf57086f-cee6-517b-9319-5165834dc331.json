@@ -1,5 +1,14 @@
 {
   "id": "cf57086f-cee6-517b-9319-5165834dc331",
+  "meta": {
+    "tag": [
+      {
+        "code": "reference",
+        "display": "Reference example",
+        "system": "urn:ehds-demo:origin"
+      }
+    ]
+  },
   "occurrenceDateTime": "2023-03-15",
   "patient": {
     "reference": "Patient/08e3cb00-6b3e-5d00-bb40-04b7a2114011"

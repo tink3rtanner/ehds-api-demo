@@ -28,6 +28,15 @@
     "text": "Hypertensive disorder"
   },
   "id": "d97f998f-a30d-5fd3-b58f-af405c9e9676",
+  "meta": {
+    "tag": [
+      {
+        "code": "reference",
+        "display": "Reference example",
+        "system": "urn:ehds-demo:origin"
+      }
+    ]
+  },
   "recordedDate": "2023-04-15",
   "resourceType": "Condition",
   "subject": {

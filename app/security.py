@@ -95,7 +95,7 @@ class StructuredLogMiddleware(BaseHTTPMiddleware):
     """Logs every request as one JSON line, both to the python logger (->
     systemd journal) and to a dated JSONL file under settings.audit_log_dir.
 
-    The file is the source of truth for the /ui/#/audit page; the journal
+    The file is the source of truth for the /ui/#/activity page; the journal
     is the operational tail. Secret-bearing headers (Authorization, etc.) are
     never written, but the JWT *claimed* client_id is parsed and persisted.
     """
@@ -135,6 +135,9 @@ class StructuredLogMiddleware(BaseHTTPMiddleware):
             resp_bytes = int(response.headers.get("content-length") or 0)
         except (ValueError, AttributeError):
             resp_bytes = 0
+        # the UI's guided scenario tags its requests so the Activity page can
+        # show "the requests behind what you just watched" as one receipt
+        run = (request.headers.get("x-demo-run") or "")[:64] or None
         entry = {
             "ts": ts,
             "method": request.method,
@@ -147,6 +150,7 @@ class StructuredLogMiddleware(BaseHTTPMiddleware):
             "ua": request.headers.get("user-agent"),
             "req_bytes": req_bytes,
             "resp_bytes": resp_bytes,
+            "run": run,
         }
         line = json.dumps(entry, separators=(",", ":"))
         log.info(line)

@@ -10,5 +10,14 @@
     "text": "Albuterol 0.83 mg/mL inhalation solution"
   },
   "id": "1f229b53-cde2-5bd0-acda-c175c78cb667",
+  "meta": {
+    "tag": [
+      {
+        "code": "reference",
+        "display": "Reference example",
+        "system": "urn:ehds-demo:origin"
+      }
+    ]
+  },
   "resourceType": "Medication"
 }

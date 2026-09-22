@@ -10,5 +10,14 @@
     "text": "Amlodipine 5 mg tablet"
   },
   "id": "e6b0e7af-6497-5372-8b38-d2e2c4133d5f",
+  "meta": {
+    "tag": [
+      {
+        "code": "reference",
+        "display": "Reference example",
+        "system": "urn:ehds-demo:origin"
+      }
+    ]
+  },
   "resourceType": "Medication"
 }

@@ -33,6 +33,7 @@ dev = [
     "pytest-cov>=5",
     "httpx>=0.27",
     "ruff>=0.7",
+    "playwright>=1.47",  # tests/test_ui_smoke.py (skips when no chromium is installed)
 ]
 
 [tool.setuptools.packages.find]
@@ -60,7 +61,7 @@ ignore = ["E501", "S101", "S110", "S310", "S603", "S607", "B008"]
 [tool.ruff.lint.per-file-ignores]
 # tests have intentional late imports (after early env-setup at conftest top)
 # and embed test bearer / kid strings.
-"tests/**" = ["S105", "S106", "E402", "B904"]
+"tests/**" = ["S105", "S106", "E402", "B904", "S603", "S607"]
 # routers/auth do a lot of `raise HTTPException(...)` after caught exceptions
 # where chaining the original via `from e` would leak internal details; we
 # explicitly elide the chain.

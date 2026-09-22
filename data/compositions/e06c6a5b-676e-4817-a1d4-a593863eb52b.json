@@ -19,6 +19,17 @@
   "meta": {
     "profile": [
       "http://hl7.eu/fhir/laboratory/StructureDefinition/Composition-eu-lab"
+    ],
+    "tag": [
+      {
+        "code": "community",
+        "display": "Community submission",
+        "system": "urn:ehds-demo:origin"
+      },
+      {
+        "code": "12d7bc3e-3699-483e-8f08-887c88757791",
+        "system": "urn:ehds-demo:submission"
+      }
     ]
   },
   "resourceType": "Composition",

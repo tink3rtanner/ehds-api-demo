@@ -6,6 +6,15 @@
       "value": "DOC-00004"
     }
   ],
+  "meta": {
+    "tag": [
+      {
+        "code": "reference",
+        "display": "Reference example",
+        "system": "urn:ehds-demo:origin"
+      }
+    ]
+  },
   "name": [
     {
       "family": "Petrov",

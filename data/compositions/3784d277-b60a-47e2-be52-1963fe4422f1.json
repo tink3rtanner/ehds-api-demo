@@ -19,6 +19,17 @@
   "meta": {
     "profile": [
       "http://hl7.eu/fhir/hdr/StructureDefinition/composition-eu-hdr"
+    ],
+    "tag": [
+      {
+        "code": "community",
+        "display": "Community submission",
+        "system": "urn:ehds-demo:origin"
+      },
+      {
+        "code": "d5673dd7-e2d1-4bb8-b9fa-59b084cdc4c8",
+        "system": "urn:ehds-demo:submission"
+      }
     ]
   },
   "resourceType": "Composition",

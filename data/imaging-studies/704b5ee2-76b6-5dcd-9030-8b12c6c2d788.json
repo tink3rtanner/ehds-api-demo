@@ -1,5 +1,14 @@
 {
   "id": "704b5ee2-76b6-5dcd-9030-8b12c6c2d788",
+  "meta": {
+    "tag": [
+      {
+        "code": "reference",
+        "display": "Reference example",
+        "system": "urn:ehds-demo:origin"
+      }
+    ]
+  },
   "modality": [
     {
       "code": "CR",

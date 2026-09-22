@@ -22,6 +22,15 @@
   "effectiveDateTime": "2024-03-01",
   "id": "8447f49e-e90b-5f9a-b343-6f046281257c",
   "issued": "2024-03-01T12:00:00+01:00",
+  "meta": {
+    "tag": [
+      {
+        "code": "reference",
+        "display": "Reference example",
+        "system": "urn:ehds-demo:origin"
+      }
+    ]
+  },
   "performer": [
     {
       "reference": "Practitioner/dd7e4fb9-a959-5ab5-aa3e-8b65aec0e122"

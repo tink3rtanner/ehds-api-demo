@@ -19,7 +19,7 @@ This file is the bridge between the provisioning agent (Hetzner brings up the bo
 
 ## What this demo is (1-paragraph executive)
 
-Open-source FHIR R4 server implementing the [EU Health Data API IG](https://build.fhir.org/ig/euridice-org/eu-health-data-api/en/) end-to-end. Synthetic data only. Ten EU-flavoured patients with full clinical compartments. Four priority-category documents compiled on demand (Patient Summary, Lab, Discharge, Imaging) as `Bundle.type=document` with the correct HL7 EU profile URLs. SMART Backend Services auth (JWT client assertion). PDQm full search + `$match`. ITI-67/68/105 transactions. 1087 passing tests. Also ships a pretty read-only viewer at `/ui` for connectathon demos — patient panel, document viewer, server stats, live curl snippets with a fresh dev bearer.
+Open-source FHIR R4 server implementing the [EU Health Data API IG](https://build.fhir.org/ig/euridice-org/eu-health-data-api/en/) end-to-end. Synthetic data only. Ten EU-flavoured reference patients with full clinical compartments. Five priority-category documents compiled on demand as `Bundle.type=document` with the correct HL7 EU profile URLs. SMART Backend Services auth (JWT client assertion; the FHIR surface always requires a bearer). PDQm full search + `$match`. ITI-67/68/105 transactions. Submissions are validated asynchronously against the EU profiles (badge, not gate) and attributed to the patient's country on a coverage map. `GET /` is a discovery document for agents; the human UI at `/ui/` tells the exchange story, runs a six-step live scenario with a real browser-side SMART client, and shows patients, documents, coverage and the audit log. Design: `docs/ui-design.md`.
 
 ## First-deploy runbook (after the box is up + DNS resolves)
 
@@ -39,8 +39,13 @@ source .venv/bin/activate
 pip install --upgrade pip
 pip install -e ".[dev]"
 
-# 3. (optional but recommended) cache the HL7 validator jar (~70MB)
+# 3. (optional but recommended) cache the HL7 validator jar (~70MB) and the
+#    HL7 Europe IG packages the async EU-profile validation needs. Without
+#    the packages every submission's badge reads "validator unavailable".
 ./fetch_validator.sh
+mkdir -p .cache/eu-packages   # copy hl7.fhir.eu.{base,eps,laboratory,hdr,imaging,mpd,extensions,health-data-api}.tgz here
+#    the validator's own package cache (r4.core, terminology, …) persists under
+#    data/validator-home/ (EHDS_VALIDATOR_HOME); the first run downloads it.
 
 # 4. seed data IS already in the repo. if you want a clean re-seed:
 #    python -m scripts.seed --clean
@@ -52,7 +57,11 @@ sudo nano /etc/ehds-api/env
 # REQUIRED edits in env:
 #   EHDS_BASE_URL=https://your.domain
 #   EHDS_ISSUER=https://your.domain
-#   ENV=prod        # disables /docs, /openapi.json, /ui (the viewer is dev-only)
+#   ENV=prod        # disables /docs, /openapi.json and the whole /ui (UI + its helper API)
+# optional:
+#   EHDS_EU_PACKAGES_DIR=/srv/ehds-api/.cache/eu-packages   # HL7 EU IG .tgz packages for validation
+#   EHDS_VALIDATOR_HOME=/srv/ehds-api/data/validator-home   # java user.home for the validator's package cache
+#   EHDS_VALIDATION_TIMEOUT_SECONDS=600
 # leave other defaults
 
 # 6. install systemd unit
@@ -75,12 +84,21 @@ curl -s  https://your.actual.domain/.well-known/smart-configuration | jq .token_
 
 ## Two demo modes
 
-| mode      | how                                       | what the viewer at /ui does                 |
+| mode      | how                                       | what `/ui` does                             |
 | --------- | ----------------------------------------- | ------------------------------------------- |
-| **dev**   | `ENV=dev` in env file (default)           | `/ui` serves the demo viewer + endpoints page with live dev token |
-| **prod**  | `ENV=prod` in env file                    | `/ui` returns 404 (only FHIR REST surface is public) |
+| **dev**   | `ENV=dev` in env file (default)           | serves the UI and its helper API (`/ui/api/*`: read-only viewer token, coverage, audit, validation badges) |
+| **prod**  | `ENV=prod` in env file                    | `/ui` returns 404; `GET /` still serves the discovery JSON |
 
-For the connectathon, recommend **dev** mode behind a non-public domain (or basic-auth in front of caddy) so attendees can see the pretty UI. For a public conformance test target, use **prod** so only the FHIR endpoints are reachable.
+In both modes the FHIR surface requires a bearer: there is no anonymous read.
+The live demo runs `ENV=dev` deliberately so the UI is public; the only
+privileged thing the UI layer can do is mint a `system/*.read` token.
+
+After a deploy that changes stored data shapes, re-tag origins once:
+
+```bash
+python -m scripts.seed                 # re-stamps the reference panel (no --clean: keeps inbox/)
+python -m scripts.backfill_origin      # tags everything else as community, links to inbox bundles
+```
 
 ## Register a client (so a peer FHIR server can authenticate)
 

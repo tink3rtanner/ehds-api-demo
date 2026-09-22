@@ -34,6 +34,7 @@ from app.fhir.ids import (
     patient_id,
     practitioner_id,
 )
+from app.fhir.origin import REFERENCE, tag_origin
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_DATA_DIR = REPO_ROOT / "data"
@@ -516,6 +517,9 @@ def _ensure_dirs(base: Path) -> None:
 
 
 def _w(base: Path, sub: str, res: dict) -> None:
+    # every seeded resource is a *reference example* — the UI badges it as
+    # such and the coverage map draws it hatched rather than solid.
+    tag_origin(res, REFERENCE)
     (base / sub / f"{res['id']}.json").write_text(json.dumps(res, indent=2, sort_keys=True))
 
 

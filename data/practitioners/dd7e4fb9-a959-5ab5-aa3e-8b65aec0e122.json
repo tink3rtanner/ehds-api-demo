@@ -6,6 +6,15 @@
       "value": "DOC-00008"
     }
   ],
+  "meta": {
+    "tag": [
+      {
+        "code": "reference",
+        "display": "Reference example",
+        "system": "urn:ehds-demo:origin"
+      }
+    ]
+  },
   "name": [
     {
       "family": "Lopez",

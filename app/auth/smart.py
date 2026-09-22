@@ -121,10 +121,8 @@ def _verify_client_assertion(assertion: str) -> tuple[str, list[str]]:
 @router.get("/.well-known/smart-configuration")
 def smart_configuration() -> JSONResponse:
     base = settings.base_url
-    # pick a real working example patient.id (the canonical uuid for slot p-001)
-    # so the example URLs we publish actually return 200, not 404.
-    from app.fhir.ids import patient_id as _patient_id
-    example_pid = _patient_id("p-001")
+    from app.fhir.examples import live_examples
+    ex = live_examples()
     body = {
         "issuer": settings.issuer,
         "jwks_uri": base + "/.well-known/jwks.json",
@@ -153,36 +151,19 @@ def smart_configuration() -> JSONResponse:
         "fhir_base_url": base,
         "fhir_metadata_endpoint": base + "/metadata",
         "openapi_endpoint": base + "/openapi.json",
-        "documentation_url": base + "/ui/#/implement",
-        # every example URL here is a real working URL — paste it in a browser
-        # (in ENV=dev) and you get JSON back. resource ids are uuids
-        # (Patient, Observation, MedicationRequest etc. — everything).
-        # The slot label `p-001` is only referenced as the *value* of a
-        # FHIR token search (identifier=system|value or patient.identifier=
-        # system|value) — never as a resource id.
-        "example_endpoints": {
-            "lookup_patient_by_slot":              base + "/Patient?identifier=urn:ehds-demo:slot|p-001",
-            "read_patient":                        base + f"/Patient/{example_pid}",
-            "patient_summary_operation":           base + f"/Patient/{example_pid}/$summary",
-            "patient_everything":                  base + f"/Patient/{example_pid}/$everything",
-            "observations_for_patient":            base + f"/Observation?patient={example_pid}",
-            "observations_by_patient_identifier":  base + "/Observation?patient.identifier=urn:ehds-demo:slot|p-001",
-            "document_search":                     base + f"/DocumentReference?patient={example_pid}",
-            "document_search_by_identifier":       base + "/DocumentReference?patient.identifier=urn:ehds-demo:slot|p-001",
-            "all_bundle_uuids":                    base + "/spec/all-bundle-ids",
-            "submit_iti105":                       base + "/  (POST Bundle.type=transaction, requires system/Bundle.write)",
-        },
-        # patient.id is a uuid; the demo panel slot labels (p-001 etc.) are
-        # preserved as Patient.identifier with system 'urn:ehds-demo:slot' so
-        # callers can resolve a slot to its uuid via PDQm identifier-search.
-        # ALWAYS qualify the identifier with its system (the `system|value`
-        # form below) — searching by value alone is brittle and collides
-        # across systems.
+        "documentation_url": base + "/llms.txt",
+        "discovery_document": base + "/",
+        # every example URL here is a real working URL, resolved from the store
+        # at request time (app.fhir.examples is the single source of truth,
+        # shared with GET / and /llms.txt). resource ids are uuids; the slot
+        # label `p-001` only ever appears as the *value* of an identifier
+        # token search, never as a resource id.
+        "example_endpoints": ex["endpoints"],
         "example_patient_lookup": {
-            "slot_identifier_system": "urn:ehds-demo:slot",
+            "slot_identifier_system": ex["slot_identifier_system"],
             "slot_values":            ["p-001", "p-002", "p-003", "p-004", "p-005",
                                        "p-006", "p-007", "p-008", "p-009", "p-010"],
-            "resolve_via":            base + "/Patient?identifier=urn:ehds-demo:slot|p-001",
+            "resolve_via":            ex["endpoints"].get("lookup_patient_by_slot"),
             "form":                   "?identifier={system}|{value}",
         },
         "priority_categories": ["patient-summary", "laboratory-report", "discharge-report",

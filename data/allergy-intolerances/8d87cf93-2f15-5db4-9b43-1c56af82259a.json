@@ -22,6 +22,15 @@
   },
   "criticality": "low",
   "id": "8d87cf93-2f15-5db4-9b43-1c56af82259a",
+  "meta": {
+    "tag": [
+      {
+        "code": "reference",
+        "display": "Reference example",
+        "system": "urn:ehds-demo:origin"
+      }
+    ]
+  },
   "patient": {
     "reference": "Patient/fc282042-de09-5096-b1d0-30458f7deae7"
   },

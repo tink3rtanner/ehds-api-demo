@@ -12,6 +12,15 @@
       "value": "ORG-0003"
     }
   ],
+  "meta": {
+    "tag": [
+      {
+        "code": "reference",
+        "display": "Reference example",
+        "system": "urn:ehds-demo:origin"
+      }
+    ]
+  },
   "name": "EHDS Demo University Hospital",
   "resourceType": "Organization",
   "telecom": [

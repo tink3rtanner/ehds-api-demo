@@ -69,12 +69,18 @@ async def test_token_replay_protection(client, make_assertion):
 
 
 async def test_protected_endpoint_with_bad_bearer(client, pid):
-    """Sending an Authorization header forces strict validation in any env.
-    A bad bearer => 401. (In ENV=dev the server allows truly-anonymous GETs
-    for the synthetic-data demo — see app/auth/verify.py — but a present-
-    but-invalid bearer never silently passes.)"""
+    """A present-but-invalid bearer is a 401 in every environment."""
     r = await client.get(f"/Patient/{pid}", headers={"Authorization": "Bearer not-a-real-jwt"})
     assert r.status_code == 401
+
+
+async def test_protected_endpoint_without_bearer_is_401_even_in_dev(client, pid):
+    """The FHIR surface is authorised, full stop. There is no anonymous-read
+    shortcut any more: the UI carries its own read-only viewer token and QR
+    codes land on the UI, so nothing needs unauthenticated GETs."""
+    r = await client.get(f"/Patient/{pid}")
+    assert r.status_code == 401
+    assert r.headers.get("www-authenticate", "").lower().startswith("bearer")
 
 
 async def test_protected_endpoint_with_bearer(client, auth_headers, pid):

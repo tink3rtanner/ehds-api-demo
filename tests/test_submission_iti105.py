@@ -73,3 +73,32 @@ async def test_submit_requires_scope(client, bearer):
     # bearer has Bundle.write scope; this case re-checks that path.
     # tested separately in security tests too.
     pass
+
+
+async def test_submitted_resources_are_tagged_community_and_linked_to_submission(client, auth_headers):
+    from app.fhir.origin import origin_of
+    r = await client.post("/", headers={**auth_headers, "Content-Type": "application/fhir+json"},
+                          json=_build_submission_bundle())
+    assert r.status_code == 201, r.text
+    submission_id = r.json()["id"]
+    loc = r.json()["entry"][0]["response"]["location"]
+    res = (await client.get(f"/{loc}", headers=auth_headers)).json()
+    o = origin_of(res)
+    assert o["kind"] == "community"
+    assert o["submission"] == submission_id
+    # the receipt is immediately visible to the UI's submissions endpoint
+    subs = await client.get("/ui/api/submissions")
+    assert subs.status_code == 200
+    mine = [s for s in subs.json()["submissions"] if s["id"] == submission_id]
+    assert len(mine) == 1
+    assert mine[0]["category"] == "patient-summary"
+    assert mine[0]["validation"]["state"] in ("pending", "unavailable", "validated", "failed")
+
+
+async def test_reference_panel_is_tagged_reference(client, auth_headers, pid):
+    from app.fhir.origin import origin_of
+    p = (await client.get(f"/Patient/{pid}", headers=auth_headers)).json()
+    assert origin_of(p)["kind"] == "reference"
+    obs = (await client.get(f"/Observation?patient={pid}", headers=auth_headers)).json()
+    assert obs["total"] > 0
+    assert all(origin_of(e["resource"])["kind"] == "reference" for e in obs["entry"])

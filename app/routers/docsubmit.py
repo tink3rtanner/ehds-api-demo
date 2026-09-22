@@ -13,6 +13,9 @@ we:
      mirror them into the store so they're queryable
   4. return the bundle with the server-assigned (local) ids per FHIR
      transaction-response semantics
+  5. queue asynchronous EU-profile validation of the as-submitted bundle
+     (app.fhir.validation_queue) — the result is a badge on the UI's
+     Coverage page, never a reason to reject
 
 Naturalizing on the way in (rather than trusting foreign ids verbatim) keeps
 the store in one consistent identity space and stops external submissions from
@@ -33,6 +36,7 @@ from app.config import settings
 from app.fhir import store
 from app.fhir.naturalize import naturalize_bundle
 from app.fhir.validate import structural_validate
+from app.fhir.validation_queue import enqueue_submission
 
 router = APIRouter()
 
@@ -69,9 +73,12 @@ async def submit_bundle(
     # naturalize into local identity (local ids + rewritten refs + source
     # back-links) and mirror into the store
     written: list[str] = []
-    for res in naturalize_bundle(body):
+    for res in naturalize_bundle(body, submission_id=body["id"]):
         store.write(res)
         written.append(f"{res['resourceType']}/{res['id']}")
+
+    # EU-profile validation is a badge, never a gate: queue it after the 201.
+    enqueue_submission(body["id"])
 
     return JSONResponse(
         status_code=201,

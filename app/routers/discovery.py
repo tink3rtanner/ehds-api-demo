@@ -156,7 +156,7 @@ async def register_client_help() -> JSONResponse:
             "capability_statement": base + "/metadata",
             "openapi": base + "/openapi.json",
             "jwks": base + "/.well-known/jwks.json",
-            "implementer_guide": base + "/ui/#/implement",
+            "implementer_guide": base + "/llms.txt",
         },
     })
 

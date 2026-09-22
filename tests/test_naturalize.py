@@ -150,3 +150,34 @@ async def test_source_link_404_when_no_source(client, auth_headers, pid):
                          headers=auth_headers, follow_redirects=False)
     assert r.status_code == 404
     assert r.json()["resourceType"] == "OperationOutcome"
+
+
+# ---------------- origin tags at the ingest boundary ----------------
+
+def test_naturalize_tags_every_resource_as_community_with_submission_id():
+    from app.fhir.origin import origin_of
+    bundle = {
+        "resourceType": "Bundle", "type": "transaction", "id": "sub-42",
+        "entry": [
+            {"fullUrl": "urn:uuid:p1", "resource": {"resourceType": "Patient", "id": "p1"}},
+            {"fullUrl": "urn:uuid:c1", "resource": {"resourceType": "Condition", "id": "c1",
+                                                      "subject": {"reference": "urn:uuid:p1"}}},
+        ],
+    }
+    out = naturalize_bundle(bundle, submission_id="sub-42")
+    assert len(out) == 2
+    for r in out:
+        assert origin_of(r) == {"kind": "community", "submission": "sub-42", "source": None}
+    # the caller's bundle is untouched (it is persisted as-submitted evidence)
+    assert "meta" not in bundle["entry"][0]["resource"]
+
+
+def test_naturalize_overrides_a_claimed_reference_tag():
+    """A submitter cannot smuggle a resource in as a reference example."""
+    from app.fhir.origin import ORIGIN_TAG_SYSTEM, origin_of
+    bundle = {"resourceType": "Bundle", "type": "transaction", "entry": [
+        {"resource": {"resourceType": "Patient", "id": "p1",
+                      "meta": {"tag": [{"system": ORIGIN_TAG_SYSTEM, "code": "reference"}]}}},
+    ]}
+    (p,) = naturalize_bundle(bundle, submission_id="s")
+    assert origin_of(p)["kind"] == "community"

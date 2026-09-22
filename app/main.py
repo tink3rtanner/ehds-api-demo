@@ -2,36 +2,47 @@
 from __future__ import annotations
 
 import logging
+from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.auth.smart import router as smart_router
 from app.config import settings
 from app.security import install as install_security
 
+STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+
+
+@asynccontextmanager
+async def _lifespan(_app: FastAPI):
+    # re-queue EU-profile validations a previous process left `pending`
+    from app.fhir.validation_queue import resume_pending
+    try:
+        n = resume_pending()
+        if n:
+            logging.getLogger("ehds").info("re-queued %d stale validation job(s)", n)
+    except Exception:  # noqa: BLE001 — never block startup on a bookkeeping pass
+        logging.getLogger("ehds").exception("resume_pending failed")
+    yield
+
 
 def _build_app() -> FastAPI:
     app = FastAPI(
-        title="EHDS Demo FHIR Server",
-        version="0.1.0",
+        title="EU Health Data API — reference implementation",
+        version="0.2.0",
         docs_url=None if settings.is_prod else "/docs",
         redoc_url=None,
         openapi_url=None if settings.is_prod else "/openapi.json",
+        lifespan=_lifespan,
     )
     install_security(app)
 
     @app.get("/healthz")
     def healthz() -> dict[str, str]:
         return {"status": "ok"}
-
-    # dev convenience: GET / -> /ui (root POST is reserved for ITI-105 submission)
-    if not settings.is_prod:
-        from fastapi.responses import RedirectResponse
-
-        @app.get("/", include_in_schema=False)
-        def _root_redirect() -> RedirectResponse:
-            return RedirectResponse(url="/ui", status_code=307)
 
     app.include_router(smart_router)
 
@@ -45,8 +56,10 @@ def _build_app() -> FastAPI:
     from app.routers import metadata as metadata_router
     from app.routers import patient as patient_router
     from app.routers import resource as resource_router
+    from app.routers import root as root_router
     from app.routers import source_link as source_link_router
 
+    app.include_router(root_router.router)  # GET / discovery document + /llms.txt
     app.include_router(metadata_router.router)
     app.include_router(patient_router.router)
     app.include_router(everything_router.router)
@@ -55,14 +68,17 @@ def _build_app() -> FastAPI:
     app.include_router(binary_router.router)  # legacy 301 -> /Bundle/{id}
     app.include_router(source_link_router.router)  # /{Type}/{id}/$source back-link
     app.include_router(resource_router.router)
-    app.include_router(docsubmit_router.router)
+    app.include_router(docsubmit_router.router)  # POST / (ITI-105)
     app.include_router(discovery_router.router)  # /register-client + /spec/*
     app.include_router(epic_import_router.router)  # /Epic/$import
 
-    # dev-only UI (gated on ENV != prod inside the router)
+    # the human-facing UI: JSON helpers first (so /ui/api/* wins), then the
+    # static ES-module app. both disabled in prod.
     if not settings.is_prod:
         from app.routers import ui as ui_router
         app.include_router(ui_router.router)
+        if STATIC_DIR.exists():
+            app.mount("/ui", StaticFiles(directory=str(STATIC_DIR), html=True), name="ui")
 
     return app
 

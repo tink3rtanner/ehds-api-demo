@@ -3,6 +3,15 @@
   "medicationReference": {
     "reference": "Medication/1f229b53-cde2-5bd0-acda-c175c78cb667"
   },
+  "meta": {
+    "tag": [
+      {
+        "code": "reference",
+        "display": "Reference example",
+        "system": "urn:ehds-demo:origin"
+      }
+    ]
+  },
   "quantity": {
     "unit": "tablet",
     "value": 30

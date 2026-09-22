@@ -28,6 +28,15 @@
     "text": "Diabetes mellitus type 2"
   },
   "id": "3a8751d9-abab-5ef8-b45c-dfa72d2ceb4a",
+  "meta": {
+    "tag": [
+      {
+        "code": "reference",
+        "display": "Reference example",
+        "system": "urn:ehds-demo:origin"
+      }
+    ]
+  },
   "recordedDate": "2023-04-15",
   "resourceType": "Condition",
   "subject": {

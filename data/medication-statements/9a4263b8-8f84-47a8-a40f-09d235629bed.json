@@ -113,6 +113,17 @@
   "meta": {
     "profile": [
       "http://hl7.eu/fhir/hdr/StructureDefinition/medicationStatement-eu-hdr"
+    ],
+    "tag": [
+      {
+        "code": "community",
+        "display": "Community submission",
+        "system": "urn:ehds-demo:origin"
+      },
+      {
+        "code": "2fdb8b70-e8fa-41aa-aead-085fa91588d0",
+        "system": "urn:ehds-demo:submission"
+      }
     ]
   },
   "resourceType": "MedicationStatement",
