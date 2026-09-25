@@ -186,13 +186,12 @@ valid R4 bundle and accepts garbage instead.
 
 ### Auth: a bearer is always required
 
-`app/auth/verify.py`: every FHIR request needs `Authorization: Bearer`, in
-`ENV=dev` as well as prod. (The old dev-mode anonymous-GET shortcut is gone;
-`docs/conformance-deviations.md` §2.) The UI mints itself a read-only token at
-`POST /ui/api/viewer-token` (client `ui-viewer`, scope `system/*.read`) and
-sends it on every FHIR call; the scenario and the Connect page register a
-real client in the browser (Web Crypto RSA key, `app/../static/lib/smart.js`)
-and mint via `/token` like any external client would.
+`app/auth/verify.py`: every FHIR request needs `Authorization: Bearer` in
+every environment (the dev-mode anonymous GET was removed; see
+`docs/conformance-deviations.md` §2). The UI gets a read-only token from
+`POST /ui/api/viewer-token` (client `ui-viewer`, scope `system/*.read`). The
+scenario and the Connect page register a client in the browser (Web Crypto
+RSA key, `static/lib/smart.js`) and mint via `/token`.
 
 The signing-alg check honours the registered key's `kty`: RSA keys verify
 with `RSAAlgorithm`, EC keys with `ECAlgorithm`. Alg/kty mismatch is a 401
@@ -211,7 +210,7 @@ and its category from the DocumentReference/Composition LOINC type. No client
 data is used for attribution. `scripts/backfill_origin.py` migrates a store
 written before tagging existed.
 
-### EU-profile validation is asynchronous and never a gate
+### EU-profile validation runs after acceptance
 
 `app/fhir/validation_queue.py`: `POST /` returns 201 first, then queues the
 as-submitted bundle for the java validator (`-ig` every `.tgz` under
@@ -228,7 +227,7 @@ the same path via `enqueue_reference`. Tests point `EHDS_VALIDATOR_JAR` at a
 missing file so nothing spawns java; `tests/test_validation_queue.py` injects
 a fake runner.
 
-### One source for every example URL — `app/fhir/examples.py`
+### Example URLs come from `app/fhir/examples.py`
 
 `live_examples()` resolves the reference patient and her bundle ids from the
 store at request time. `smart-configuration.example_endpoints`, `GET /`,
@@ -236,15 +235,14 @@ store at request time. `smart-configuration.example_endpoints`, `GET /`,
 hard-codes an id (`tests/test_ui_api.py` greps `static/` for slot labels used
 as ids). If you add an example, add it there.
 
-### The UI never reads FHIR through a back door
+### The UI reads FHIR through the public API
 
 `app/routers/ui.py` serves only non-FHIR helpers (viewer token, examples,
-coverage, submissions, validation records, audit, build/server info, QR).
-Everything FHIR on screen went through the public routers with a bearer, and
-every page's "Requests behind this page" drawer lists those calls
-(`static/lib/api.js` records them). Static files are mounted by `app/main.py`
-at `/ui` **after** the API router so `/ui/api/*` wins. Both are absent when
-`ENV=prod`.
+coverage, submissions, validation records, audit, build/server info, QR). The
+UI reads FHIR through the public routers with a bearer; `static/lib/api.js`
+records each call and every page lists them at the bottom. `app/main.py`
+mounts `static/` at `/ui` after the API router so `/ui/api/*` takes
+precedence. Both are disabled when `ENV=prod`.
 
 ### Discovery is layered
 

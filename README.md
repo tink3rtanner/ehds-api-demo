@@ -9,13 +9,12 @@ IHE MHD document search / retrieve / publish, IPA resource access.
 Synthetic data only. Single-process deployment, file-backed storage. Documents
 are compiled on demand from atomic FHIR resources.
 
-**Point an agent (or curl) at the base URL.** `GET /` answers with a discovery
-document and `/llms.txt` says the same in prose; both carry live example URLs.
-A browser at the same URL lands on the human-facing UI (`/ui/`): the exchange
-story, a six-step guided scenario that runs a real SMART client in the
-browser, the reference patients, the documents with their EU-profile
-validation badge, a coverage map of who has submitted example data for which
-country, and the request audit log. Design and rationale: [`docs/ui-design.md`](docs/ui-design.md).
+`GET /` returns a discovery document for agents and `/llms.txt` the same in
+prose, both with working example URLs. A browser at the same URL opens the UI
+(`/ui/`): a six-step scenario that runs a real SMART client in the browser, the
+reference patients, the documents with their EU-profile validation badge, a
+map of which countries have submitted example data, and the request log.
+See [`docs/ui-design.md`](docs/ui-design.md).
 
 ## Quick start
 
@@ -44,9 +43,9 @@ curl http://localhost:8000/.well-known/smart-configuration | jq .     # SMART co
 open http://localhost:8000/ui/                                        # the UI
 ```
 
-The FHIR surface always needs a bearer. The UI mints itself a read-only one
-(`POST /ui/api/viewer-token`); the Connect page and the scenario show the full
-register → sign assertion → `/token` flow in the browser.
+Every FHIR request needs a bearer. The UI uses a read-only one from
+`POST /ui/api/viewer-token`; the Connect page and the scenario register a
+client and mint a token in the browser.
 
 ## What it implements
 
@@ -67,10 +66,10 @@ Priority categories produced as `Bundle.type=document`:
 - imaging-report    (HL7 EU Imaging)
 - prescription      (base R4 document; the R4 MPD IG has no bundle profile)
 
-Every ITI-105 submission is accepted first and then validated asynchronously
-against the HL7 Europe profile for its category with the official java
-validator; the result is a badge on the Coverage page, never a reason for
-rejection. Submissions count for the country in the patient's address; no
+The server accepts every ITI-105 submission, then validates it against the
+HL7 Europe profile for its category with the HL7 java validator and shows the
+result on the Coverage page. A failed validation does not reject the
+submission. A submission counts for the country in the patient's address; no
 client details are collected or shown.
 
 See [`HANDOFF.md`](HANDOFF.md) for the VPS bring-up runbook and

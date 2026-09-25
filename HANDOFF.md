@@ -19,7 +19,7 @@ This file is the bridge between the provisioning agent (Hetzner brings up the bo
 
 ## What this demo is (1-paragraph executive)
 
-Open-source FHIR R4 server implementing the [EU Health Data API IG](https://build.fhir.org/ig/euridice-org/eu-health-data-api/en/) end-to-end. Synthetic data only. Ten EU-flavoured reference patients with full clinical compartments. Five priority-category documents compiled on demand as `Bundle.type=document` with the correct HL7 EU profile URLs. SMART Backend Services auth (JWT client assertion; the FHIR surface always requires a bearer). PDQm full search + `$match`. ITI-67/68/105 transactions. Submissions are validated asynchronously against the EU profiles (badge, not gate) and attributed to the patient's country on a coverage map. `GET /` is a discovery document for agents; the human UI at `/ui/` tells the exchange story, runs a six-step live scenario with a real browser-side SMART client, and shows patients, documents, coverage and the audit log. Design: `docs/ui-design.md`.
+Open-source FHIR R4 server implementing the [EU Health Data API IG](https://build.fhir.org/ig/euridice-org/eu-health-data-api/en/) end-to-end. Synthetic data only. Ten EU-flavoured reference patients with full clinical compartments. Five priority-category documents compiled on demand as `Bundle.type=document` with the correct HL7 EU profile URLs. SMART Backend Services auth (JWT client assertion; the FHIR surface always requires a bearer). PDQm full search + `$match`. ITI-67/68/105 transactions. Submissions are validated against the EU profiles after acceptance and counted for the patient's country on a coverage map. `GET /` is a discovery document for agents; the UI at `/ui/` runs a six-step scenario with a SMART client in the browser and shows patients, documents, coverage and the audit log. Design: `docs/ui-design.md`.
 
 ## First-deploy runbook (after the box is up + DNS resolves)
 
@@ -90,9 +90,9 @@ curl -s  https://your.actual.domain/.well-known/smart-configuration | jq .token_
 | **dev**   | `ENV=dev` in env file (default)           | serves the UI and its helper API (`/ui/api/*`: read-only viewer token, coverage, audit, validation badges) |
 | **prod**  | `ENV=prod` in env file                    | `/ui` returns 404; `GET /` still serves the discovery JSON |
 
-In both modes the FHIR surface requires a bearer: there is no anonymous read.
-The live demo runs `ENV=dev` deliberately so the UI is public; the only
-privileged thing the UI layer can do is mint a `system/*.read` token.
+Every FHIR request needs a bearer in both modes. The live demo runs
+`ENV=dev` so the UI is public; the UI layer can only mint a `system/*.read`
+token.
 
 After a deploy that changes stored data shapes, re-tag origins once:
 

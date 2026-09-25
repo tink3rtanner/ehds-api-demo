@@ -1,16 +1,15 @@
 // Router + boot. Views live in views/*.js and export render(params) -> Node|Promise<Node>.
-// Shared state that crosses views (examples, server info, technical mode) is
-// loaded here and passed in; views never read globals.
+// Shared state that crosses views (examples, server info) is loaded here and
+// passed in; views never read globals.
 
 import { el, clear } from './lib/dom.js';
 import { icon } from './lib/icons.js';
-import { spinner, errorBox, drawer, technicalMode, setTechnicalMode } from './lib/components.js';
+import { spinner, errorBox, drawer } from './lib/components.js';
 import * as api from './lib/api.js';
 
 const app = document.getElementById('app');
 const navToggle = document.getElementById('nav-toggle');
 const nav = document.getElementById('nav');
-const techToggle = document.getElementById('tech-toggle');
 
 navToggle.appendChild(icon('menu', { size: 20 }));
 navToggle.addEventListener('click', () => {
@@ -18,10 +17,6 @@ navToggle.addEventListener('click', () => {
   navToggle.setAttribute('aria-expanded', String(open));
 });
 nav.addEventListener('click', (e) => { if (e.target.closest('a')) nav.classList.remove('is-open'); });
-
-techToggle.checked = technicalMode();
-setTechnicalMode(techToggle.checked);
-techToggle.addEventListener('change', () => setTechnicalMode(techToggle.checked));
 
 // ---------- shared context ----------
 
@@ -115,20 +110,6 @@ async function route() {
     app.appendChild(el('section', { class: 'page' }, errorBox(e.message || String(e), { retry: route })));
   }
 }
-
-// ---------- footer facts ----------
-
-(async () => {
-  const tags = document.getElementById('footer-tags');
-  try {
-    const [info, build] = await Promise.all([api.ui('server-info'), api.ui('build-info')]);
-    tags.append(
-      el('span', { class: 'pill' }, `env ${info.env}`),
-      build.git_sha ? el('span', { class: 'pill mono' }, build.git_sha) : '',
-      el('span', { class: 'pill' }, 'FHIR 4.0.1'),
-    );
-  } catch { tags.append(el('span', { class: 'pill' }, 'offline')); }
-})();
 
 window.addEventListener('hashchange', route);
 route();

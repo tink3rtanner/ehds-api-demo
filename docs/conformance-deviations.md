@@ -40,13 +40,11 @@ resolvable path back to the source.
 
 ## 2. Dev-mode anonymous read — removed
 
-Until 2026-09 an `ENV=dev` server let header-less GETs through with a
-`dev-anon` principal so QR codes could open raw JSON on a phone. That shortcut
-is gone: the FHIR surface requires a bearer in every environment. The UI
-carries its own read-only viewer token (`POST /ui/api/viewer-token`, scope
-`system/*.read`) and QR codes land on the UI, so nothing needs unauthenticated
-reads any more. A present-but-invalid bearer is still a 401; a missing one is
-now a 401 too (`WWW-Authenticate: Bearer`).
+Until 2026-09 an `ENV=dev` server accepted GETs without an `Authorization`
+header as a `dev-anon` principal so QR codes could open raw JSON on a phone.
+This was removed. A bearer is required in every environment; a missing one is
+a 401 with `WWW-Authenticate: Bearer`. The UI uses a read-only viewer token
+(`POST /ui/api/viewer-token`, scope `system/*.read`) and QR codes open UI pages.
 
 ## 3. The "5th priority category" prescription was a modeling bug
 

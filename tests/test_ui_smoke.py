@@ -121,7 +121,7 @@ def test_patient_and_document_pages_render(server_url, browser):
         page.goto(f"{server_url}/ui/{dhref}")
         page.wait_for_timeout(3000)
         text = page.evaluate("() => document.getElementById('app').innerText")
-        assert "Patient Summary" in text and "entries" in text
+        assert "Patient Summary" in text and "Raw bundle" in text
         assert not errors, errors
     finally:
         ctx.close()
@@ -141,10 +141,10 @@ def test_scenario_walks_all_six_steps_with_a_real_smart_client(server_url, brows
             seen.append(page.evaluate("() => document.querySelector('.scene-result')?.innerText || ''"))
             if step < 5:
                 page.click("text=Next")
-        assert "registered its public half" in seen[0] or "registered as client" in seen[0], seen[0][:200]
-        assert "candidate" in seen[1] and "certain" in seen[1], seen[1][:200]
-        assert "documents are registered" in seen[2], seen[2][:200]
-        assert "Bundle.type=document" in seen[3], seen[3][:200]
+        assert "registered the public key" in seen[0] or "viewer token" in seen[0], seen[0][:200]
+        assert "certain" in seen[1], seen[1][:200]
+        assert "Summary" in seen[2], seen[2][:200]
+        assert "entries" in seen[3], seen[3][:200]
         assert "allergies" in seen[4], seen[4][:200]
         assert "/token" in seen[5] and "/Patient/$match" in seen[5], seen[5][:300]
         assert not errors, errors

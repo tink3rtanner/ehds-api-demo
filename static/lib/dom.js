@@ -30,6 +30,12 @@ export function clear(node) {
   return node;
 }
 
+/** Replace a node's children; null/false children are skipped (unlike Node.replaceChildren). */
+export function replace(node, ...children) {
+  clear(node);
+  return append(node, children);
+}
+
 export function fragment(...children) {
   const f = document.createDocumentFragment();
   append(f, children);

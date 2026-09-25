@@ -32,7 +32,7 @@ function requestsBar() {
   const list = el('div', { class: 'req-list' });
   const details = el('details', { class: 'requests-bar' },
     el('summary', {}, icon('code', { size: 16 }), el('span', {}, 'Requests behind this page'), count,
-      el('span', { class: 'hint' }, 'every FHIR call this page made, through the public API with a visible bearer')),
+      el('span', { class: 'hint' }, 'the FHIR requests this page made')),
     list,
   );
   const render = (reqs) => {
@@ -47,19 +47,7 @@ function requestsBar() {
   // detach when removed from the DOM
   const obs = new MutationObserver(() => { if (!document.body.contains(details)) { unsub(); obs.disconnect(); } });
   obs.observe(document.body, { childList: true, subtree: true });
-  if (technicalMode()) details.open = true;
   return details;
-}
-
-// ---------- technical mode ----------
-
-const TECH_KEY = 'ehds.technical';
-export function technicalMode() {
-  try { return localStorage.getItem(TECH_KEY) === '1'; } catch { return false; }
-}
-export function setTechnicalMode(on) {
-  try { localStorage.setItem(TECH_KEY, on ? '1' : '0'); } catch { /* private mode */ }
-  document.documentElement.classList.toggle('technical', on);
 }
 
 // ---------- cards ----------
@@ -120,7 +108,7 @@ export function badge(text, kind = 'neutral', { title, icon: ic } = {}) {
 
 export function originBadge(res, { withSource = true } = {}) {
   const o = originOf(res);
-  if (o.kind === 'reference') return badge('Reference', 'reference', { title: 'Seeded reference example' });
+  if (o.kind === 'reference') return badge('Reference', 'reference', { title: 'Part of the seeded reference panel' });
   if (o.kind === 'community') {
     const label = withSource && o.source ? `Community · ${sourceHost(o.source)}` : 'Community';
     return badge(label, 'community', { title: o.source ? `Submitted; source ${o.source}` : 'Community submission' });
@@ -142,7 +130,7 @@ export function validationBadge(v, { compact = false } = {}) {
   const offline = v?.downgraded > 0;
   const map = {
     validated: ['ok', 'check', offline ? 'Validated · offline' : 'Validated',
-      offline ? `No errors against the EU profile; ${v.downgraded} offline slice-ambiguity finding(s) downgraded to warnings (no terminology server)` : 'No errors against the EU profile'],
+      offline ? `No errors against the EU profile. Validated without a terminology server; ${v.downgraded} slice-ambiguity finding(s) counted as warnings.` : 'No errors against the EU profile'],
     failed: ['danger', 'x', `Failed${v?.errors != null ? ` · ${v.errors}` : ''}`, `${v?.errors ?? '?'} error(s) against the EU profile`],
     pending: ['info', 'clock', 'Validating…', 'Queued for the HL7 validator'],
     unavailable: ['warn', 'alert', 'Validator unavailable', v?.reason || 'The validator could not give an answer'],

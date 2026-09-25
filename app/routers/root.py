@@ -25,8 +25,7 @@ DESCRIPTION = (
     "FHIR R4 server implementing the HL7 Europe Health Data API exchange layer: "
     "SMART Backend Services authorisation, IHE PDQm patient lookup, IHE MHD "
     "document search and retrieve, IPA resource access, and ITI-105 publishing. "
-    "Synthetic data only. Open for anyone to read, register a client and submit "
-    "example documents."
+    "Synthetic data only. Anyone can read, register a client and submit example documents."
 )
 
 
@@ -44,7 +43,7 @@ def discovery_document() -> dict:
         {
             "pillar": "authorize",
             "standard": "SMART App Launch — Backend Services (client_credentials + private_key_jwt)",
-            "what": "A client proves who it is with a signed JWT assertion and receives a short-lived bearer.",
+            "what": "A client signs a JWT assertion with its registered key and receives a short-lived bearer.",
             "register_first": ep["register_client"],
             "token_endpoint": ep["token"],
             "example": {"method": "POST", "url": ep["token"],
@@ -56,33 +55,33 @@ def discovery_document() -> dict:
         {
             "pillar": "find-patient",
             "standard": "IHE PDQm (ITI-78) — Patient search and $match",
-            "what": "Do you hold a record for this person? Demographic search or a scored $match.",
+            "what": "Search for a patient by demographics, or POST $match for scored candidates.",
             "example": {"method": "GET", "url": ep.get("search_patient_by_demographics")},
             "match": {"method": "POST", "url": f"{base}/Patient/$match", "body": ex.get("match_parameters")},
         },
         {
             "pillar": "find-documents",
             "standard": "IHE MHD (ITI-67) — DocumentReference search",
-            "what": "Which documents exist for this patient, by category and type.",
+            "what": "List the documents registered for a patient, filterable by type and category.",
             "example": {"method": "GET", "url": ep.get("document_search_by_identifier")},
         },
         {
             "pillar": "retrieve-document",
             "standard": "IHE MHD (ITI-68) — retrieve the document Bundle",
-            "what": "Fetch one document: a Bundle.type=document conforming to the HL7 Europe profile for its category.",
+            "what": "Fetch one document as a Bundle.type=document that follows the HL7 Europe profile for its category.",
             "example": {"method": "GET", "url": ep.get("document_retrieve")},
         },
         {
             "pillar": "resource-access",
             "standard": "HL7 IPA — RESTful read and search on the patient compartment",
-            "what": "Just the allergies, just the labs: atomic resources rather than whole documents.",
+            "what": "Read or search individual resources instead of whole documents.",
             "example": {"method": "GET", "url": ep.get("allergies_for_patient")},
         },
         {
             "pillar": "publish",
             "standard": "IHE MHD (ITI-105) — Simplified Publish",
-            "what": "POST a transaction or document Bundle to the base URL. Needs scope system/Bundle.write. "
-                    "Accepted first, then validated against the EU profile asynchronously (a badge, not a gate).",
+            "what": "POST a transaction or document Bundle to the base URL with scope system/Bundle.write. "
+                    "The server accepts it, then validates it against the EU profile; a failed validation does not reject it.",
             "example": {"method": "POST", "url": f"{base}/",
                         "content_type": "application/fhir+json", "body": "<Bundle>"},
         },
@@ -160,8 +159,8 @@ def llms_text() -> str:
         "## Publishing",
         f"POST a Bundle (type transaction or document) to {d['fhir_base_url']}/ with Content-Type: application/fhir+json "
         "and a bearer holding system/Bundle.write. You get 201 and a transaction-response with local ids. "
-        "The bundle is then validated against the HL7 Europe profile for its category; the result is a badge on "
-        f"{d['fhir_base_url']}/ui/#/coverage, never a reason for rejection.",
+        "The server then validates the bundle against the HL7 Europe profile for its category and shows the result at "
+        f"{d['fhir_base_url']}/ui/#/coverage. A failed validation does not reject the submission.",
         "",
     ]
     return "\n".join(lines)

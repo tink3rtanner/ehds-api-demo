@@ -160,8 +160,8 @@ def _normalise(text: str) -> str:
 # terminology server: slice discrimination on Bundle.entry by resource profile
 # needs value-set membership the validator cannot compute offline.
 _OFFLINE_SLICE_RE = re.compile(r"Element matches more than one slice")
-OFFLINE_NOTE = ("ran offline (-tx n/a): 'matches more than one slice' errors on Bundle.entry are a "
-                "terminology artefact and were downgraded to warnings; set EHDS_VALIDATOR_TX for the full verdict")
+OFFLINE_NOTE = ("Validated without a terminology server. 'Matches more than one slice' errors on Bundle.entry "
+                "cannot be evaluated offline and were counted as warnings. Set EHDS_VALIDATOR_TX to validate them.")
 
 
 def _is_offline_artefact(issue: dict[str, Any]) -> bool:
