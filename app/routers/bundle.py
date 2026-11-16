@@ -15,7 +15,7 @@ from fastapi.responses import JSONResponse, Response
 from app.auth.verify import Principal, require_scope
 from app.fhir import document as doc_compile
 from app.fhir import store
-from app.fhir.ids import SLOT_IDENTIFIER_SYSTEM, bundle_id
+from app.fhir.ids import SLOT_IDENTIFIER_SYSTEM, bundle_id, patient_id
 from app.routers.publish import document_path
 
 router = APIRouter()
@@ -40,11 +40,15 @@ def _build_reverse_index() -> dict[str, tuple[str, str]]:
     bundle ids are minted from the patient slot label (so they're stable
     even before a Patient resource has been read). The reverse map keys
     on bundle_uuid and yields (patient.id, category) for compile_document.
+
+    Only the Patient whose id derives from its slot owns that slot. An upload
+    can store a copy of a reference Patient, slot identifier included; that
+    copy must not take over the reference Patient's documents.
     """
     out: dict[str, tuple[str, str]] = {}
     for p in store.list_all("Patient"):
         slot = _slot_of(p)
-        if not slot:
+        if not slot or p.get("id") != patient_id(slot):
             continue
         for cat in doc_compile.CATEGORY_TO_DOC_TYPE:
             out[bundle_id(slot, cat)] = (p["id"], cat)
