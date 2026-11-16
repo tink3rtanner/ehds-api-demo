@@ -104,12 +104,12 @@ def test_coverage_reference_tier_and_community_tier(inbox):
 
 
 def test_complete_requires_every_category_validated(inbox):
-    for cat_code in ("60591-5", "11502-2", "18842-5", "18748-4", "57833-6"):
+    for cat_code in ("60591-5", "11502-2", "34105-7", "18748-4"):
         bid = f"fi-{cat_code}"
         _put(inbox, _bundle(bid, country="FI", loinc=cat_code))
         vq._write(bid, {"kind": "submission", "submission": bid, "state": "validated", "errors": 0})
     fi = cov.coverage()["countries"]["FI"]
-    assert fi["score"] == 5 and fi["complete"] is True
+    assert fi["score"] == 4 and fi["complete"] is True
 
 
 @pytest.mark.asyncio

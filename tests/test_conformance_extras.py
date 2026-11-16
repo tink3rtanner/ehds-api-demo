@@ -32,16 +32,28 @@ async def test_patient_searchset_has_self_link(client, auth_headers):
     assert links.get("self", "").endswith("/Patient")
 
 
-# ---- prescription Bundle must NOT claim a resource profile ----
+# ---- ePrescription / eDispensation are resources, not documents ----
 
-def test_prescription_bundle_has_no_resource_profile():
-    """`MedicationRequest-eu-mpd` is a resource profile; stamping it on a Bundle
-    makes the validator reject every Bundle.* element. The prescription document
-    Bundle must carry no `meta.profile` at all."""
-    b = compile_document(patient_id("p-001"), "prescription")
-    profiles = (b.get("meta") or {}).get("profile", [])
-    assert profiles == [] or "meta" not in b
-    assert not any("eu-mpd" in p for p in profiles)
+def test_prescription_is_not_a_document_category():
+    """The R4 MPD IG ships resource profiles only; there is no prescription
+    document. compile_document refuses the old category."""
+    import pytest
+
+    from app.fhir.document import UnknownCategory
+    with pytest.raises(UnknownCategory):
+        compile_document(patient_id("p-001"), "prescription")
+
+
+def test_seeded_medication_request_and_dispense_claim_mpd():
+    from app.fhir import store
+    from app.fhir.capability import PROFILE_EU_MPD
+    pid = patient_id("p-001")
+    for rtype in ("MedicationRequest", "MedicationDispense"):
+        hits = store.search(rtype, {"patient": [pid]})
+        assert hits, rtype
+        assert all(PROFILE_EU_MPD[rtype] in r["meta"]["profile"] for r in hits), rtype
+    md = store.search("MedicationDispense", {"patient": [pid]})[0]
+    assert md["authorizingPrescription"][0]["reference"].startswith("MedicationRequest/")
 
 
 def test_eu_document_categories_keep_their_bundle_profile():

@@ -118,7 +118,7 @@ async def search_docref(
             return any(store.match_date(v[0], (c.get("attachment") or {}).get("creation"))
                        for c in (r.get("content") or []))
         results = [r for r in results if creation_match(r)]
-    if (v := norm.get("_lastupdated")):
+    if (v := norm.get("_lastUpdated") or norm.get("_lastupdated")):
         results = [r for r in results if store.match_date(v[0], (r.get("meta") or {}).get("lastUpdated"))]
     if (v := norm.get("format")):
         wanted = v[0].split("|")[-1]

@@ -45,13 +45,10 @@
     ]
   },
   "date": "2024-04-15T10:00:00+02:00",
-  "description": "Discharge summary for Mikko Virtanen",
+  "description": "Hospital Discharge summary for Mikko Virtanen",
   "id": "e4b62c8a-5e8d-53a1-9c0d-81848f0be611",
   "meta": {
     "lastUpdated": "2024-04-15T10:00:00+02:00",
-    "profile": [
-      "http://hl7.eu/fhir/health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
-    ],
     "tag": [
       {
         "code": "reference",
@@ -78,6 +75,11 @@
   },
   "type": {
     "coding": [
+      {
+        "code": "34105-7",
+        "display": "Hospital Discharge summary",
+        "system": "http://loinc.org"
+      },
       {
         "code": "18842-5",
         "display": "Discharge summary",

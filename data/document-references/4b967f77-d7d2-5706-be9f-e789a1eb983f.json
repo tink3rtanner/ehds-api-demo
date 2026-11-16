@@ -45,13 +45,10 @@
     ]
   },
   "date": "2024-04-15T10:00:00+02:00",
-  "description": "Discharge summary for Piotr Kowalski",
+  "description": "Hospital Discharge summary for Piotr Kowalski",
   "id": "4b967f77-d7d2-5706-be9f-e789a1eb983f",
   "meta": {
     "lastUpdated": "2024-04-15T10:00:00+02:00",
-    "profile": [
-      "http://hl7.eu/fhir/health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
-    ],
     "tag": [
       {
         "code": "reference",
@@ -78,6 +75,11 @@
   },
   "type": {
     "coding": [
+      {
+        "code": "34105-7",
+        "display": "Hospital Discharge summary",
+        "system": "http://loinc.org"
+      },
       {
         "code": "18842-5",
         "display": "Discharge summary",

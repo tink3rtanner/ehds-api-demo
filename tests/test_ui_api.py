@@ -50,7 +50,7 @@ async def test_server_info_counts_origin(client):
     info = r.json()
     assert info["patients_by_origin"]["reference"] == 10
     assert info["categories"] == ["patient-summary", "laboratory-report", "discharge-report",
-                                  "imaging-report", "prescription"]
+                                  "imaging-report"]
     assert info["token_endpoint"].endswith("/token")
 
 

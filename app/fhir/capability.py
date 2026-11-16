@@ -16,20 +16,20 @@ from app.config import settings
 # `http://hl7.eu/fhir/<ig>/...` — NOT `/fhir/ig/<ig>/...` (the old value 404'd
 # in the HL7 validator). See docs/epic-eu-bundling.md for the full inventory.
 #
-# NOTE: `prescription` has no document-Bundle profile in R4. The R4
-# `hl7.fhir.eu.mpd` IG ships resource profiles only (MedicationRequest-eu-mpd
-# etc.) and its example bundles are `type: collection`. So its value is None:
-# the compiler still emits a prescription document Bundle, but it must NOT claim
-# `MedicationRequest-eu-mpd` as `Bundle.meta.profile` — that is a *resource*
-# profile, and stamping it on a Bundle makes the validator validate the whole
-# Bundle as a MedicationRequest (every `Bundle.*` element becomes "not allowed").
-# A profile-less prescription Bundle validates correctly as a base-R4 document.
+# ePrescription / eDispensation are not documents (the R4 MPD IG ships resource
+# profiles only), so they have no entry here; see PROFILE_EU_MPD.
 PROFILE_EU_BUNDLE: dict[str, str | None] = {
     "patient-summary":   "http://hl7.eu/fhir/eps/StructureDefinition/bundle-eu-eps",
     "laboratory-report": "http://hl7.eu/fhir/laboratory/StructureDefinition/Bundle-eu-lab",
     "discharge-report":  "http://hl7.eu/fhir/hdr/StructureDefinition/bundle-eu-hdr",
     "imaging-report":    "http://hl7.eu/fhir/imaging/StructureDefinition/BundleReportEuImaging",
-    "prescription":      None,
+}
+
+# HL7 Europe Medication Prescription and Dispense (MPD) R4 resource profiles.
+PROFILE_EU_MPD = {
+    "MedicationRequest":  "http://hl7.eu/fhir/mpd/StructureDefinition/MedicationRequest-eu-mpd",
+    "MedicationDispense": "http://hl7.eu/fhir/mpd/StructureDefinition/MedicationDispense-eu-mpd",
+    "Medication":         "http://hl7.eu/fhir/mpd/StructureDefinition/Medication-eu-mpd",
 }
 
 # Canonical EU Composition profile URLs per document category (entry[0]).
@@ -40,10 +40,25 @@ PROFILE_EU_COMPOSITION = {
     "imaging-report":    "http://hl7.eu/fhir/imaging/StructureDefinition/CompositionEuImaging",
 }
 
-EHDS_DOCREF_PROFILE = "http://hl7.eu/fhir/health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
+# The EU Health Data API IG (CI build) defines no DocumentReference profile of
+# its own: search returns base/MHD Minimal DocumentReferences, and publish takes
+# the MHD Simplified Publish profile (data inline).
+MHD_MINIMAL_DOCREF = "https://profiles.ihe.net/ITI/MHD/StructureDefinition/IHE.MHD.Minimal.DocumentReference"
+MHD_SIMPLIFIED_PUBLISH_DOCREF = "https://profiles.ihe.net/ITI/MHD/StructureDefinition/IHE.MHD.SimplifiedPublish.DocumentReference"
+
+# The IG's actor CapabilityStatements this server conforms to (declared via
+# CapabilityStatement.instantiates, per the IG's Capability Discovery page).
+IG_CS = "http://hl7.eu/fhir/health-data-api/CapabilityStatement/"
+INSTANTIATES = [
+    IG_CS + "document-access-provider-eu-api",
+    IG_CS + "document-access-provider-submission-option-eu-api",
+    IG_CS + "resource-access-provider-eu-api",
+]
+DEPLOYMENT_CS_PROFILE = "http://hl7.eu/fhir/health-data-api/StructureDefinition/eu-api-deployment-capabilitystatement"
+PATIENT_EU_CORE = "http://hl7.eu/fhir/base/StructureDefinition/patient-eu-core"
 
 PDQM_PATIENT_SEARCH_PARAMS = [
-    "_id", "identifier", "family", "given", "name", "birthdate", "gender",
+    "_id", "identifier", "active", "family", "given", "name", "birthdate", "gender",
     "address", "address-city", "address-postalcode", "address-country", "address-state",
     "telecom", "phone", "email",
 ]
@@ -51,25 +66,28 @@ PDQM_PATIENT_SEARCH_PARAMS = [
 FIRST_CLASS_RESOURCES: dict[str, dict[str, Any]] = {
     "Patient": {
         "interactions": ["read", "search-type"],
+        "supportedProfile": [PATIENT_EU_CORE],
         "searchParams": PDQM_PATIENT_SEARCH_PARAMS,
         "operations": [
             {"name": "match", "definition": "http://hl7.org/fhir/OperationDefinition/Patient-match"},
-            {"name": "everything", "definition": "http://hl7.org/fhir/OperationDefinition/Patient-everything"},
             {"name": "summary", "definition": "http://hl7.org/fhir/uv/ips/OperationDefinition/summary"},
         ],
     },
     "AllergyIntolerance": {"interactions": ["read", "search-type"], "searchParams": ["_id", "patient", "clinical-status"]},
     "Condition": {"interactions": ["read", "search-type"], "searchParams": ["_id", "patient", "clinical-status", "category"]},
     "MedicationStatement": {"interactions": ["read", "search-type"], "searchParams": ["_id", "patient", "status"]},
-    "MedicationRequest": {"interactions": ["read", "search-type"], "searchParams": ["_id", "patient", "status", "intent"]},
-    "MedicationDispense": {"interactions": ["read", "search-type"], "searchParams": ["_id", "patient", "status"]},
+    # ePrescription / eDispensation: resources on the HL7 Europe MPD profiles
+    "MedicationRequest": {"interactions": ["read", "search-type"], "searchParams": ["_id", "patient", "status", "intent"],
+                          "supportedProfile": ["http://hl7.eu/fhir/mpd/StructureDefinition/MedicationRequest-eu-mpd"]},
+    "MedicationDispense": {"interactions": ["read", "search-type"], "searchParams": ["_id", "patient", "status"],
+                           "supportedProfile": ["http://hl7.eu/fhir/mpd/StructureDefinition/MedicationDispense-eu-mpd"]},
     "Medication": {"interactions": ["read", "search-type"], "searchParams": ["_id", "code"]},
     "Immunization": {"interactions": ["read", "search-type"], "searchParams": ["_id", "patient", "status"]},
-    "Observation": {"interactions": ["read", "search-type"], "searchParams": ["_id", "patient", "category", "code", "date"]},
+    "Observation": {"interactions": ["read", "search-type"], "searchParams": ["_id", "patient", "category", "code", "date", "_lastUpdated"]},
     "Procedure": {"interactions": ["read", "search-type"], "searchParams": ["_id", "patient", "status"]},
     "DiagnosticReport": {"interactions": ["read", "search-type"], "searchParams": ["_id", "patient", "category", "code", "date"]},
     "ImagingStudy": {"interactions": ["read", "search-type"], "searchParams": ["_id", "patient", "status"]},
-    "Encounter": {"interactions": ["read", "search-type"], "searchParams": ["_id", "patient", "status", "date"]},
+    "Encounter": {"interactions": ["read", "search-type"], "searchParams": ["_id", "patient", "status", "date", "_lastUpdated"]},
     "Specimen": {"interactions": ["read", "search-type"], "searchParams": ["_id", "patient"]},
     "Practitioner": {"interactions": ["read", "search-type"], "searchParams": ["_id", "identifier", "name"]},
     "PractitionerRole": {"interactions": ["read", "search-type"], "searchParams": ["_id", "practitioner", "organization"]},
@@ -82,7 +100,8 @@ FIRST_CLASS_RESOURCES: dict[str, dict[str, Any]] = {
     # CHAINING to the referenced Encounter/Practitioner — see
     # app/routers/docref.py and docs/document-search-chaining.md.
     "DocumentReference": {
-        "interactions": ["read", "search-type"],
+        # create = ITI-105 Simplified Publish (POST /DocumentReference, data inline)
+        "interactions": ["read", "search-type", "create"],
         "searchParams": [
             {"name": "_id", "type": "token", "expectation": "SHALL"},
             {"name": "patient", "type": "reference", "expectation": "SHALL"},
@@ -94,7 +113,7 @@ FIRST_CLASS_RESOURCES: dict[str, dict[str, Any]] = {
             {"name": "date", "type": "date", "expectation": "SHALL"},
             {"name": "creation", "type": "date", "expectation": "SHALL"},
             {"name": "period", "type": "date", "expectation": "SHALL"},
-            {"name": "_lastupdated", "type": "date", "expectation": "SHALL"},
+            {"name": "_lastUpdated", "type": "date", "expectation": "SHALL"},
             {"name": "format", "type": "token", "expectation": "SHALL"},
             {"name": "security-label", "type": "token", "expectation": "SHALL"},
             {"name": "related", "type": "reference", "expectation": "SHALL"},
@@ -104,17 +123,22 @@ FIRST_CLASS_RESOURCES: dict[str, dict[str, Any]] = {
             {"name": "author.given", "type": "string", "expectation": "SHALL"},
             {"name": "author.family", "type": "string", "expectation": "SHALL"},
         ],
-        "supportedProfile": [EHDS_DOCREF_PROFILE],
+        "supportedProfile": [MHD_MINIMAL_DOCREF, MHD_SIMPLIFIED_PUBLISH_DOCREF],
     },
     # Binary is kept as a 301 redirect to /Bundle/{id} for legacy URLs; no
-    # standalone Binary resources are served. Bundle gets both read (compiled
-    # documents) and create (ITI-105 submission).
-    "Bundle": {"interactions": ["read", "create"], "searchParams": ["_id"]},
+    # standalone Binary resources are served. Bundle is read-only: ITI-68
+    # retrieval of compiled and published documents. (POST / with a Bundle is
+    # a convenience upload, declared as the system `transaction` interaction.)
+    "Bundle": {"interactions": ["read"]},
+    # ITI-68 by Binary id: redirects to the document Bundle (the IG returns
+    # FHIR documents as native Bundles, not wrapped in Binary)
+    "Binary": {"interactions": ["read"]},
 }
 
 
 _EXPECTATION_URL = "http://hl7.org/fhir/StructureDefinition/capabilitystatement-expectation"
-_TOKEN_PARAMS = {"gender", "status", "clinical-status", "category", "intent", "code"}
+_TOKEN_PARAMS = {"gender", "status", "clinical-status", "category", "intent", "code", "active", "_id"}
+_DATE_PARAMS = {"date", "birthdate", "_lastUpdated"}
 
 
 def _search_param_entry(p: str | dict[str, Any]) -> dict[str, Any]:
@@ -130,6 +154,10 @@ def _search_param_entry(p: str | dict[str, Any]) -> dict[str, Any]:
         if exp := p.get("expectation"):
             out["extension"] = [{"url": _EXPECTATION_URL, "valueCode": exp}]
         return out
+    if p in _DATE_PARAMS:
+        return {"name": p, "type": "date"}
+    if p == "patient":
+        return {"name": p, "type": "reference"}
     ptype = "token" if "identifier" in p or p in _TOKEN_PARAMS else "string"
     return {"name": p, "type": ptype}
 
@@ -154,6 +182,7 @@ def _resource_entries() -> list[dict[str, Any]]:
 def build_capability_statement() -> dict[str, Any]:
     return {
         "resourceType": "CapabilityStatement",
+        "meta": {"profile": [DEPLOYMENT_CS_PROFILE]},
         "url": settings.base_url + "/metadata",
         "version": "0.1.0",
         "name": "EHDSDemoCapabilityStatement",
@@ -165,15 +194,15 @@ def build_capability_statement() -> dict[str, Any]:
         "kind": "instance",
         "implementation": {
             "description": (
-                "EHDS Demo FHIR Server — synthetic data. SMART Backend Services. "
-                "Self-service client registration at /register-client. "
-                "Start at GET / (discovery document) or /llms.txt. OpenAPI at /openapi.json. "
-                "Five EHDS priority categories compiled on demand at /Bundle/{uuid} "
-                "(see /spec/all-bundle-ids for the full uuid list, or "
-                "/Patient/{id}/$summary for the canonical IPS operation)."
+                "EHDS demo FHIR server. Synthetic data only. Anyone can register a client at "
+                "/register-client, then read and publish with a SMART Backend Services token. "
+                "Start at /llms.txt. Publish a document with POST /DocumentReference (IHE ITI-105 "
+                "Simplified Publish, document inline as base64). Retrieve documents at the "
+                "DocumentReference attachment.url (/Bundle/{id})."
             ),
             "url": settings.base_url,
         },
+        "instantiates": INSTANTIATES,
         "fhirVersion": "4.0.1",
         "format": ["application/fhir+json", "json"],
         "implementationGuide": [
@@ -210,6 +239,12 @@ def build_capability_statement() -> dict[str, Any]:
                 }],
             },
             "resource": _resource_entries(),
+            "interaction": [{
+                "code": "transaction",
+                "documentation": ("Convenience upload, not ITI-105: POST a Bundle (type transaction or document) "
+                                  "to the base URL with scope system/Bundle.write. The standard way to publish "
+                                  "is POST /DocumentReference."),
+            }],
             "operation": [
                 {"name": "match", "definition": "http://hl7.org/fhir/OperationDefinition/Patient-match"},
             ],

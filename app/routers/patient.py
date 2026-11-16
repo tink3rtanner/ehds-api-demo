@@ -14,6 +14,7 @@ from fastapi.responses import JSONResponse
 
 from app.auth.verify import Principal, require_scope
 from app.fhir import store
+from app.fhir.store import match_date
 
 router = APIRouter()
 
@@ -90,9 +91,13 @@ def _pdqm_search(params: dict[str, list[str]]) -> list[dict]:
             all_parts = [n for giv, fam in names for n in giv + fam]
             if not _match_string_field(all_parts, v[0]):
                 return False
-        # birthdate (eq only)
+        # birthdate (FHIR date prefixes: eq, ge, le, ...)
         if (v := params.get("birthdate")):
-            if (p.get("birthDate") or "") != v[0]:
+            if not match_date(v[0], p.get("birthDate")):
+                return False
+        # active (token true|false; a Patient without .active counts as active)
+        if (v := params.get("active")):
+            if str(p.get("active", True)).lower() != v[0].lower():
                 return False
         # gender (exact)
         if (v := params.get("gender")) and p.get("gender") != v[0]:

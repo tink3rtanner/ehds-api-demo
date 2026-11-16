@@ -1,5 +1,20 @@
 {
   "id": "251b9bbd-8b1d-5123-96d3-8ecf6cfe5a2b",
+  "identifier": [
+    {
+      "system": "urn:dicom:uid",
+      "type": {
+        "coding": [
+          {
+            "code": "110180",
+            "display": "Study Instance UID",
+            "system": "http://dicom.nema.org/resources/ontology/DCM"
+          }
+        ]
+      },
+      "value": "urn:oid:1.2.826.0.1.3680043.10.1083.1.1"
+    }
+  ],
   "meta": {
     "tag": [
       {
@@ -32,7 +47,7 @@
       },
       "number": 1,
       "numberOfInstances": 2,
-      "uid": "1.2.840.113619.2.55.3.604688119.971.1392812862.p-001"
+      "uid": "1.2.826.0.1.3680043.10.1083.1.1.1"
     }
   ],
   "started": "2024-04-11T14:30:00+02:00",

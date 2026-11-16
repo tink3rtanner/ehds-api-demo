@@ -88,7 +88,7 @@ def test_validated_and_failed_states_via_injected_runner(monkeypatch):
     assert ("laboratory-report", bad["profile"]) in calls
 
 
-def test_prescription_validates_against_base_r4_only(monkeypatch):
+def test_unknown_document_type_validates_against_base_r4_only(monkeypatch):
     done = threading.Event()
     seen = {}
 

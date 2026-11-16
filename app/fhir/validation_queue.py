@@ -48,6 +48,8 @@ Implementation notes
 """
 from __future__ import annotations
 
+import contextlib
+import fcntl
 import json
 import logging
 import queue
@@ -196,13 +198,27 @@ def collapse_issues(issues: list[dict[str, Any]], *, top: int = 25, offline: boo
 
 def validator_command(src: Path, out: Path, profile: str | None) -> list[str]:
     """The exact java invocation, so tests can pin it without a JVM."""
-    cmd = ["java", f"-Duser.home={settings.validator_home}", "-jar", str(settings.validator_jar), str(src),
+    cmd = ["java", "-Xmx2g", f"-Duser.home={settings.validator_home}", "-jar", str(settings.validator_jar), str(src),
            "-version", "4.0.1", "-tx", settings.validator_tx or "n/a", "-output", str(out)]
     for tgz in sorted(settings.eu_packages_dir.glob("*.tgz")):
         cmd += ["-ig", str(tgz)]
     if profile:
         cmd += ["-profile", profile]
     return cmd
+
+
+@contextlib.contextmanager
+def validator_lock():
+    """One validator JVM at a time on this box (each needs ~2 GB). Every
+    gunicorn worker has its own queue thread, and scripts run the validator
+    too, so the lock is a file lock, not a threading one."""
+    settings.validator_home.mkdir(parents=True, exist_ok=True)
+    with open(settings.validator_home / ".run.lock", "w") as fh:
+        fcntl.flock(fh, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(fh, fcntl.LOCK_UN)
 
 
 def _run_validator(bundle: dict[str, Any], category: str | None, profile: str | None) -> dict[str, Any]:
@@ -215,9 +231,10 @@ def _run_validator(bundle: dict[str, Any], category: str | None, profile: str | 
         src.write_text(json.dumps(bundle))
         out = Path(td) / "out.json"
         cmd = validator_command(src, out, profile)
-        started = time.monotonic()
-        proc = subprocess.run(cmd, capture_output=True, text=True,
-                              timeout=settings.validation_timeout_seconds)
+        with validator_lock():
+            started = time.monotonic()
+            proc = subprocess.run(cmd, capture_output=True, text=True,
+                                  timeout=settings.validation_timeout_seconds)
         log.info("validator finished key=%s rc=%s in %.0fs", bundle.get("id"), proc.returncode,
                  time.monotonic() - started)
         if not out.exists():

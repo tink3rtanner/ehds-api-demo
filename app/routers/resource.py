@@ -14,7 +14,7 @@ from app.fhir import store
 router = APIRouter()
 
 # types served by this generic router (excludes ones that have dedicated routers)
-GENERIC_TYPES = tuple(t for t in store.SUPPORTED_TYPES if t not in {"Patient", "DocumentReference"})
+GENERIC_TYPES = tuple(t for t in store.SUPPORTED_TYPES if t not in {"Patient", "DocumentReference", "Binary"})
 
 
 def _operation_outcome(severity: str, code: str, diagnostics: str) -> dict:

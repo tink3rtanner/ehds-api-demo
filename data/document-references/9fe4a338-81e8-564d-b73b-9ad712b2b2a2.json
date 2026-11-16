@@ -45,13 +45,10 @@
     ]
   },
   "date": "2024-04-15T10:00:00+02:00",
-  "description": "Discharge summary for Sof\u00eda Garc\u00eda",
+  "description": "Hospital Discharge summary for Sof\u00eda Garc\u00eda",
   "id": "9fe4a338-81e8-564d-b73b-9ad712b2b2a2",
   "meta": {
     "lastUpdated": "2024-04-15T10:00:00+02:00",
-    "profile": [
-      "http://hl7.eu/fhir/health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
-    ],
     "tag": [
       {
         "code": "reference",
@@ -78,6 +75,11 @@
   },
   "type": {
     "coding": [
+      {
+        "code": "34105-7",
+        "display": "Hospital Discharge summary",
+        "system": "http://loinc.org"
+      },
       {
         "code": "18842-5",
         "display": "Discharge summary",

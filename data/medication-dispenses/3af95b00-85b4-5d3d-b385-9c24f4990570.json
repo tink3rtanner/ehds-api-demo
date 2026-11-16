@@ -1,9 +1,28 @@
 {
+  "authorizingPrescription": [
+    {
+      "reference": "MedicationRequest/14b3ba2e-facf-5f8d-b80b-f3b02e533bd1"
+    }
+  ],
+  "dosageInstruction": [
+    {
+      "text": "1 tablet daily by mouth"
+    }
+  ],
+  "extension": [
+    {
+      "url": "http://hl7.org/fhir/5.0/StructureDefinition/extension-MedicationDispense.recorded",
+      "valueDateTime": "2024-02-12T10:30:00+01:00"
+    }
+  ],
   "id": "3af95b00-85b4-5d3d-b385-9c24f4990570",
   "medicationReference": {
     "reference": "Medication/9fcfdf94-b305-5994-92d6-9a1f2c63614d"
   },
   "meta": {
+    "profile": [
+      "http://hl7.eu/fhir/mpd/StructureDefinition/MedicationDispense-eu-mpd"
+    ],
     "tag": [
       {
         "code": "reference",
@@ -12,7 +31,16 @@
       }
     ]
   },
+  "performer": [
+    {
+      "actor": {
+        "reference": "Practitioner/9011903c-e948-5e36-93ba-a35d041e3ed1"
+      }
+    }
+  ],
   "quantity": {
+    "code": "{tablet}",
+    "system": "http://unitsofmeasure.org",
     "unit": "tablet",
     "value": 30
   },
@@ -20,6 +48,9 @@
   "status": "completed",
   "subject": {
     "reference": "Patient/ce4be6f8-848e-594f-b0f4-56a74971b854"
+  },
+  "substitution": {
+    "wasSubstituted": false
   },
   "whenHandedOver": "2024-02-12"
 }

@@ -45,13 +45,10 @@
     ]
   },
   "date": "2024-04-15T10:00:00+02:00",
-  "description": "Discharge summary for Hans Schmidt",
+  "description": "Hospital Discharge summary for Hans Schmidt",
   "id": "4f068aed-f99e-5525-83e1-d3f4f66f4668",
   "meta": {
     "lastUpdated": "2024-04-15T10:00:00+02:00",
-    "profile": [
-      "http://hl7.eu/fhir/health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
-    ],
     "tag": [
       {
         "code": "reference",
@@ -78,6 +75,11 @@
   },
   "type": {
     "coding": [
+      {
+        "code": "34105-7",
+        "display": "Hospital Discharge summary",
+        "system": "http://loinc.org"
+      },
       {
         "code": "18842-5",
         "display": "Discharge summary",

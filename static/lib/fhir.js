@@ -6,7 +6,7 @@ export const SUBMISSION_TAG_SYSTEM = 'urn:ehds-demo:submission';
 export const SLOT_SYSTEM = 'urn:ehds-demo:slot';
 export const SOURCE_ID_SYSTEM = 'urn:ehds-demo:source-id';
 
-export const CATEGORIES = ['patient-summary', 'laboratory-report', 'discharge-report', 'imaging-report', 'prescription'];
+export const CATEGORIES = ['patient-summary', 'laboratory-report', 'discharge-report', 'imaging-report'];
 
 export const CATEGORY_META = {
   'patient-summary':   { label: 'Patient Summary',  short: 'Summary', icon: 'documents', loinc: '60591-5',
@@ -15,20 +15,17 @@ export const CATEGORY_META = {
   'laboratory-report': { label: 'Laboratory Report', short: 'Lab', icon: 'flask', loinc: '11502-2',
     blurb: 'A diagnostic report grouping the observations from a specimen.',
     ig: 'https://build.fhir.org/ig/hl7-eu/laboratory/', standard: 'HL7 Europe Laboratory Report' },
-  'discharge-report':  { label: 'Hospital Discharge Report', short: 'Discharge', icon: 'hospital', loinc: '18842-5',
+  'discharge-report':  { label: 'Hospital Discharge Report', short: 'Discharge', icon: 'hospital', loinc: '34105-7',
     blurb: 'Admission, course, outcome and follow-up of a hospital stay.',
     ig: 'https://build.fhir.org/ig/hl7-eu/hdr/', standard: 'HL7 Europe Hospital Discharge Report (HDR)' },
   'imaging-report':    { label: 'Imaging Report', short: 'Imaging', icon: 'scan', loinc: '18748-4',
     blurb: 'A radiology report with its imaging study metadata.',
     ig: 'https://build.fhir.org/ig/hl7-eu/imaging-r4/', standard: 'HL7 Europe Imaging Report' },
-  'prescription':      { label: 'ePrescription', short: 'Prescription', icon: 'pill', loinc: '57833-6',
-    blurb: 'The prescription order itself: one or more MedicationRequests.',
-    ig: 'https://build.fhir.org/ig/hl7-eu/mpd/', standard: 'HL7 Europe Medication Prescription and Dispense (MPD)' },
 };
 
 const CATEGORY_BY_LOINC = {
   '60591-5': 'patient-summary', '11502-2': 'laboratory-report', '18842-5': 'discharge-report',
-  '34105-7': 'discharge-report', '18748-4': 'imaging-report', '57833-6': 'prescription',
+  '34105-7': 'discharge-report', '18748-4': 'imaging-report', '85430-7': 'imaging-report',
 };
 
 export const COUNTRY_NAMES = {
@@ -56,7 +53,8 @@ export function originOf(res) {
     if (t.system === ORIGIN_TAG_SYSTEM && (t.code === 'reference' || t.code === 'community')) kind = t.code;
     if (t.system === SUBMISSION_TAG_SYSTEM && t.code) submission = t.code;
   }
-  return { kind, submission, source: res?.meta?.source || null };
+  const epicSandbox = tags.some((t) => t.system === 'urn:ehds-demo:derived-from' && t.code === 'fhir.epic.com-sandbox');
+  return { kind, submission, source: res?.meta?.source || null, epicSandbox };
 }
 
 export function slotOf(patient) {

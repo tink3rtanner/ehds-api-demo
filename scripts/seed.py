@@ -12,7 +12,6 @@ covers every priority category compiler's needs:
   - laboratory       -> DiagnosticReport(LAB), Observation, Specimen
   - discharge        -> Encounter, Condition, MedicationRequest, Procedure
   - imaging          -> DiagnosticReport(RAD), ImagingStudy
-  - prescription     -> MedicationRequest
 
 usage:  python -m scripts.seed [--data-dir path]
 """
@@ -39,7 +38,8 @@ from app.fhir.origin import REFERENCE, tag_origin
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_DATA_DIR = REPO_ROOT / "data"
 
-EHDS_DOCREF_PROFILE = "http://hl7.eu/fhir/health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
+# The EU Health Data API IG defines no DocumentReference profile (it uses base
+# FHIR / IHE MHD Minimal), so seeded DocumentReferences claim none.
 
 # canonical loinc codes for each priority category — DocumentReference.type
 # (the clinically precise document type). Inherits the MHD Minimal / base FHIR
@@ -48,9 +48,17 @@ EHDS_DOCREF_PROFILE = "http://hl7.eu/fhir/health-data-api/StructureDefinition/Do
 DOC_TYPES = {
     "patient-summary":   {"system": "http://loinc.org", "code": "60591-5", "display": "Patient summary Document"},
     "laboratory-report": {"system": "http://loinc.org", "code": "11502-2", "display": "Laboratory report"},
-    "discharge-report":  {"system": "http://loinc.org", "code": "18842-5", "display": "Discharge summary"},
+    # same code as the HDR 1.0.0 Composition.type
+    "discharge-report":  {"system": "http://loinc.org", "code": "34105-7", "display": "Hospital Discharge summary"},
     "imaging-report":    {"system": "http://loinc.org", "code": "18748-4", "display": "Diagnostic imaging study"},
-    "prescription":      {"system": "http://loinc.org", "code": "57833-6", "display": "Prescription for medication"},
+}
+
+# extra DocumentReference.type codings so the search codes the HL7 EU Health
+# Data API IG lists for a category also find our document (its discharge
+# ValueSet has 18842-5; its imaging-report search uses 85430-7).
+DOC_TYPE_ALSO: dict[str, list[dict]] = {
+    "discharge-report": [{"system": "http://loinc.org", "code": "18842-5", "display": "Discharge summary"}],
+    "imaging-report":   [{"system": "http://loinc.org", "code": "85430-7", "display": "Diagnostic imaging report"}],
 }
 
 # DocumentReference.category carries the coarse LOINC *document class* code on
@@ -67,7 +75,6 @@ DOCREF_CATEGORY_CLASS: dict[str, dict | None] = {
     "laboratory-report": {"system": "http://loinc.org", "code": "26436-6", "display": "Laboratory Studies (set)"},
     "discharge-report":  {"system": "http://loinc.org", "code": "18842-5", "display": "Discharge summary"},
     "imaging-report":    {"system": "http://loinc.org", "code": "18748-4", "display": "Diagnostic imaging study"},
-    "prescription":      None,
 }
 
 
@@ -244,28 +251,47 @@ def _med_statement(p: P, idx: int, med_ref: str) -> dict:
     }
 
 
+MPD_MR_PROFILE = "http://hl7.eu/fhir/mpd/StructureDefinition/MedicationRequest-eu-mpd"
+MPD_MD_PROFILE = "http://hl7.eu/fhir/mpd/StructureDefinition/MedicationDispense-eu-mpd"
+
+
 def _med_request(p: P, idx: int, med_ref: str) -> dict:
+    # ePrescription: a MedicationRequest on the HL7 Europe MPD profile
     return {
         "resourceType": "MedicationRequest",
         "id": child_id(p.pid, "MedicationRequest", idx),
+        "meta": {"profile": [MPD_MR_PROFILE]},
         "status": "active",
         "intent": "order",
         "medicationReference": {"reference": med_ref},
         "subject": {"reference": _patient_ref(p.pid)},
         "authoredOn": "2024-02-10",
+        "requester": {"reference": f"Practitioner/{practitioner_id(p.pid)}"},
+        "note": [{"text": "Synthetic example prescription."}],
         "dosageInstruction": [{"text": "1 tablet daily by mouth"}],
+        "dispenseRequest": {"validityPeriod": {"start": "2024-02-10", "end": "2024-08-10"}},
+        "substitution": {"allowedBoolean": True},
     }
 
 
 def _med_dispense(p: P, idx: int, med_ref: str) -> dict:
+    # eDispensation: a MedicationDispense on the HL7 Europe MPD profile,
+    # authorised by the matching MedicationRequest
     return {
         "resourceType": "MedicationDispense",
         "id": child_id(p.pid, "MedicationDispense", idx),
+        "meta": {"profile": [MPD_MD_PROFILE]},
+        "extension": [{"url": "http://hl7.org/fhir/5.0/StructureDefinition/extension-MedicationDispense.recorded",
+                       "valueDateTime": "2024-02-12T10:30:00+01:00"}],
         "status": "completed",
         "medicationReference": {"reference": med_ref},
         "subject": {"reference": _patient_ref(p.pid)},
+        "performer": [{"actor": {"reference": f"Practitioner/{practitioner_id(p.pid)}"}}],
+        "authorizingPrescription": [{"reference": f"MedicationRequest/{child_id(p.pid, 'MedicationRequest', idx)}"}],
         "whenHandedOver": "2024-02-12",
-        "quantity": {"value": 30, "unit": "tablet"},
+        "quantity": {"value": 30, "unit": "tablet", "system": "http://unitsofmeasure.org", "code": "{tablet}"},
+        "dosageInstruction": [{"text": "1 tablet daily by mouth"}],
+        "substitution": {"wasSubstituted": False},
     }
 
 
@@ -345,7 +371,7 @@ def _observation(p: P, idx: int) -> dict:
         ("2160-0",  "Creatinine [Mass/volume] in Serum or Plasma",     "mg/dL",  0.9 + (idx % 3) * 0.1, "laboratory"),
     ]
     code, disp, unit, val, cat = obs_specs[(idx - 1) % len(obs_specs)]
-    return {
+    obs = {
         "resourceType": "Observation",
         "id": child_id(p.pid, "Observation", idx),
         "status": "final",
@@ -355,6 +381,10 @@ def _observation(p: P, idx: int) -> dict:
         "effectiveDateTime": "2024-03-01",
         "valueQuantity": {"value": val, "unit": unit, "system": "http://unitsofmeasure.org", "code": unit},
     }
+    if cat == "laboratory":
+        # EU Lab results name who performed the test
+        obs["performer"] = [{"reference": f"Practitioner/{practitioner_id(p.pid)}"}]
+    return obs
 
 
 def _encounter(p: P, idx: int) -> dict:
@@ -422,21 +452,37 @@ def _diag_rad(p: P, imaging_ref: str, practitioner_ref: str) -> dict:
         "resourceType": "DiagnosticReport",
         "id": child_id(p.pid, "DiagnosticReport-rad", 0),
         "status": "final",
-        "category": [{"coding": [{"system": "http://terminology.hl7.org/CodeSystem/v2-0074", "code": "RAD", "display": "Radiology"}]}],
+        # EU Imaging: report identifier and two category slices (LOINC
+        # imaging report + EHDS priority category) besides the v2 RAD code
+        "identifier": [{"system": "urn:ehds-demo:imaging-report", "value": f"RAD-{p.pid}"}],
+        "category": [
+            {"coding": [{"system": "http://terminology.hl7.org/CodeSystem/v2-0074", "code": "RAD", "display": "Radiology"}]},
+            {"coding": [{"system": "http://loinc.org", "code": "85430-7", "display": "Diagnostic imaging report"}]},
+            {"coding": [{"system": "http://hl7.eu/fhir/health-data-api/CodeSystem/eehrxf-document-priority-category-cs",
+                         "code": "Medical-Imaging"}]},
+        ],
         "code": {"coding": [{"system": "http://loinc.org", "code": "30746-2", "display": "Portable XR Chest Views"}], "text": "Chest X-ray report"},
         "subject": {"reference": _patient_ref(p.pid)},
         "effectiveDateTime": "2024-04-11",
         "issued": "2024-04-11T15:00:00+02:00",
-        "performer": [{"reference": practitioner_ref}],
+        # the reporting organisation must equal the document's author organisation
+        "performer": [{"reference": f"Organization/{organization_id(p.pid)}"}],
+        "resultsInterpreter": [{"reference": practitioner_ref}],
         "imagingStudy": [{"reference": imaging_ref}],
         "conclusion": "Normal chest radiograph.",
     }
 
 
 def _imaging_study(p: P) -> dict:
+    n = int(p.pid.split("-")[-1])
+    study_uid = f"1.2.826.0.1.3680043.10.1083.{n}.1"   # synthetic DICOM UIDs (digits only)
     return {
         "resourceType": "ImagingStudy",
         "id": child_id(p.pid, "ImagingStudy", 0),
+        "identifier": [{
+            "type": {"coding": [{"system": "http://dicom.nema.org/resources/ontology/DCM", "code": "110180",
+                                 "display": "Study Instance UID"}]},
+            "system": "urn:dicom:uid", "value": f"urn:oid:{study_uid}"}],
         "status": "available",
         "subject": {"reference": _patient_ref(p.pid)},
         "started": "2024-04-11T14:30:00+02:00",
@@ -444,7 +490,7 @@ def _imaging_study(p: P) -> dict:
         "numberOfInstances": 2,
         "modality": [{"system": "http://dicom.nema.org/resources/ontology/DCM", "code": "CR", "display": "Computed Radiography"}],
         "series": [{
-            "uid": "1.2.840.113619.2.55.3.604688119.971.1392812862." + p.pid,
+            "uid": f"{study_uid}.1",
             "number": 1,
             "modality": {"system": "http://dicom.nema.org/resources/ontology/DCM", "code": "CR"},
             "numberOfInstances": 2,
@@ -467,10 +513,10 @@ def _docref(p: P, category: str) -> dict:
     dr = {
         "resourceType": "DocumentReference",
         # meta.lastUpdated backs the MHD `_lastupdated` search param.
-        "meta": {"profile": [EHDS_DOCREF_PROFILE], "lastUpdated": "2024-04-15T10:00:00+02:00"},
+        "meta": {"lastUpdated": "2024-04-15T10:00:00+02:00"},
         "id": docref_id(p.pid, category),
         "status": "current",
-        "type": {"coding": [type_coding]},
+        "type": {"coding": [type_coding, *DOC_TYPE_ALSO.get(category, [])]},
         "subject": {"reference": _patient_ref(p.pid)},
         # date = metadata indexing time (backs `date`); distinct from
         # content.attachment.creation = clinical document creation (backs `creation`).
@@ -582,8 +628,10 @@ def seed(base: Path, clean: bool = False) -> None:
         img = _imaging_study(p)
         _w(base, "imaging-studies", img)
         _w(base, "diagnostic-reports", _diag_rad(p, f"ImagingStudy/{img['id']}", pract_ref))
-        # 2 lab dx reports (each referencing the lab observations + specimens)
-        lab_obs_refs = [f"Observation/{oid}" for oid in obs_ids]
+        # 2 lab dx reports, each with half of the LABORATORY observations
+        # (vital signs are not lab results) and a specimen
+        lab_obs_refs = [f"Observation/{o['id']}" for o in (_observation(p, k) for k in range(10))
+                        if o["category"][0]["coding"][0]["code"] == "laboratory"]
         for k in range(2):
             chunk = lab_obs_refs[k::2]
             sp_refs = [f"Specimen/{spec_ids[k % len(spec_ids)]}"]

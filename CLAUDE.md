@@ -9,8 +9,13 @@ Synthetic data only. File-backed storage. SMART Backend Services auth (JWT
 client assertion; **the FHIR surface always requires a bearer**, there is no
 anonymous read). Five EHDS priority-category documents compiled on demand
 as `Bundle.type=document` (patient-summary, laboratory-report, discharge-report,
-imaging-report, prescription). `GET /` is a discovery document for agents
-(`/llms.txt` in prose). Ships a human-facing UI at `/ui/` (vanilla ES modules,
+imaging-report); ePrescription / eDispensation are MedicationRequest /
+MedicationDispense resources on the HL7 EU MPD profiles. Publish is ITI-105
+Simplified Publish, `POST /DocumentReference` (document inline as base64).
+`GET /` is a discovery document for agents (`/llms.txt` in prose, the bar: a
+fresh agent gets from it alone to a published document; `/quickstart.py` is a
+one-file Python client). Spec of record: the IG CI build,
+https://build.fhir.org/ig/euridice-org/eu-health-data-api/. Ships a human-facing UI at `/ui/` (vanilla ES modules,
 no build step) that tells the exchange story, runs a guided scenario with a
 real browser-side SMART client, and shows patients, documents, a coverage map
 and the audit log. **Read `docs/ui-design.md` before touching `static/`.**
@@ -116,6 +121,19 @@ python -m scripts.seed --clean
 
 # register a SMART client (local registry write)
 python -m app.tools.register_client --client-id my-app --generate --scope "system/*.read"
+
+# validate the six priority-category examples (java; ~5 min each, 2 at a time)
+python -m scripts.validate_examples
+
+# republish old POST / uploads as ITI-105 documents (dry run without --apply)
+python -m scripts.republish_inbox --apply
+
+# remove published data, backup first (dry run without --apply)
+python -m scripts.purge --submission <id>
+python -m scripts.purge --all-community
+
+# a 24 h read (or --publish) token to paste in a chat
+python -m app.tools.mint_day_token --publish
 
 # register against a running server (REST mode, JSON output)
 python -m app.tools.register_client --client-id my-app --generate \
@@ -260,10 +278,44 @@ A fresh agent / Epic-bridge client should reach everything from one URL.
 The lifecycle (GET/PATCH/PUT/DELETE on `/register-client/{client_id}`) lives
 in `app/routers/discovery.py` next to the POST.
 
-### The submit handler is permissive (and known so)
+### ITI-105 Simplified Publish — `app/routers/publish.py`
+
+`POST /DocumentReference`, scope `system/DocumentReference.c` (SMART v2; v1
+`.write` and `*.write` also cover it — `app/auth/scopes.py`). Decodes
+`content[0].attachment.data`, computes `size` and `hash` (SHA-1, base64; a
+client-sent mismatch is a 400), requires a `Bundle.type=document`, resolves the
+subject Patient (existing by identifier, else created from the Bundle),
+naturalizes and stores the Bundle's resources, stores the exact bytes at
+`data/documents/<id>.bin` and the DocumentReference with `attachment.url =
+Bundle/<id>`. One uuid is the DocumentReference id, the Bundle URL id and the
+inbox/validation key. `GET /Bundle/<id>` returns the stored bytes unchanged.
+`publish()` is callable without HTTP (used by `scripts/republish_inbox.py`).
+
+Non-FHIR content (text/plain, PDF…) is published too, as a stored `Binary`
+(`data/binaries/`), when `subject` is a Patient already on the server;
+`attachment.url = Binary/<id>`. `GET /Binary/<id>` serves stored Binaries (raw
+bytes, or the FHIR resource for `Accept: …json`), also by the submitter's
+original id (kept as a `urn:ehds-demo:source-id` meta.tag); anything else is
+the legacy 301 to `/Bundle/<id>`.
+
+### Client registration is self-service but owned
+
+`POST /register-client` takes any valid SMART system scope; a taken `client_id`
+is a 409. `PATCH/PUT/DELETE /register-client/{id}` need a bearer token issued
+to that same client (RFC 7592 style). `GET` stays open (public keys only).
+
+### One validator JVM at a time
+
+Each java validator run needs ~2 GB and the box also hosts the ITB stack
+(`/srv/itb`). `validation_queue.validator_lock()` is a file lock under
+`settings.validator_home`; the service's per-worker queues and
+`scripts/validate_examples.py` all take it. Without it the OOM killer fired
+repeatedly (2026-11-16).
+
+### The `POST /` Bundle upload is permissive (and known so) — a convenience, not ITI-105
 
 `app/routers/docsubmit.py` accepts `Bundle.type=transaction` or `document`,
-runs structural validation, persists the whole bundle to `data/inbox/`, and
+runs structural validation, persists the whole bundle to `data/inbox/<server uuid>.json`, and
 **mirrors every entry whose `resourceType` is in `store.SUPPORTED_TYPES`**
 into the type-folder store. It does not honour `entry.request.method/url` —
 any supported resource gets written regardless of what the bundle says.

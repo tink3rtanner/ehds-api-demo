@@ -21,7 +21,7 @@ SEED_DOCREF_IDS = {docref_id("p-001", c) for c in CATEGORIES}
 
 
 @pytest.mark.parametrize("category", CATEGORIES)
-async def test_publisher_emits_docref_with_eu_profile(client, auth_headers, category):
+async def test_seed_docref_claims_no_profile(client, auth_headers, category):
     # select each category's seed DocumentReference by its LOINC document `type`
     # (a unique per-category code) — `.category` is no longer the priority slug
     # and is absent entirely for patient-summary / prescription (PR #88).
@@ -32,9 +32,9 @@ async def test_publisher_emits_docref_with_eu_profile(client, auth_headers, cate
     seed = [e for e in body["entry"] if e["resource"]["id"] in SEED_DOCREF_IDS]
     assert len(seed) == 1
     docref = seed[0]["resource"]
-    profiles = docref.get("meta", {}).get("profile", [])
-    # canonical EHDS DocumentReference profile (hl7.eu/fhir/health-data-api/...)
-    assert any("health-data-api" in p for p in profiles), profiles
+    # the EU Health Data API IG defines no DocumentReference profile, so a
+    # seeded DocumentReference claims none (it must not claim one that does not exist)
+    assert not docref.get("meta", {}).get("profile"), docref.get("meta")
 
 
 @pytest.mark.parametrize("category", CATEGORIES)
@@ -50,12 +50,7 @@ async def test_published_bundle_has_required_metadata(client, auth_headers, cate
     assert "id" in bundle
     assert "timestamp" in bundle
     assert "type" in bundle and bundle["type"] == "document"
-    # prescription has no document-Bundle profile (PROFILE_EU_BUNDLE None); the
-    # rest must stamp one.
-    if PROFILE_EU_BUNDLE[category] is None:
-        assert "profile" not in (bundle.get("meta") or {})
-    else:
-        assert "meta" in bundle and "profile" in bundle["meta"]
+    assert bundle["meta"]["profile"] == [PROFILE_EU_BUNDLE[category]]
     assert "identifier" in bundle
 
 

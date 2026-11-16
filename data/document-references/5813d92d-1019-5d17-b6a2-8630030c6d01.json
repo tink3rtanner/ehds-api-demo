@@ -38,9 +38,6 @@
   "id": "5813d92d-1019-5d17-b6a2-8630030c6d01",
   "meta": {
     "lastUpdated": "2024-04-15T10:00:00+02:00",
-    "profile": [
-      "http://hl7.eu/fhir/health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
-    ],
     "tag": [
       {
         "code": "reference",

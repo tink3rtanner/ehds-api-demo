@@ -40,7 +40,6 @@ IG_ARTIFACTS = [
     "laboratory-report",
     "discharge-report",
     "imaging-report",
-    "prescription",
 ]
 
 

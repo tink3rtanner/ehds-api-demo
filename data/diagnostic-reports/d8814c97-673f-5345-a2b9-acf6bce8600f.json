@@ -8,6 +8,23 @@
           "system": "http://terminology.hl7.org/CodeSystem/v2-0074"
         }
       ]
+    },
+    {
+      "coding": [
+        {
+          "code": "85430-7",
+          "display": "Diagnostic imaging report",
+          "system": "http://loinc.org"
+        }
+      ]
+    },
+    {
+      "coding": [
+        {
+          "code": "Medical-Imaging",
+          "system": "http://hl7.eu/fhir/health-data-api/CodeSystem/eehrxf-document-priority-category-cs"
+        }
+      ]
     }
   ],
   "code": {
@@ -23,6 +40,12 @@
   "conclusion": "Normal chest radiograph.",
   "effectiveDateTime": "2024-04-11",
   "id": "d8814c97-673f-5345-a2b9-acf6bce8600f",
+  "identifier": [
+    {
+      "system": "urn:ehds-demo:imaging-report",
+      "value": "RAD-p-006"
+    }
+  ],
   "imagingStudy": [
     {
       "reference": "ImagingStudy/591dc0f5-0f6b-55ff-8a90-353fa3b58440"
@@ -40,10 +63,15 @@
   },
   "performer": [
     {
-      "reference": "Practitioner/a831227b-d992-5422-a609-3901ca6ae594"
+      "reference": "Organization/c24f76c4-00b8-5900-b382-59a802ca3806"
     }
   ],
   "resourceType": "DiagnosticReport",
+  "resultsInterpreter": [
+    {
+      "reference": "Practitioner/a831227b-d992-5422-a609-3901ca6ae594"
+    }
+  ],
   "status": "final",
   "subject": {
     "reference": "Patient/35b51960-8d92-5aa1-8b7f-61523c35a272"

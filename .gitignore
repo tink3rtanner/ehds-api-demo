@@ -41,5 +41,8 @@ data/validator-home/
 # Epic-submitted (or any externally-sourced) resources accumulate in
 # data/<type>/<id>.json with provider-shaped ids. Only the deterministic
 # uuid5 ids produced by scripts.seed should ever be tracked here.
-data/**/[!0-9a-f]*.json
-data/**/?*[!0-9a-f-].json
+data/*/*.json
+!data/*/[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f].json
+# stored bytes of ITI-105 publishes, and purge backups
+data/documents/
+backups/

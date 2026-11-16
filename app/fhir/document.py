@@ -20,20 +20,41 @@ design choices:
 """
 from __future__ import annotations
 
+import copy
 from datetime import UTC, datetime
 from typing import Any
 
 from app.config import settings
 from app.fhir import store
 from app.fhir.capability import PROFILE_EU_BUNDLE, PROFILE_EU_COMPOSITION
-from app.fhir.ids import SLOT_IDENTIFIER_SYSTEM, bundle_id, bundle_identifier, composition_id
+from app.fhir.ids import (
+    SLOT_IDENTIFIER_SYSTEM,
+    bundle_id,
+    bundle_identifier,
+    composition_id,
+    organization_id,
+    practitioner_id,
+)
 
 CATEGORY_TO_DOC_TYPE = {
     "patient-summary":   {"system": "http://loinc.org", "code": "60591-5", "display": "Patient summary Document"},
     "laboratory-report": {"system": "http://loinc.org", "code": "11502-2", "display": "Laboratory report"},
-    "discharge-report":  {"system": "http://loinc.org", "code": "18842-5", "display": "Discharge summary"},
+    # HDR 1.0.0 fixes Composition.type to 34105-7 (patternCodeableConcept).
+    "discharge-report":  {"system": "http://loinc.org", "code": "34105-7", "display": "Hospital Discharge summary"},
     "imaging-report":    {"system": "http://loinc.org", "code": "18748-4", "display": "Diagnostic imaging study"},
-    "prescription":      {"system": "http://loinc.org", "code": "57833-6", "display": "Prescription for medication"},
+}
+# ePrescription and eDispensation are NOT documents: they are MedicationRequest
+# and MedicationDispense resources (HL7 Europe MPD profiles), read through the
+# resource API. See docs/conformance-deviations.md §3.
+
+# Composition.category where a profile fixes it. EU Imaging requires two
+# slices: LOINC 85430-7 and the EHDS priority category Medical-Imaging.
+COMPOSITION_CATEGORY: dict[str, list[dict]] = {
+    "imaging-report": [
+        {"coding": [{"system": "http://loinc.org", "code": "85430-7", "display": "Diagnostic imaging report"}]},
+        {"coding": [{"system": "http://hl7.eu/fhir/health-data-api/CodeSystem/eehrxf-document-priority-category-cs",
+                     "code": "Medical-Imaging"}]},
+    ],
 }
 
 # section default LOINC codes used when we auto-build a Composition.
@@ -61,8 +82,10 @@ CATEGORY_SECTIONS: dict[str, list[str]] = {
     "discharge-report":  ["Encounter", "Condition", "MedicationRequest",
                           "MedicationStatement", "Procedure"],
     "imaging-report":    ["DiagnosticReport", "ImagingStudy"],
-    "prescription":      ["MedicationRequest"],
 }
+
+
+DR_COMPOSITION_EXT = "http://hl7.org/fhir/5.0/StructureDefinition/extension-DiagnosticReport.composition"
 
 
 class UnknownCategory(Exception):
@@ -108,6 +131,7 @@ def _gather_for_category(patient_id: str, category: str) -> tuple[list[dict], di
     """find candidate entries per section type. returns (composition_sections, included_resources_by_ref)."""
     section_types = CATEGORY_SECTIONS[category]
     sections: list[dict] = []
+    lab_results: set[str] = set()
     included: dict[str, dict] = {}
 
     for stype in section_types:
@@ -133,6 +157,16 @@ def _gather_for_category(patient_id: str, category: str) -> tuple[list[dict], di
                 if cats and not any(c in ("RAD", "radiology", "imaging") for c in cats):
                     continue
             ents.append(r)
+
+        # EU Lab: a laboratory report holds exactly one DiagnosticReport, and
+        # its results are that report's Observations.
+        if category == "laboratory-report":
+            if stype == "DiagnosticReport":
+                ents = sorted(ents, key=lambda r: r.get("id", ""))[:1]
+                lab_results = {x.get("reference") for d in ents for x in d.get("result") or []}
+            elif stype == "Observation":
+                ents = [r for r in ents if _ref(r) in lab_results]
+        for r in ents:
             included[_ref(r)] = r
 
         if not ents:
@@ -223,22 +257,83 @@ def _ensure_required_eps_sections(sections: list[dict]) -> None:
         })
 
 
-def _author_organization(patient_id: str) -> dict | None:
-    # any Organization present
-    for o in store.list_all("Organization"):
-        return o
-    # synth a stand-in
-    return {
-        "resourceType": "Organization",
-        "id": "org-default",
-        "name": "EHDS Demo Healthcare Provider",
+def _narrative_section(title: str, code: str, display: str, body: str,
+                       entries: list[dict] | None = None) -> dict:
+    sec: dict[str, Any] = {
+        "title": title,
+        "code": {"coding": [{"system": "http://loinc.org", "code": code, "display": display}]},
+        "text": {"status": "generated", "div": f'<div xmlns="http://www.w3.org/1999/xhtml">{body}</div>'},
     }
+    if entries:
+        sec["entry"] = [{"reference": _ref(r)} for r in entries]
+    else:
+        # EU Imaging (eu-imaging-composition-1): a section without entries says why
+        sec["emptyReason"] = {"coding": [{"system": "http://terminology.hl7.org/CodeSystem/list-empty-reason",
+                                          "code": "unavailable", "display": "Unavailable"}]}
+    return sec
 
 
-def _author_practitioner() -> dict | None:
-    for p in store.list_all("Practitioner"):
-        return p
-    return None
+def _imaging_sections(included: dict[str, dict]) -> list[dict]:
+    """The EU Imaging report structure: imaging study, order, history and
+    procedure sections (all required), plus impression and the report itself."""
+    studies = [r for r in included.values() if r["resourceType"] == "ImagingStudy"]
+    reports = [r for r in included.values() if r["resourceType"] == "DiagnosticReport"]
+    rep = reports[0] if reports else {}
+    exam = (rep.get("code") or {}).get("text") or "Imaging examination"
+    modality = ", ".join(m.get("display") or m.get("code", "") for s in studies for m in s.get("modality") or [])
+    started = next((s.get("started", "")[:10] for s in studies if s.get("started")), "")
+    return [
+        _narrative_section("Imaging study", "18726-0", "Radiology studies (set)",
+                           f"{exam}{f' ({modality})' if modality else ''}{f', {started}' if started else ''}.",
+                           studies),
+        _narrative_section("Order", "55115-0", "Requested imaging studies information Document",
+                           f"Requested: {exam}."),
+        _narrative_section("History", "11329-0", "History general Narrative - Reported",
+                           "No relevant history recorded for this examination."),
+        _narrative_section("Procedure", "55111-9", "Current imaging procedure descriptions Document",
+                           f"{exam} performed{f' on {started}' if started else ''}."),
+        _narrative_section("Impression", "19005-8", "Radiology Imaging study [Impression] (narrative)",
+                           rep.get("conclusion") or "No impression recorded."),
+        _narrative_section("Report", "LP173421-1", "Report", f"{exam}: {rep.get('conclusion') or 'see report'}",
+                           reports),
+    ]
+
+
+def _inpatient_encounter(patient_id: str) -> dict | None:
+    """The patient's inpatient stay (class IMP), else any of their encounters."""
+    mine = [e for e in store.list_all("Encounter")
+            if (e.get("subject") or {}).get("reference", "").endswith(f"Patient/{patient_id}")]
+    mine.sort(key=lambda e: ((e.get("class") or {}).get("code") != "IMP", e.get("id", "")))
+    return mine[0] if mine else None
+
+
+def _hospital_course_section(encounter: dict | None) -> dict:
+    """HDR Hospital course section (LOINC 8648-8), narrative from the stay."""
+    if encounter:
+        per = encounter.get("period") or {}
+        reason = "; ".join(r.get("text", "") for r in encounter.get("reasonCode") or [] if r.get("text"))
+        body = (f"Admitted {per.get('start', 'unknown')[:10]}, discharged {per.get('end', 'unknown')[:10]}."
+                + (f" Reason for admission: {reason}." if reason else ""))
+    else:
+        body = "No hospital stay recorded."
+    sec: dict[str, Any] = {
+        "title": "Hospital course",
+        "code": {"coding": [{"system": "http://loinc.org", "code": "8648-8", "display": "Hospital course Narrative"}]},
+        "text": {"status": "generated", "div": f'<div xmlns="http://www.w3.org/1999/xhtml">{body}</div>'},
+    }
+    if encounter:
+        sec["entry"] = [{"reference": _ref(encounter)}]
+    return sec
+
+
+def _author_organization(slot: str) -> dict | None:
+    """The patient's own care organisation, else any Organization."""
+    return store.read("Organization", organization_id(slot)) or next(iter(store.list_all("Organization")), None)
+
+
+def _author_practitioner(slot: str) -> dict | None:
+    """The patient's own practitioner, else any Practitioner."""
+    return store.read("Practitioner", practitioner_id(slot)) or next(iter(store.list_all("Practitioner")), None)
 
 
 def compile_document(patient_id: str, category: str) -> dict[str, Any]:
@@ -260,14 +355,23 @@ def compile_document(patient_id: str, category: str) -> dict[str, Any]:
     if category == "patient-summary":
         _ensure_required_eps_sections(sections)
 
-    # author
-    author_org = _author_organization(patient_id)
-    author_practitioner = _author_practitioner()
+    # HDR 1.0.0: the Composition SHALL name the hospital stay (Composition.
+    # encounter, plus an Encounter entry) and SHALL carry a Hospital course
+    # (8648-8) or Discharge summary (18842-5) section (cmp-hdr-2).
+    hdr_encounter = _inpatient_encounter(patient_id) if category == "discharge-report" else None
+    if category == "discharge-report":
+        sections.insert(0, _hospital_course_section(hdr_encounter))
+    if category == "imaging-report":
+        sections = _imaging_sections(included)
 
     # bundle/composition uuids are deterministic on the slot label so the
     # mapping {slot, category} -> uuid is stable from outside callers
     slot = next((i["value"] for i in (patient.get("identifier") or [])
                  if i.get("system") == SLOT_IDENTIFIER_SYSTEM), patient_id)
+
+    # author: the patient's own practitioner and organisation
+    author_org = _author_organization(slot)
+    author_practitioner = _author_practitioner(slot)
     comp_id = composition_id(slot, category)
     composition: dict[str, Any] = {
         "resourceType": "Composition",
@@ -284,13 +388,16 @@ def compile_document(patient_id: str, category: str) -> dict[str, Any]:
                     f'{CATEGORY_TO_DOC_TYPE[category]["display"]} for patient {patient_id}. '
                     f'Compiled {datetime.now(UTC).strftime("%Y-%m-%d")}.</div>'),
         },
-        "category": [{"coding": [CATEGORY_TO_DOC_TYPE[category]]}],
+        "category": COMPOSITION_CATEGORY.get(category) or [{"coding": [CATEGORY_TO_DOC_TYPE[category]]}],
         "subject": {"reference": f"Patient/{patient_id}"},
         "date": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S+00:00"),
         "author": [],
         "title": f"{CATEGORY_TO_DOC_TYPE[category]['display']} - {patient_id}",
         "section": sections,
     }
+    if hdr_encounter is not None:
+        composition["encounter"] = {"reference": _ref(hdr_encounter)}
+        included[_ref(hdr_encounter)] = hdr_encounter
     comp_profile = PROFILE_EU_COMPOSITION.get(category)
     if comp_profile:
         composition["meta"] = {"profile": [comp_profile]}
@@ -319,6 +426,16 @@ def compile_document(patient_id: str, category: str) -> dict[str, Any]:
     # always include the patient
     included[_ref(patient)] = patient
 
+    # EU Lab and EU Imaging: the DiagnosticReport points back at its
+    # Composition (R5 DiagnosticReport.composition, an extension in R4)
+    if category in ("laboratory-report", "imaging-report"):
+        for ref, r in list(included.items()):
+            if r.get("resourceType") == "DiagnosticReport":
+                r = copy.deepcopy(r)
+                r["extension"] = [e for e in r.get("extension") or [] if e.get("url") != DR_COMPOSITION_EXT] + [
+                    {"url": DR_COMPOSITION_EXT, "valueReference": {"reference": _ref(composition)}}]
+                included[ref] = r
+
     # bundle assembly: Composition first, then patient, then everything else.
     # R4 requires Bundle.entry.fullUrl to be absolute (or urn:uuid:). All
     # entries here use absolute URLs from the server base so internal
@@ -345,6 +462,8 @@ def compile_document(patient_id: str, category: str) -> dict[str, Any]:
         "resourceType": "Bundle",
         "id": bundle_id(slot, category),
         "type": "document",
+        # HDR requires Bundle.language; harmless for the other categories
+        "language": "en",
         "timestamp": composition["date"],
         "identifier": {
             "system": "urn:ietf:rfc:3986",
@@ -352,10 +471,7 @@ def compile_document(patient_id: str, category: str) -> dict[str, Any]:
         },
         "entry": bundle_entries,
     }
-    # only stamp Bundle.meta.profile when the category HAS a document-Bundle
-    # profile. prescription has none (see capability.PROFILE_EU_BUNDLE) — a
-    # resource profile on a Bundle makes the validator reject every Bundle.*
-    # element.
+    # every category has an EU document-Bundle profile
     bundle_profile = PROFILE_EU_BUNDLE.get(category)
     if bundle_profile:
         bundle["meta"] = {"profile": [bundle_profile]}

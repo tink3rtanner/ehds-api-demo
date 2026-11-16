@@ -17,13 +17,17 @@ async def test_root_json_for_non_browser_callers(client):
     assert d["fhir_base_url"] == "http://testserver"
     assert d["fhir_version"] == "4.0.1"
     assert d["synthetic_data_only"] is True
-    assert [p["pillar"] for p in d["pillars"]] == [
-        "authorize", "find-patient", "find-documents", "retrieve-document", "resource-access", "publish"]
+    assert [s["name"] for s in d["steps"]] == [
+        "register", "token", "find-patient", "find-documents", "retrieve", "publish"]
+    assert d["steps"][-1]["request"]["url"] == "http://testserver/DocumentReference"
+    assert d["access"]["publish_scope"] == "system/DocumentReference.c"
+    assert "Anyone can read" not in str(d)
     assert d["start_here"]["capability_statement"].endswith("/metadata")
     assert d["start_here"]["smart_configuration"].endswith("/.well-known/smart-configuration")
     assert d["start_here"]["llms_txt"].endswith("/llms.txt")
     assert set(d["priority_categories"]) == {
-        "patient-summary", "laboratory-report", "discharge-report", "imaging-report", "prescription"}
+        "patient-summary", "laboratory-report", "discharge-report", "imaging-report",
+        "eprescription", "edispensation"}
 
 
 async def test_root_default_accept_is_json_too(client):
@@ -47,7 +51,7 @@ async def test_root_head_is_allowed(client):
     assert r.status_code == 307
 
 
-async def test_root_post_is_still_iti105(client, auth_headers):
+async def test_root_post_is_the_bundle_convenience_upload(client, auth_headers):
     r = await client.post("/", headers=auth_headers, json={"resourceType": "Patient"})
     assert r.status_code == 400  # rejected as "expected Bundle" by the submit handler, not a 405
 
@@ -58,7 +62,8 @@ async def test_llms_txt(client):
     assert r.headers["content-type"].startswith("text/plain")
     body = r.text
     for needle in ("http://testserver/token", "http://testserver/metadata", "register", "Bearer",
-                   "patient-summary", "system/Bundle.write"):
+                   "patient-summary", "system/DocumentReference.c", "POST http://testserver/DocumentReference",
+                   "urn:ehds-demo:derived-from", "fhir.epic.com-sandbox", "ePrescription", "eDispensation"):
         assert needle in body, needle
     assert not _SLOT_AS_ID.search(body)
 
@@ -68,21 +73,38 @@ async def test_every_example_url_resolves(client, auth_headers):
     d = (await client.get("/", headers={"Accept": "application/json"})).json()
     ex = d["examples"]
     assert not any(_SLOT_AS_ID.search(v) for v in ex.values()), ex
-    for key in ("read_patient", "patient_everything", "observations_for_patient", "allergies_for_patient",
+    for key in ("read_patient", "eprescription_for_patient", "edispensation_for_patient",
+                "observations_for_patient", "allergies_for_patient",
                 "document_search", "document_search_by_identifier", "document_retrieve",
                 "lookup_patient_by_slot", "search_patient_by_demographics", "patient_summary_operation"):
         url = ex[key]
         r = await client.get(url, headers=auth_headers)
         assert r.status_code == 200, f"{key}: {url} -> {r.status_code}"
     # searches must actually find the reference patient, not return empty sets
-    for key in ("lookup_patient_by_slot", "search_patient_by_demographics", "document_search"):
+    for key in ("lookup_patient_by_slot", "search_patient_by_demographics", "document_search",
+                "eprescription_for_patient", "edispensation_for_patient"):
         r = await client.get(ex[key], headers=auth_headers)
         assert r.json()["total"] >= 1, key
+    # every priority-category query finds something; document ones find exactly that document
+    for key, c in d["priority_categories"].items():
+        r = await client.get(c["query"], headers=auth_headers)
+        assert r.status_code == 200 and r.json()["total"] >= 1, key
+        if c["kind"] == "document":
+            urls = [e["resource"]["content"][0]["attachment"]["url"] for e in r.json()["entry"]]
+            assert any(c["retrieve"].endswith(u) for u in urls), key
+            assert (await client.get(c["retrieve"], headers=auth_headers)).status_code == 200
+
+
+async def test_metadata_and_discovery_need_no_token(client):
+    for path in ("/", "/llms.txt", "/metadata", "/.well-known/smart-configuration", "/quickstart.py"):
+        assert (await client.get(path, headers={"Accept": "application/json"})).status_code == 200, path
+    r = await client.get("/Patient")
+    assert r.status_code == 401 and r.json()["resourceType"] == "OperationOutcome"
 
 
 async def test_match_example_body_matches_the_reference_patient(client, auth_headers):
     d = (await client.get("/", headers={"Accept": "application/json"})).json()
-    params = d["pillars"][1]["match"]["body"]
+    params = d["match_parameters"]
     r = await client.post("/Patient/$match", headers={**auth_headers, "Content-Type": "application/fhir+json"},
                           json=params)
     assert r.status_code == 200, r.text

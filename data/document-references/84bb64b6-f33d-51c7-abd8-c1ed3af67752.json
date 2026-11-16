@@ -49,9 +49,6 @@
   "id": "84bb64b6-f33d-51c7-abd8-c1ed3af67752",
   "meta": {
     "lastUpdated": "2024-04-15T10:00:00+02:00",
-    "profile": [
-      "http://hl7.eu/fhir/health-data-api/StructureDefinition/DocumentReference-eu-eehrxf"
-    ],
     "tag": [
       {
         "code": "reference",
@@ -81,6 +78,11 @@
       {
         "code": "18748-4",
         "display": "Diagnostic imaging study",
+        "system": "http://loinc.org"
+      },
+      {
+        "code": "85430-7",
+        "display": "Diagnostic imaging report",
         "system": "http://loinc.org"
       }
     ]

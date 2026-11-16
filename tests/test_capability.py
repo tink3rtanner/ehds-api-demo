@@ -56,7 +56,7 @@ async def test_metadata_lists_patient_match_operation(client):
     pat = next(r for r in body["rest"][0]["resource"] if r["type"] == "Patient")
     ops = {o["name"] for o in pat.get("operation", [])}
     assert "match" in ops
-    assert "everything" in ops
+    assert "everything" not in ops  # not in the EU Health Data API IG
 
 
 async def test_every_capability_resource_has_a_real_route(client, auth_headers):

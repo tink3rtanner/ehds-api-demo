@@ -7,6 +7,7 @@ import jwt
 from fastapi import Depends, HTTPException, Request
 
 from app.auth.jwks import server_kid, server_public_key
+from app.auth.scopes import any_covers
 from app.config import settings
 
 
@@ -18,12 +19,9 @@ class _Principal:
         self.scopes = scopes
 
     def has_scope(self, required: str) -> bool:
-        if required in self.scopes:
-            return True
-        # wildcards: system/*.read covers any system/Foo.read
-        if "/" in required and required.endswith(".read"):
-            return "system/*.read" in self.scopes
-        return False
+        # SMART v1 (.read/.write/.*) and v2 (.cruds) forms, with wildcards;
+        # see app/auth/scopes.py
+        return any_covers(self.scopes, required)
 
 
 def _extract_bearer(request: Request) -> str:
@@ -68,6 +66,14 @@ def require_scope(required: str):
         return principal
 
     return _check
+
+
+def verify_scope(request: Request, required: str) -> _Principal:
+    """Inline form of require_scope, for handlers that only sometimes need auth."""
+    principal = verify_bearer(request)
+    if not principal.has_scope(required):
+        raise HTTPException(status_code=403, detail=f"missing scope: {required}")
+    return principal
 
 
 Principal = _Principal  # public alias

@@ -22,6 +22,19 @@ from typing import Any
 ORIGIN_TAG_SYSTEM = "urn:ehds-demo:origin"
 SUBMISSION_TAG_SYSTEM = "urn:ehds-demo:submission"
 
+# "Derived from the public fhir.epic.com sandbox". A publisher puts this tag in
+# DocumentReference.meta.tag; it is kept as sent and the UI shows a label.
+DERIVED_FROM_SYSTEM = "urn:ehds-demo:derived-from"
+EPIC_SANDBOX_CODE = "fhir.epic.com-sandbox"
+EPIC_SANDBOX_TAG = {"system": DERIVED_FROM_SYSTEM, "code": EPIC_SANDBOX_CODE,
+                    "display": "Derived from the public fhir.epic.com sandbox"}
+
+
+def derived_from_epic_sandbox(res: dict[str, Any]) -> bool:
+    return any(t.get("system") == DERIVED_FROM_SYSTEM and t.get("code") == EPIC_SANDBOX_CODE
+               for t in (res.get("meta") or {}).get("tag") or [])
+
+
 REFERENCE = "reference"
 COMMUNITY = "community"
 
@@ -218,7 +231,6 @@ CATEGORY_BY_LOINC: dict[str, str] = {
     "18842-5": "discharge-report",
     "34105-7": "discharge-report",   # HDR Composition.type is fixed to this code
     "18748-4": "imaging-report",
-    "57833-6": "prescription",
 }
 
 

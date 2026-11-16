@@ -109,6 +109,9 @@ export function badge(text, kind = 'neutral', { title, icon: ic } = {}) {
 export function originBadge(res, { withSource = true } = {}) {
   const o = originOf(res);
   if (o.kind === 'reference') return badge('Reference', 'reference', { title: 'Part of the seeded reference panel' });
+  if (o.kind === 'community' && o.epicSandbox) {
+    return badge('Derived from the public fhir.epic.com sandbox', 'community', { title: 'Published with the fhir.epic.com-sandbox tag' });
+  }
   if (o.kind === 'community') {
     const label = withSource && o.source ? `Community · ${sourceHost(o.source)}` : 'Community';
     return badge(label, 'community', { title: o.source ? `Submitted; source ${o.source}` : 'Community submission' });

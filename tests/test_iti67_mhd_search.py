@@ -111,7 +111,7 @@ async def test_capability_advertises_shall_search_params(client):
     params = {p["name"]: p for p in dr["searchParam"]}
     required = [
         "patient", "patient.identifier", "identifier", "category", "type", "status",
-        "date", "creation", "period", "_lastupdated", "format", "security-label",
+        "date", "creation", "period", "_lastUpdated", "format", "security-label",
         "related", "setting", "facility", "event", "author.given", "author.family",
     ]
     for name in required:

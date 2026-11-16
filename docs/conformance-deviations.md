@@ -46,32 +46,21 @@ This was removed. A bearer is required in every environment; a missing one is
 a 401 with `WWW-Authenticate: Bearer`. The UI uses a read-only viewer token
 (`POST /ui/api/viewer-token`, scope `system/*.read`) and QR codes open UI pages.
 
-## 3. The "5th priority category" prescription was a modeling bug
+## 3. Prescription is a resource flow, not a document (fixed 2026-11-16)
 
-We initially compiled `Bundle.type=document` with
-`Composition.type = 57833-6` (Prescription for medication) as a 5th
-EHDS priority category alongside patient-summary, lab, discharge, and
-imaging.
+We once compiled a `Bundle.type=document` with `Composition.type = 57833-6`
+as a 5th "priority category". The IG says ePrescription and eDispensation fall
+outside the document model: they are `MedicationRequest` and
+`MedicationDispense` resources (HL7 Europe MPD profiles), read with
+`GET /MedicationRequest?patient=…` and `GET /MedicationDispense?patient=…`.
 
-**Spec says**: eRx / prescription is a **transactional resource flow**,
-not a narrative document. The relevant resources are
-`MedicationRequest`, `MedicationDispense`, optionally
-`MedicationAdministration` — accessed via `GET /MedicationRequest?patient=…`
-(IPA-style), not as a compiled document Bundle.
+**We do now**: no prescription document at all (`compile_document` raises
+`UnknownCategory`, the seeded prescription DocumentReferences are gone). Every
+seeded MedicationRequest / MedicationDispense claims and conforms to
+`MedicationRequest-eu-mpd` / `MedicationDispense-eu-mpd`, and `/metadata`
+declares those profiles. `python -m scripts.validate_examples` checks one of each.
 
-**We do**: still expose `MedicationRequest` as a first-class searchable
-resource via the generic store. The `compile_document(category="prescription")`
-path is preserved (don't break URLs in existing QR codes / docrefs) but
-should be deprecated and eventually removed. As of 2026-05-31 the prescription
-document Bundle carries **no `meta.profile`** (`PROFILE_EU_BUNDLE["prescription"]
-= None`): it previously stamped the *resource* profile `MedicationRequest-eu-mpd`
-on the Bundle, which made the validator validate the whole Bundle as a
-MedicationRequest and fail on every `Bundle.*` element. A profile-less
-prescription Bundle validates correctly as a base-R4 document.
-
-**Why this entry exists**: so the next agent doesn't "add prescription
-back to the IG-actor matrix" thinking it was missing. It's correctly
-absent as a document; present as a resource.
+**Why this entry exists**: so nobody adds a prescription document back.
 
 ## 4. Compiled-bundle `fullUrl` is absolute, not `urn:uuid:`
 
@@ -181,6 +170,28 @@ specific mapping (`setting`→`Encounter.serviceType`, `facility`→`Encounter.c
 
 **Why**: we already naturalize and store the constituent resources with the
 reference graph intact, so a single source of truth beats a denormalised copy.
+
+## 10. `POST /` (Bundle upload) is a convenience, not ITI-105
+
+ITI-105 Simplified Publish is `POST /DocumentReference` with the document
+inline (`app/routers/publish.py`). `POST /` with a transaction/document Bundle
+predates it and is kept for existing clients. It stores the resources but makes
+no DocumentReference, so ITI-67 does not find what it uploads. `/metadata`
+declares it as the system `transaction` interaction with that caveat;
+`/llms.txt` lists it under "Not part of the IG".
+
+## 11. Published documents are filed under a resolved Patient
+
+ITI-105 lets the DocumentReference `subject` name a Patient this server does not
+hold. We resolve it from the Patient inside the Bundle: an existing Patient whose
+identifier matches (any system except our `urn:ehds-demo:source-id`) wins,
+otherwise the Bundle's Patient is created. The stored DocumentReference's
+`subject` is therefore the local Patient, not what the client sent.
+
+## 12. `$everything` is implemented but not advertised
+
+The IG does not include `Patient/$everything`, so it is absent from `/metadata`,
+`/llms.txt` and the UI. The route still answers for old links.
 
 ## Adding to this list
 

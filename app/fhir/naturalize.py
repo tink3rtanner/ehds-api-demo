@@ -38,6 +38,10 @@ from app.fhir.store import SUPPORTED_TYPES
 SOURCE_ID_SYSTEM = "urn:ehds-demo:source-id"
 
 
+# R4 types whose `identifier` is not a list (absent, or 0..1)
+_NO_IDENTIFIER_LIST = {"Binary", "Composition", "Bundle"}
+
+
 def set_source(res: dict[str, Any], source_url: str | None) -> None:
     """Stamp meta.source with the absolute origin URL (the clickable back-link)."""
     if source_url:
@@ -141,7 +145,12 @@ def naturalize_bundle(bundle: dict[str, Any], *,
     for p in plan:
         res = copy.deepcopy(p["res"])
         res["id"] = p["new_id"]
-        if p["old_id"]:
+        if p["old_id"] and p["rt"] in _NO_IDENTIFIER_LIST:
+            # Binary has no identifier, Composition only one (0..1): keep the
+            # original id as a meta.tag instead
+            res.setdefault("meta", {}).setdefault("tag", []).append(
+                {"system": SOURCE_ID_SYSTEM, "code": p["old_id"]})
+        elif p["old_id"]:
             add_source_identifier(res, p["old_id"])
         # meta.source: literal fullUrl wins, else construct from the source base
         if p["full_url"] and p["full_url"].startswith(("http://", "https://")):
@@ -152,5 +161,18 @@ def naturalize_bundle(bundle: dict[str, Any], *,
         out.append(res)
 
     _rewrite_refs(out, id_map)
+    _rewrite_attachment_urls(out, id_map)
     _demote_dangling_urn_refs(out)
     return out
+
+
+def _rewrite_attachment_urls(resources: list[dict[str, Any]], mapping: dict[str, str]) -> None:
+    """DocumentReference.content.attachment.url pointing at a Binary in the same
+    Bundle (by fullUrl or Binary/<id>) follows that Binary to its local id."""
+    for res in resources:
+        if res.get("resourceType") != "DocumentReference":
+            continue
+        for c in res.get("content") or []:
+            att = c.get("attachment") or {}
+            if isinstance(att.get("url"), str) and att["url"] in mapping:
+                att["url"] = mapping[att["url"]]

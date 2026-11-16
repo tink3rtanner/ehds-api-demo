@@ -1,5 +1,11 @@
 {
   "authoredOn": "2024-02-10",
+  "dispenseRequest": {
+    "validityPeriod": {
+      "end": "2024-08-10",
+      "start": "2024-02-10"
+    }
+  },
   "dosageInstruction": [
     {
       "text": "1 tablet daily by mouth"
@@ -11,6 +17,9 @@
     "reference": "Medication/ea9ae76b-cc6b-509e-b633-b83b564a0691"
   },
   "meta": {
+    "profile": [
+      "http://hl7.eu/fhir/mpd/StructureDefinition/MedicationRequest-eu-mpd"
+    ],
     "tag": [
       {
         "code": "reference",
@@ -19,9 +28,20 @@
       }
     ]
   },
+  "note": [
+    {
+      "text": "Synthetic example prescription."
+    }
+  ],
+  "requester": {
+    "reference": "Practitioner/ace85235-c705-5177-ad6c-a9badd3c4cc5"
+  },
   "resourceType": "MedicationRequest",
   "status": "active",
   "subject": {
     "reference": "Patient/6aa8846d-50de-54c2-9912-122a01ec7d8a"
+  },
+  "substitution": {
+    "allowedBoolean": true
   }
 }

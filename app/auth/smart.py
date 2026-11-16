@@ -19,6 +19,7 @@ from fastapi import APIRouter, Form, HTTPException
 from fastapi.responses import JSONResponse
 
 from app.auth.jwks import load_clients, server_jwks, server_kid, server_private_key
+from app.auth.scopes import any_covers
 from app.config import settings
 from app.routers.discovery import _ALLOWED_REG_SCOPES
 
@@ -44,13 +45,8 @@ def _filter_scopes(requested: str, allowed: tuple[str, ...]) -> list[str]:
     asked = [s for s in requested.split() if s]
     if not asked:
         return list(allowed)
-    granted: list[str] = []
-    for s in asked:
-        for a in allowed:
-            if a == s or a.endswith("/*.read") and s.startswith(a.split("/")[0] + "/") and s.endswith(".read"):
-                granted.append(s)
-                break
-    return granted
+    # grant each requested scope that a registered scope covers (v1 or v2 form)
+    return [s for s in asked if any_covers(allowed, s)]
 
 
 def _verify_client_assertion(assertion: str) -> tuple[str, list[str]]:
@@ -112,6 +108,10 @@ def _verify_client_assertion(assertion: str) -> tuple[str, list[str]]:
     except jwt.PyJWTError as e:
         raise HTTPException(status_code=401, detail={"error": "invalid_client", "error_description": str(e)})
 
+    # SMART asymmetric client auth: exp no more than five minutes in the future
+    if float(payload["exp"]) - time.time() > 300:
+        raise HTTPException(status_code=401, detail={"error": "invalid_client",
+                                                     "error_description": "client_assertion exp must be at most 5 minutes from now"})
     if payload["iss"] != payload["sub"]:
         raise HTTPException(status_code=401, detail={"error": "invalid_client", "error_description": "iss != sub"})
     _check_jti_replay(payload["jti"], float(payload["exp"]))
@@ -134,9 +134,7 @@ def smart_configuration() -> JSONResponse:
         # `scopes_supported` and /register-client's allowlist. The agent walks
         # GET /register-client to see this list as the registration schema.
         "scopes_supported": list(_ALLOWED_REG_SCOPES),
-        "response_types_supported": ["token"],
-        "capabilities": ["client-confidential-asymmetric"],
-        "code_challenge_methods_supported": [],
+        "capabilities": ["client-confidential-asymmetric", "permission-v1", "permission-v2"],
         # OAuth 2.0 Dynamic Client Registration (RFC 7591). Synthetic-data
         # demo: anyone can self-register, and may request any scope in
         # scopes_supported including the writes a Document Source actor
@@ -145,7 +143,7 @@ def smart_configuration() -> JSONResponse:
         # RFC 7592 — Dynamic Client Registration Management Protocol. The
         # per-client URL template; supports GET (read), PATCH (partial
         # update — most common: add a scope), PUT (full replace), DELETE.
-        # No auth required in demo mode (synthetic data).
+        # Management needs a bearer token issued to that client.
         "registration_management_endpoint_template": base + "/register-client/{client_id}",
         # extension fields (non-standard but useful for agent discovery)
         "fhir_base_url": base,
@@ -167,7 +165,7 @@ def smart_configuration() -> JSONResponse:
             "form":                   "?identifier={system}|{value}",
         },
         "priority_categories": ["patient-summary", "laboratory-report", "discharge-report",
-                                "imaging-report", "prescription"],
+                                "imaging-report", "eprescription", "edispensation"],
         "token_ttl_seconds": settings.token_ttl_seconds,
         "rate_limit_per_min": settings.rate_limit_per_min,
     }
@@ -194,7 +192,9 @@ def token(
     client_id, allowed_scopes = _verify_client_assertion(client_assertion)
     granted = _filter_scopes(scope, tuple(allowed_scopes))
     if not granted:
-        raise HTTPException(status_code=400, detail={"error": "invalid_scope"})
+        raise HTTPException(status_code=400, detail={
+            "error": "invalid_scope",
+            "error_description": f"none of the requested scopes are covered by this client's registered scopes {allowed_scopes}"})
 
     now = int(time.time())
     bearer_payload: dict[str, Any] = {

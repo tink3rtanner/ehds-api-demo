@@ -5,7 +5,7 @@ import * as api from '../lib/api.js';
 import * as smart from '../lib/smart.js';
 import { pageShell, section, button, kv, codeBlock, requestChip, copyButton, note, spinner, errorBox } from '../lib/components.js';
 
-const SCOPES = ['system/*.read', 'system/Bundle.write', 'system/*.write'];
+const SCOPES = ['system/*.rs', 'system/DocumentReference.c', 'system/Bundle.write'];
 
 export async function render({ ctx }) {
   const base = ctx.base;
@@ -29,7 +29,7 @@ export async function render({ ctx }) {
   ), { className: 'block-tint' });
 
   const clientId = el('input', { value: `dev-${Math.random().toString(36).slice(2, 7)}` });
-  const scopeBoxes = SCOPES.map((s) => el('input', { type: 'checkbox', value: s, checked: s === 'system/*.read' }));
+  const scopeBoxes = SCOPES.map((s) => el('input', { type: 'checkbox', value: s, checked: s === 'system/*.rs' }));
   const out = [el('div', {}), el('div', {}), el('div', {})];
   const mintBtn = button('Mint a token', { kind: 'primary', icon: 'key', disabled: true, onClick: () => mint() });
   const callBtn = button('First call', { kind: 'primary', icon: 'play', disabled: true, onClick: () => call() });
@@ -88,8 +88,10 @@ export async function render({ ctx }) {
     ['Find patient', 'GET', pathOf(ex.endpoints?.search_patient_by_demographics)], ['Match patient', 'POST', '/Patient/$match'],
     ['Resolve a slot', 'GET', pathOf(ex.endpoints?.lookup_patient_by_slot)],
     ['Find documents', 'GET', pathOf(ex.endpoints?.document_search_by_identifier)], ['Retrieve document', 'GET', pathOf(ex.endpoints?.document_retrieve)],
-    ['Patient summary', 'GET', pathOf(ex.endpoints?.patient_summary_operation)], ['Everything', 'GET', pathOf(ex.endpoints?.patient_everything)],
-    ['Resources', 'GET', pathOf(ex.endpoints?.allergies_for_patient)], ['Back to source', 'GET', '/{Type}/{id}/$source'], ['Publish', 'POST', '/'],
+    ['Patient summary', 'GET', pathOf(ex.endpoints?.patient_summary_operation)],
+    ['ePrescription', 'GET', pathOf(ex.endpoints?.eprescription_for_patient)], ['eDispensation', 'GET', pathOf(ex.endpoints?.edispensation_for_patient)],
+    ['Resources', 'GET', pathOf(ex.endpoints?.allergies_for_patient)], ['Back to source', 'GET', '/{Type}/{id}/$source'],
+    ['Publish (ITI-105)', 'POST', '/DocumentReference'], ['Upload a Bundle (convenience)', 'POST', '/'],
   ].filter((r) => r[2]);
   const endpoints = section('Endpoints', el('div', {}, rows.map(([what, method, path]) => el('div', { class: 'endpoint-row' },
     el('div', { class: 'what' }, what),

@@ -7,6 +7,10 @@ import { pageShell, section, button, originBadge, countryBadge, emptyState, time
 import { humanName, originOf, slotOf, patientCountry, bucketize, timelineEvents, categoryOfDocRef, sourceHost, statusOf, enrichMedicationDisplays, CATEGORIES } from '../lib/fhir.js';
 import { demographics, docCard, resourceRow } from '../lib/render.js';
 
+// one search per type (the IG has no $everything)
+const COMPARTMENT_TYPES = ['Condition', 'AllergyIntolerance', 'MedicationStatement', 'MedicationRequest', 'MedicationDispense',
+  'Immunization', 'Observation', 'Procedure', 'DiagnosticReport', 'ImagingStudy', 'Encounter'];
+
 export async function render({ id }) {
   let p;
   try {
@@ -22,8 +26,8 @@ export async function render({ id }) {
   const tl = el('div', {}, spinner());
   const comp = el('div', {}, spinner('Compartment…'));
 
-  api.fhir(`/Patient/${p.id}/$everything`, { label: '$everything' }).then(async (b) => {
-    const rs = (b.entry || []).map((e) => e.resource).filter((r) => r && r.id !== p.id);
+  Promise.all(COMPARTMENT_TYPES.map((t) => api.fhir(`/${t}?patient=${p.id}`, { label: `search ${t}` }))).then(async (bs) => {
+    const rs = bs.flatMap((b) => (b.entry || []).map((e) => e.resource)).filter((r) => r && r.id !== p.id);
     // Medication resources are not in the compartment; fetch the few that are referenced so rows show drug names
     const medIds = [...new Set(rs.map((r) => r.medicationReference?.reference).filter((ref) => ref && !ref.includes('display')).map((ref) => ref.split('/').pop()))];
     const meds = await Promise.all(medIds.slice(0, 12).map((id) => api.fhir(`/Medication/${id}`, { label: 'read medication', allowError: true })));
@@ -62,6 +66,6 @@ export async function render({ id }) {
     children: [hero,
       section('Documents', docs, { actions: [requestChip('GET', docQuery)] }),
       section('Timeline', tl),
-      section('Compartment', comp, { actions: [requestChip('GET', `/Patient/${p.id}/$everything`)] })],
+      section('Compartment', comp)],
   });
 }

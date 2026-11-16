@@ -30,6 +30,11 @@
       }
     ]
   },
+  "performer": [
+    {
+      "reference": "Practitioner/5179834d-4066-5f95-9598-17e49b655a6b"
+    }
+  ],
   "resourceType": "Observation",
   "status": "final",
   "subject": {

@@ -105,4 +105,4 @@ async def test_middleware_records_run_header_and_ui_endpoint_reads_it(client, au
     assert entries[0]["run"] == run
     r = await client.get("/ui/api/audit/stats", params={"scope": "all"})
     assert r.status_code == 200 and r.json()["total"] >= 1
-    assert (await client.get("/ui/api/audit", params={"scope": "bogus"})).status_code == 422
+    assert (await client.get("/ui/api/audit", params={"scope": "bogus"})).status_code == 400

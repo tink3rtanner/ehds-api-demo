@@ -53,7 +53,7 @@ _CLIENT_REGISTRY_PATH.write_text(json.dumps({
         "client_id": "test-client",
         "jwks": {"keys": [_TEST_CLIENT_JWK]},
         "scopes": [
-            "system/*.read", "system/Bundle.write",
+            "system/*.read", "system/Bundle.write", "system/DocumentReference.c",
             "system/Patient.read", "system/DocumentReference.read",
             "system/Binary.read",
         ],
@@ -143,7 +143,7 @@ async def bearer(client: AsyncClient, test_client_key: rsa.RSAPrivateKey) -> str
             "grant_type": "client_credentials",
             "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
             "client_assertion": assertion,
-            "scope": "system/*.read system/Bundle.write",
+            "scope": "system/*.read system/Bundle.write system/DocumentReference.c",
         },
     )
     assert r.status_code == 200, r.text

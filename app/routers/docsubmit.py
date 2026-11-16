@@ -1,6 +1,8 @@
-"""ITI-105 document submission.
+"""Convenience upload: ``POST /`` with a Bundle. NOT ITI-105.
 
-accepts POST / (root) with Content-Type: application/fhir+json carrying a
+The IG's publish transaction is ITI-105 Simplified Publish, ``POST
+/DocumentReference`` (app/routers/publish.py). This older endpoint stays for
+clients that already use it. It accepts POST / (root) with Content-Type: application/fhir+json carrying a
 Bundle.type=transaction whose entries contain a DocumentReference + Binary
 (and any supporting Composition + clinical resources).
 
@@ -63,30 +65,31 @@ async def submit_bundle(
         return JSONResponse(status_code=400, content={"resourceType": "OperationOutcome",
             "issue": [{"severity": "error", "code": "structure", "diagnostics": p} for p in problems]})
 
-    # ensure id, then persist the AS-SUBMITTED bundle as evidence (foreign ids
-    # intact) before we naturalize — the inbox is the original-of-record.
-    body.setdefault("id", str(uuid.uuid4()))
+    # persist the AS-SUBMITTED bundle as evidence (foreign ids intact) before
+    # we naturalize — the inbox is the original-of-record. The inbox key is
+    # always a fresh server id, so two uploads with the same Bundle.id never
+    # overwrite each other.
+    sub_id = str(uuid.uuid4())
     inbox_dir = settings.data_dir / "inbox"
     inbox_dir.mkdir(parents=True, exist_ok=True)
-    (inbox_dir / f"{body['id']}.json").write_text(json.dumps(body, indent=2, sort_keys=True))
+    (inbox_dir / f"{sub_id}.json").write_text(json.dumps(body, indent=2, sort_keys=True))
 
     # naturalize into local identity (local ids + rewritten refs + source
     # back-links) and mirror into the store
     written: list[str] = []
-    for res in naturalize_bundle(body, submission_id=body["id"]):
+    for res in naturalize_bundle(body, submission_id=sub_id):
         store.write(res)
         written.append(f"{res['resourceType']}/{res['id']}")
 
     # EU-profile validation is a badge, never a gate: queue it after the 201.
-    enqueue_submission(body["id"])
+    enqueue_submission(sub_id)
 
     return JSONResponse(
         status_code=201,
         content={
             "resourceType": "Bundle",
-            "id": body["id"],
+            "id": sub_id,
             "type": "transaction-response",
             "entry": [{"response": {"status": "201 Created", "location": ref}} for ref in written],
         },
-        headers={"Location": f"{settings.base_url}/Bundle/{body['id']}"},
     )

@@ -58,15 +58,21 @@ client and mint a token in the browser.
 | EEHRxF Resource Access Provider         | yes — IPA set + Med* |
 | EEHRxF Resource Consumer                | tested via mocks |
 
-Priority categories produced as `Bundle.type=document`:
+The six EHDS priority categories. Four are `Bundle.type=document`, compiled on
+demand for the seeded patients:
 
-- patient-summary  (HL7 EU Patient Summary / EPS)
-- laboratory-report (HL7 EU Laboratory Report)
-- discharge-report  (HL7 EU Hospital Discharge Report)
-- imaging-report    (HL7 EU Imaging)
-- prescription      (base R4 document; the R4 MPD IG has no bundle profile)
+- patient-summary   (HL7 EU Patient Summary / EPS, LOINC 60591-5)
+- laboratory-report (HL7 EU Laboratory Report 2.1.0, LOINC 11502-2)
+- discharge-report  (HL7 EU Hospital Discharge Report 1.0.0, LOINC 34105-7; also found by 18842-5)
+- imaging-report    (HL7 EU Imaging, LOINC 18748-4; also found by 85430-7)
 
-The server accepts every ITI-105 submission, then validates it against the
+Two are resources on the HL7 EU MPD profiles: ePrescription (MedicationRequest)
+and eDispensation (MedicationDispense). `python -m scripts.validate_examples`
+validates one example of each of the six with the HL7 java validator.
+
+Publish with ITI-105 Simplified Publish: `POST /DocumentReference`, document
+inline as base64 (`/llms.txt` has the full recipe; `/quickstart.py` is a
+single-file Python client). The server accepts every publish, then validates it against the
 HL7 Europe profile for its category with the HL7 java validator and shows the
 result on the Coverage page. A failed validation does not reject the
 submission. A submission counts for the country in the patient's address; no

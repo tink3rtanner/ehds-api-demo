@@ -9,9 +9,10 @@ from __future__ import annotations
 import json
 import re
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 
+from app.auth import scopes as scope_syntax
 from app.config import settings
 from app.fhir import document as doc_compile
 from app.fhir import store
@@ -31,42 +32,55 @@ def _slot_for_patient_id(patient_uuid: str) -> str | None:
 
 router = APIRouter()
 
-# Scopes the public REST registration may grant. Includes the writes a
-# Document Source actor needs for IHE MHD ITI-105 submission. Synthetic-data
-# demo — any client can self-register for write access.
+# Scopes advertised as `scopes_supported`. Registration accepts ANY valid
+# SMART system scope (v1 `.read/.write/.*` or v2 `.cruds` subsets, specific
+# type or `*`); this list is the menu, not a gate. Synthetic-data demo: anyone
+# may self-register for read and publish.
 _ALLOWED_REG_SCOPES = (
     # broad
+    "system/*.rs",
     "system/*.read",
     "system/*.write",
-    # reads (per-resource)
-    "system/Patient.read",
-    "system/Observation.read",
-    "system/Condition.read",
-    "system/MedicationStatement.read",
-    "system/MedicationRequest.read",
-    "system/AllergyIntolerance.read",
-    "system/Immunization.read",
-    "system/Procedure.read",
-    "system/DiagnosticReport.read",
-    "system/ImagingStudy.read",
-    "system/Encounter.read",
-    "system/DocumentReference.read",
-    "system/Binary.read",
-    # writes — required for ITI-105 Document Source actor
-    "system/Bundle.write",
+    # what the HL7 EU Health Data API IG names per actor
+    "system/Patient.rs",
+    "system/DocumentReference.rs",
+    "system/DocumentReference.c",   # ITI-105 Simplified Publish
+    "system/Bundle.r",
+    "system/Binary.r",
+    "system/AllergyIntolerance.rs",
+    "system/Condition.rs",
+    "system/Observation.rs",
+    "system/DiagnosticReport.rs",
+    "system/ImagingStudy.rs",
+    "system/MedicationRequest.rs",
+    "system/MedicationDispense.rs",
+    "system/MedicationStatement.rs",
+    "system/Immunization.rs",
+    "system/Encounter.rs",
+    "system/Practitioner.r",
+    "system/Organization.r",
+    # v1 forms still accepted
     "system/DocumentReference.write",
-    "system/Patient.write",
-    "system/Observation.write",
-    "system/Condition.write",
-    "system/MedicationStatement.write",
-    "system/MedicationRequest.write",
-    "system/AllergyIntolerance.write",
-    "system/Immunization.write",
-    "system/Procedure.write",
-    "system/DiagnosticReport.write",
-    "system/ImagingStudy.write",
-    "system/Encounter.write",
+    "system/Bundle.write",
 )
+
+
+def _require_owner(request: Request, client_id: str) -> None:
+    """RFC 7592 management needs proof you are that client: a bearer token
+    this server issued to it (any scope)."""
+    from app.auth.jwks import load_clients
+    from app.auth.verify import verify_bearer
+    if client_id not in load_clients():
+        raise HTTPException(status_code=404, detail=f"client_id not registered: {client_id}")
+    principal = verify_bearer(request)
+    if principal.client_id != client_id:
+        raise HTTPException(status_code=403, detail=f"this token belongs to {principal.client_id}, not {client_id}")
+
+
+def _invalid_scopes(scopes: list[str]) -> list[str]:
+    return [s for s in scopes if not scope_syntax.is_valid(s)]
+
+
 _CLIENT_ID_RE = re.compile(r"^[a-z0-9][a-z0-9\-_]{1,62}[a-z0-9]$")
 
 
@@ -94,21 +108,20 @@ async def register_client_help() -> JSONResponse:
                 "GET":    "inspect current registration (scopes, kids, jwks)",
                 "PATCH":  "partial update — body may include 'scopes' and/or "
                           "'public_key_pem' (or 'jwk'). use this to add a "
-                          "scope (e.g. system/Bundle.write) or rotate a key.",
+                          "scope (e.g. system/DocumentReference.c) or rotate a key.",
                 "PUT":    "full replace — same payload as POST",
                 "DELETE": "unregister",
             },
-            "auth": "none required in demo mode (synthetic data only)",
+            "auth": "Authorization: Bearer <a token issued to this client> (GET needs none)",
             "example_add_write_scope": (
                 f"curl -X PATCH {base}/register-client/<my-client-id> "
-                f"-H 'Content-Type: application/json' "
-                f"-d '{{\"scopes\":[\"system/*.read\",\"system/Bundle.write\","
-                f"\"system/DocumentReference.write\"]}}'"
+                f"-H 'Authorization: Bearer <token>' -H 'Content-Type: application/json' "
+                f"-d '{{\"scopes\":[\"system/*.rs\",\"system/DocumentReference.c\"]}}'"
             ),
         },
         "request_body_schema": {
-            "client_id": "lowercase letters/numbers/hyphens, 2-64 chars (required)",
-            "scopes": f"list of strings, subset of {list(_ALLOWED_REG_SCOPES)} (default: ['system/*.read'])",
+            "client_id": "3-64 chars: lowercase letters, digits, - and _, starting and ending with a letter or digit (required, must be new: 409 if taken)",
+            "scopes": "list of SMART system scopes, v1 or v2 syntax, e.g. ['system/*.rs', 'system/DocumentReference.c'] (default: ['system/*.read'])",
             "jwk": "single JWK dict (RSA or EC), OR",
             "public_key_pem": "PEM-encoded public key string (RSA or EC; alg auto-detected from key type)",
         },
@@ -162,8 +175,8 @@ async def register_client_help() -> JSONResponse:
 
 
 @router.post("/register-client", name="register_client",
-             description="Register a SMART backend services client (read-only scopes).")
-async def register_client(payload: dict) -> JSONResponse:
+             description="Register a SMART backend services client (any system scopes, read and publish).")
+async def register_client(payload: dict, _replace: bool = False) -> JSONResponse:
     """POST a client registration. Same logic as the /ui/api/register-client
     endpoint but always available (not dev-gated) so production agents can
     also self-register via the URL advertised by smart-configuration."""
@@ -175,10 +188,10 @@ async def register_client(payload: dict) -> JSONResponse:
     scopes = payload.get("scopes") or ["system/*.read"]
     if not isinstance(scopes, list) or not all(isinstance(s, str) for s in scopes):
         raise HTTPException(status_code=400, detail="scopes must be a list of strings")
-    bad = [s for s in scopes if s not in _ALLOWED_REG_SCOPES]
+    bad = _invalid_scopes(scopes)
     if bad:
         raise HTTPException(status_code=400,
-                            detail=f"scopes not in allowed set: {bad}. allowed: {list(_ALLOWED_REG_SCOPES)}")
+                            detail=f"not valid SMART system scopes: {bad}. use system/<Type|*>.<read|write|cruds subset>, e.g. {list(_ALLOWED_REG_SCOPES[:4])}")
 
     if payload.get("jwk"):
         jwk = dict(payload["jwk"])
@@ -215,6 +228,11 @@ async def register_client(payload: dict) -> JSONResponse:
         jwks = {"keys": [jwk]}
     else:
         raise HTTPException(status_code=400, detail="provide either jwk or public_key_pem")
+
+    if not _replace and cid in load_clients():
+        raise HTTPException(status_code=409, detail=(
+            f"client_id {cid} is already registered. Pick another client_id, or manage this one at "
+            f"{settings.base_url}/register-client/{cid} (PATCH/PUT/DELETE) with a bearer token issued to it."))
 
     try:
         upsert_client(cid, jwks, scopes)
@@ -273,30 +291,31 @@ async def register_client_read(client_id: str) -> JSONResponse:
 
 @router.patch("/register-client/{client_id}", name="register_client_patch",
               description="Update an existing client's scopes and/or rotate its key.")
-async def register_client_patch(client_id: str, payload: dict) -> JSONResponse:
+async def register_client_patch(client_id: str, payload: dict, request: Request) -> JSONResponse:
     """Partial update: change scopes and/or add/replace the public key.
 
     body fields (all optional, at least one required):
-      - scopes: list[str]  -> replace the granted scopes (must be from
-                              _ALLOWED_REG_SCOPES)
+      - scopes: list[str]  -> replace the granted scopes (any valid SMART
+                              system scope, v1 or v2 syntax)
       - jwk:   dict        -> replace the JWKS with this single JWK
       - public_key_pem: str -> PEM, converted to JWK and stored
 
-    no auth required in demo mode. for synthetic-data only.
+    needs a bearer token issued to this client (RFC 7592 style).
     """
     from app.auth.jwks import patch_client
     if not _CLIENT_ID_RE.match(client_id):
         raise HTTPException(status_code=400, detail="bad client_id")
+    _require_owner(request, client_id)
     new_scopes = None
     new_jwks = None
     if "scopes" in payload:
         scopes = payload.get("scopes") or []
         if not isinstance(scopes, list) or not all(isinstance(s, str) for s in scopes):
             raise HTTPException(status_code=400, detail="scopes must be a list of strings")
-        bad = [s for s in scopes if s not in _ALLOWED_REG_SCOPES]
+        bad = _invalid_scopes(scopes)
         if bad:
             raise HTTPException(status_code=400,
-                                detail=f"scopes not in allowed set: {bad}. allowed: {list(_ALLOWED_REG_SCOPES)}")
+                                detail=f"not valid SMART system scopes: {bad}. use system/<Type|*>.<read|write|cruds subset>, e.g. {list(_ALLOWED_REG_SCOPES[:4])}")
         new_scopes = list(scopes)
     if payload.get("jwk"):
         jwk = dict(payload["jwk"])
@@ -336,20 +355,22 @@ async def register_client_patch(client_id: str, payload: dict) -> JSONResponse:
 
 @router.put("/register-client/{client_id}", name="register_client_put",
             description="Full replace of an existing client registration.")
-async def register_client_put(client_id: str, payload: dict) -> JSONResponse:
+async def register_client_put(client_id: str, payload: dict, request: Request) -> JSONResponse:
     """RFC 7592-style PUT: replace the registration entirely."""
+    _require_owner(request, client_id)
     payload = dict(payload)
     payload["client_id"] = client_id
-    return await register_client(payload)
+    return await register_client(payload, _replace=True)
 
 
 @router.delete("/register-client/{client_id}", name="register_client_delete",
                status_code=204,
                description="Remove an existing client registration.")
-async def register_client_delete(client_id: str):
+async def register_client_delete(client_id: str, request: Request):
     from app.auth.jwks import delete_client
     if not _CLIENT_ID_RE.match(client_id):
         raise HTTPException(status_code=400, detail="bad client_id")
+    _require_owner(request, client_id)
     if not delete_client(client_id):
         raise HTTPException(status_code=404, detail=f"client_id not registered: {client_id}")
     from fastapi.responses import Response

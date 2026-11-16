@@ -48,6 +48,8 @@ _TYPE_TO_DIR: dict[str, str] = {
     "Organization": "organizations",
     "Composition": "compositions",
     "DocumentReference": "document-references",
+    # attachments: Binaries uploaded in a Bundle, and non-FHIR ITI-105 content
+    "Binary": "binaries",
 }
 
 SUPPORTED_TYPES = tuple(_TYPE_TO_DIR.keys())
@@ -295,15 +297,31 @@ def match_date(query: str, target: str | None) -> bool:
         return target.startswith(val)
     if prefix == "ne":
         return not target.startswith(val)
+    # compare at the query's precision: le2024-04-12 includes 2024-04-12T16:00
+    t = target[:len(val)]
     if prefix in ("gt", "sa"):
-        return target > val
+        return t > val
     if prefix in ("lt", "eb"):
-        return target < val
+        return t < val
     if prefix == "ge":
-        return target >= val
+        return t >= val
     if prefix == "le":
-        return target <= val
+        return t <= val
     return target.startswith(val)
+
+
+_DATE_FIELDS = ("effectiveDateTime", "effectiveInstant", "issued", "recordedDate", "onsetDateTime",
+                "occurrenceDateTime", "performedDateTime", "authoredOn", "whenHandedOver", "date", "started")
+
+
+def _clinical_dates(r: dict[str, Any]) -> list[str]:
+    """Every timestamp the R4 `date` search parameter covers for this resource."""
+    out = [r[f] for f in _DATE_FIELDS if isinstance(r.get(f), str)]
+    for f in ("effectivePeriod", "period", "performedPeriod"):
+        per = r.get(f)
+        if isinstance(per, dict):
+            out += [v for v in (per.get("start"), per.get("end")) if isinstance(v, str)]
+    return out
 
 
 def search(rtype: str, params: dict[str, list[str]]) -> list[dict[str, Any]]:
@@ -358,6 +376,12 @@ def search(rtype: str, params: dict[str, list[str]]) -> list[dict[str, Any]]:
                 return True
             return False
         results = [r for r in results if has_ident(r)]
+
+    # date: the resource's clinically relevant time (FHIR R4 "clinical-date")
+    if (val := take("date")) is not None:
+        results = [r for r in results if any(match_date(val, t) for t in _clinical_dates(r))]
+    if (val := take("_lastUpdated") or take("_lastupdated")) is not None:
+        results = [r for r in results if match_date(val, (r.get("meta") or {}).get("lastUpdated"))]
 
     # status / category / code as token-ish
     for tok in ("status", "clinical-status", "category", "code", "intent"):

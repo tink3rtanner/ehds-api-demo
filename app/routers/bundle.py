@@ -16,6 +16,7 @@ from app.auth.verify import Principal, require_scope
 from app.fhir import document as doc_compile
 from app.fhir import store
 from app.fhir.ids import SLOT_IDENTIFIER_SYSTEM, bundle_id
+from app.routers.publish import document_path
 
 router = APIRouter()
 
@@ -55,6 +56,11 @@ async def read_bundle(
     rid: str,
     _p: Annotated[Principal, Depends(require_scope("system/Binary.read"))],
 ):
+    # a document published via ITI-105: return the exact bytes we were given
+    if (fp := document_path(rid)) is not None:
+        dr = store.read("DocumentReference", rid) or {}
+        ctype = (((dr.get("content") or [{}])[0]).get("attachment") or {}).get("contentType") or "application/fhir+json"
+        return Response(content=fp.read_bytes(), media_type=ctype)
     index = _build_reverse_index()
     if rid not in index:
         # fall back to any persisted Bundle (e.g. submitted via ITI-105)

@@ -39,19 +39,10 @@
   "resourceType": "DiagnosticReport",
   "result": [
     {
-      "reference": "Observation/92179171-7846-51c3-bca0-2d373b775c6d"
+      "reference": "Observation/de728429-da8a-536d-ac87-a1d486d30158"
     },
     {
-      "reference": "Observation/033bdd26-99bb-5837-80c8-a97b681b271a"
-    },
-    {
-      "reference": "Observation/5b4dbcb1-d144-56ab-8c65-08353c7631cd"
-    },
-    {
-      "reference": "Observation/7edc5529-ffdf-5614-848f-f46bd811aff8"
-    },
-    {
-      "reference": "Observation/1f8e1241-63f0-550d-8a44-e9875d7817d9"
+      "reference": "Observation/17de8110-58c3-5f02-8878-ad6e9aaf3d35"
     }
   ],
   "specimen": [
