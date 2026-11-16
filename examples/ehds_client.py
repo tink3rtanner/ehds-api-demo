@@ -10,6 +10,7 @@ it can be pointed at any server, including a test bed that checks each request.
     ehds_client.py [connection options] get Patient/123
     ehds_client.py [connection options] search DocumentReference patient=123 type=http://loinc.org|60591-5
     ehds_client.py [connection options] publish --patient Patient/123 --file summary.json [--dry-run]
+    ehds_client.py [connection options] tls-check     # the TLS version this client negotiates
 
 Connection options: --base (FHIR base URL), --token-endpoint (default: read from
 <base>/.well-known/smart-configuration), --client-id and --key (a registered
@@ -36,6 +37,8 @@ import argparse
 import base64
 import hashlib
 import json
+import socket
+import ssl
 import sys
 import time
 import urllib.error
@@ -194,6 +197,24 @@ def simplified_publish(document: bytes, patient_ref: str) -> dict[str, Any]:
     return doc
 
 
+def tls_check(base: str) -> dict[str, Any]:
+    """The TLS version and cipher this client negotiates with the server at ``base``.
+
+    Uses ssl.create_default_context(), the same context urllib uses for every
+    request this client makes, so the answer is the client's own, not a probe's.
+    ok is True for TLS 1.2 or higher (EU Health Data API: TLS >= 1.2)."""
+    url = urllib.parse.urlsplit(base)
+    if url.scheme != "https":
+        raise ValueError(f"tls-check needs an https base URL, not {url.scheme}://")
+    host, port = url.hostname, url.port or 443
+    ctx = ssl.create_default_context()
+    with socket.create_connection((host, port), timeout=30) as raw, \
+            ctx.wrap_socket(raw, server_hostname=host) as tls:
+        version, cipher = tls.version(), tls.cipher()[0]
+    return {"host": host, "port": port, "version": version, "cipher": cipher,
+            "ok": version in ("TLSv1.2", "TLSv1.3"), "checked_at": _now()}
+
+
 def _discover_token_endpoint(base: str) -> str:
     with urllib.request.urlopen(f"{base.rstrip('/')}/.well-known/smart-configuration", timeout=60) as r:  # noqa: S310
         return json.load(r)["token_endpoint"]
@@ -219,7 +240,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--patient", required=True, help="the subject, e.g. Patient/123")
     p.add_argument("--file", required=True, help="the document Bundle (JSON); its bytes are sent unchanged")
     p.add_argument("--dry-run", action="store_true", help="print the DocumentReference and send nothing")
+    sub.add_parser("tls-check", help="report the TLS version this client negotiates with the base URL")
     a = ap.parse_args(argv)
+    if a.action == "tls-check":
+        info = tls_check(a.base)
+        print(json.dumps(info, indent=1))
+        return 0 if info["ok"] else 1
     if a.action == "publish" and a.dry_run:
         print(json.dumps(simplified_publish(Path(a.file).read_bytes(), a.patient), indent=1))
         return 0

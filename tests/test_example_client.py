@@ -204,8 +204,8 @@ def test_the_client_has_no_third_party_dependencies_but_cryptography():
     src = Path(ehds_client.__file__).read_text()
     imports = {line.split()[1].split(".")[0] for line in src.splitlines()
                if line.startswith(("import ", "from ")) and not line.startswith("from __future__")}
-    assert imports - {"argparse", "base64", "hashlib", "json", "sys", "time", "urllib", "uuid", "pathlib",
-                      "datetime", "cryptography", "typing"} == set()
+    assert imports - {"argparse", "base64", "hashlib", "json", "socket", "ssl", "sys", "time", "urllib", "uuid",
+                      "pathlib", "datetime", "cryptography", "typing"} == set()
 
 
 def test_category_classes_match_what_the_server_seeds():
@@ -225,3 +225,61 @@ def test_publish_dry_run_prints_the_payload_and_sends_nothing(fake, client, tmp_
     assert out["resourceType"] == "DocumentReference"
     assert base64.b64decode(out["content"][0]["attachment"]["data"]) == doc_file.read_bytes()
     assert fake.requests == []
+
+
+def _tls_server(tmp_path, *, min_version):
+    """A local HTTPS server with a throwaway CA-signed cert; returns (url, ca_file, server)."""
+    import datetime
+    import ssl
+
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes
+    from cryptography.x509.oid import NameOID
+
+    def name(cn):
+        return x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, cn)])
+
+    now = datetime.datetime.now(datetime.UTC)
+    ca_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    ca = (x509.CertificateBuilder().subject_name(name("test ca")).issuer_name(name("test ca"))
+          .public_key(ca_key.public_key()).serial_number(1).not_valid_before(now)
+          .not_valid_after(now + datetime.timedelta(days=1))
+          .add_extension(x509.BasicConstraints(ca=True, path_length=None), critical=True)
+          .sign(ca_key, hashes.SHA256()))
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    cert = (x509.CertificateBuilder().subject_name(name("localhost")).issuer_name(ca.subject)
+            .public_key(key.public_key()).serial_number(2).not_valid_before(now)
+            .not_valid_after(now + datetime.timedelta(days=1))
+            .add_extension(x509.SubjectAlternativeName([x509.DNSName("localhost")]), critical=False)
+            .sign(ca_key, hashes.SHA256()))
+    pem = serialization.Encoding.PEM
+    (tmp_path / "ca.pem").write_bytes(ca.public_bytes(pem))
+    (tmp_path / "srv.pem").write_bytes(cert.public_bytes(pem) + key.private_bytes(
+        pem, serialization.PrivateFormat.PKCS8, serialization.NoEncryption()))
+    ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    ctx.minimum_version = min_version
+    ctx.load_cert_chain(tmp_path / "srv.pem")
+    fake = Fake()
+    fake.server.socket = ctx.wrap_socket(fake.server.socket, server_side=True)
+    return fake.base.replace("http://127.0.0.1", "https://localhost"), tmp_path / "ca.pem", fake
+
+
+def test_tls_check_reports_the_version_the_client_negotiates(tmp_path, monkeypatch, capsys):
+    import ssl
+    url, ca, fake = _tls_server(tmp_path, min_version=ssl.TLSVersion.TLSv1_3)
+    monkeypatch.setenv("SSL_CERT_FILE", str(ca))
+    try:
+        info = ehds_client.tls_check(url)
+        assert info["version"] == "TLSv1.3"
+        assert info["ok"] is True
+        assert info["host"] == "localhost" and info["cipher"]
+        assert ehds_client.main(["--base", url, "--client-id", "c1", "--key", "unused",
+                                 "--token-endpoint", "unused", "tls-check"]) == 0
+        assert json.loads(capsys.readouterr().out)["version"] == "TLSv1.3"
+    finally:
+        fake.server.shutdown()
+
+
+def test_tls_check_refuses_a_plain_http_base():
+    with pytest.raises(ValueError, match="https"):
+        ehds_client.tls_check("http://localhost:1/fhir")
