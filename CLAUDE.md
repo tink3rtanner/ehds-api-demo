@@ -129,8 +129,14 @@ python -m scripts.validate_examples
 python -m scripts.republish_inbox --apply
 
 # remove published data, backup first (dry run without --apply)
-python -m scripts.purge --submission <id>
+python -m scripts.purge --submission <id> [--submission <id> ...]   # one backup per run
 python -m scripts.purge --all-community
+
+# reference client (Document Consumer / Publisher, Resource Consumer): one action per run.
+# It is the client under test for the ITB client cases (/srv/itb/run-all.sh)
+python examples/ehds_client.py --base <fhir-base> --client-id <id> --key <pem> search Condition patient=<id>
+python examples/ehds_client.py --base <fhir-base> --client-id <id> --key <pem> \
+    --scope "system/DocumentReference.c" publish --patient Patient/<id> --file summary.json [--dry-run]
 
 # a 24 h read (or --publish) token to paste in a chat
 python -m app.tools.mint_day_token --publish
@@ -176,6 +182,12 @@ This means:
   identifier and feeds it to `bundle_id` so its output matches the URLs DocumentReference
   attachments point at AND what `bundle_router._build_reverse_index()` expects
 - A regression here breaks the ITI-67 → ITI-68 round-trip silently
+- **Only the Patient whose id is `patient_id(slot)` owns that slot.** An upload
+  (POST /) stores a copy of a reference Patient, slot identifier included. Every
+  slot lookup goes through `ids.owned_slot()` (or `store.read("Patient",
+  patient_id(slot))`), never "first Patient carrying the slot identifier", or the
+  copy takes over the reference patient's documents and searches
+  (`tests/test_slot_ownership_and_error_types.py`)
 
 ### Patient-reference search accepts 4 equivalent shapes
 

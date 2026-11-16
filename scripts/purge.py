@@ -5,6 +5,7 @@ Seeded reference data is never touched. Dry run unless --apply.
     python -m scripts.purge --submission <id>          # one publish: its DocumentReference,
                                                          # stored bytes, inbox copy, validation
                                                          # record and the resources it brought
+    python -m scripts.purge --submission <a> --submission <b>   # several, one backup
     python -m scripts.purge --all-community            # every published thing
     python -m scripts.purge --all-community --apply    # do it
 
@@ -37,22 +38,23 @@ def backup() -> Path:
     return out
 
 
-def plan(submission: str | None) -> list[Path]:
-    """Every file to delete."""
+def plan(submissions: list[str] | None) -> list[Path]:
+    """Every file to delete: the named submissions, or every community thing when None."""
     files: list[Path] = []
     for rtype in store.SUPPORTED_TYPES:
         for res in store.list_all(rtype):
             o = origin_of(res)
             if o["kind"] != COMMUNITY:
                 continue
-            if submission and o["submission"] != submission:
+            if submissions and o["submission"] not in submissions:
                 continue
             files.append(store.dir_for_type(rtype) / f"{res['id']}.json")
     d = settings.data_dir
-    if submission:
-        names = [d / "inbox" / f"{submission}.json", d / "documents" / f"{submission}.bin",
-                 d / "validation" / f"{submission}.json"]
-        files += [p for p in names if p.exists()]
+    if submissions:
+        for sub in submissions:
+            names = [d / "inbox" / f"{sub}.json", d / "documents" / f"{sub}.bin",
+                     d / "validation" / f"{sub}.json"]
+            files += [p for p in names if p.exists()]
     else:
         files += sorted((d / "inbox").glob("*.json")) + sorted((d / "documents").glob("*.bin"))
         for p in sorted((d / "validation").glob("*.json")):
@@ -64,13 +66,14 @@ def plan(submission: str | None) -> list[Path]:
     return [p for p in dict.fromkeys(files) if p.exists()]
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     g = ap.add_mutually_exclusive_group(required=True)
-    g.add_argument("--submission", help="the id of one publish (the DocumentReference id for ITI-105)")
+    g.add_argument("--submission", action="append",
+                   help="the id of one publish (the DocumentReference id for ITI-105); repeat for several")
     g.add_argument("--all-community", action="store_true", help="every published (non-seeded) thing")
     ap.add_argument("--apply", action="store_true", help="delete (default: dry run)")
-    args = ap.parse_args()
+    args = ap.parse_args(argv)
 
     files = plan(args.submission)
     by_dir: dict[str, int] = {}
