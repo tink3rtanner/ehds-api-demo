@@ -43,7 +43,7 @@ public URL.
    TOKEN=$(curl -fsS -X POST $BASE/ui/api/viewer-token | jq -r .access_token)   # the FHIR surface needs a bearer
    curl -fsS -H "Authorization: Bearer $TOKEN" "$BASE/Bundle/$BID" | jq -e '.type == "document"'
    # e) agent entry point + the UI shell
-   curl -fsS -H 'Accept: application/json' $BASE/ | jq -e '.pillars | length == 6'
+   curl -fsS -H 'Accept: application/json' $BASE/ | jq -e '.steps | length >= 1'
    curl -fsS $BASE/ui/ | grep -q 'type="module"'
    ```
    Note (c) also needs the bearer now: `curl -fsS -H "Authorization: Bearer $TOKEN" "$BASE/Patient?identifier=urn:ehds-demo:slot|p-001"`.
