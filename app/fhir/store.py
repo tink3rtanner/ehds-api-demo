@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Any
 
 from app.config import settings
+from app.fhir.ids import patient_id
 
 # canonical FHIR-type -> dir name
 _TYPE_TO_DIR: dict[str, str] = {
@@ -180,6 +181,11 @@ def resolve_patient_ref(value: str) -> str | None:
         value = value.split("/", 1)[1]
     # exact id match first (cheapest)
     p = read("Patient", value)
+    if p is not None:
+        return p["id"]
+    # a slot label resolves to the reference Patient that owns it, never to an
+    # uploaded copy that carries the same slot identifier
+    p = read("Patient", patient_id(value))
     if p is not None:
         return p["id"]
     # then try Patient.identifier value lookup (any system)

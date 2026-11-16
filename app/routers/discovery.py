@@ -16,19 +16,7 @@ from app.auth import scopes as scope_syntax
 from app.config import settings
 from app.fhir import document as doc_compile
 from app.fhir import store
-from app.fhir.ids import SLOT_IDENTIFIER_SYSTEM, bundle_id
-
-
-def _slot_of(p: dict) -> str | None:
-    for ident in p.get("identifier", []) or []:
-        if ident.get("system") == SLOT_IDENTIFIER_SYSTEM:
-            return ident.get("value")
-    return None
-
-
-def _slot_for_patient_id(patient_uuid: str) -> str | None:
-    p = store.read("Patient", patient_uuid)
-    return _slot_of(p) if p else None
+from app.fhir.ids import bundle_id, owned_slot, patient_id
 
 router = APIRouter()
 
@@ -63,6 +51,8 @@ _ALLOWED_REG_SCOPES = (
     "system/DocumentReference.write",
     "system/Bundle.write",
 )
+
+
 
 
 def _require_owner(request: Request, client_id: str) -> None:
@@ -403,16 +393,12 @@ async def spec_bundle_id(pid: str, category: str) -> JSONResponse:
     """
     if category not in doc_compile.CATEGORY_TO_DOC_TYPE:
         raise HTTPException(status_code=404, detail="unknown category")
-    # accept either a Patient.id (uuid) or a slot identifier
-    patient = store.read("Patient", pid)
-    if patient is not None:
-        slot = _slot_of(patient) or pid
-    else:
-        slot = pid
-        match = [p for p in store.list_all("Patient") if _slot_of(p) == pid]
-        if not match:
-            raise HTTPException(status_code=404, detail="patient not found")
-        patient = match[0]
+    # accept either a Patient.id (uuid) or a slot identifier; only a Patient
+    # that owns its slot (a reference Patient) has compiled documents
+    patient = store.read("Patient", pid) or store.read("Patient", patient_id(pid))
+    slot = owned_slot(patient) if patient else None
+    if slot is None:
+        raise HTTPException(status_code=404, detail=f"no compiled documents for patient {pid}")
     bid = bundle_id(slot, category)
     return JSONResponse({
         "patient": patient["id"],
@@ -429,7 +415,9 @@ async def spec_all_bundle_ids() -> JSONResponse:
     """Every (patient, category, /Bundle/{uuid}) mapping in one shot."""
     bundles = []
     for p in store.list_all("Patient"):
-        slot = _slot_of(p) or p["id"]
+        slot = owned_slot(p)
+        if slot is None:  # copies and non-reference patients have no compiled documents
+            continue
         for cat in doc_compile.CATEGORY_TO_DOC_TYPE:
             bid = bundle_id(slot, cat)
             bundles.append({

@@ -32,7 +32,7 @@ async def epic_import(
         client = EpicClient()
     except EpicConfigError as e:
         return JSONResponse(
-            status_code=503,
+            status_code=503, media_type="application/fhir+json",
             content={"resourceType": "OperationOutcome", "issue": [{
                 "severity": "error", "code": "not-supported",
                 "diagnostics": f"Epic source not configured: {e}",
@@ -43,7 +43,7 @@ async def epic_import(
         summary = ingest_patient(client, patient)
     except EpicAuthError as e:
         return JSONResponse(
-            status_code=502,
+            status_code=502, media_type="application/fhir+json",
             content={"resourceType": "OperationOutcome", "issue": [{
                 "severity": "error", "code": "security",
                 "diagnostics": f"Epic auth failed: {e}",

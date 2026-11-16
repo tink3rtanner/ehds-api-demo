@@ -20,7 +20,7 @@ async def patient_everything(
 ) -> JSONResponse:
     if store.read("Patient", rid) is None:
         return JSONResponse(
-            status_code=404,
+            status_code=404, media_type="application/fhir+json",
             content={"resourceType": "OperationOutcome",
                      "issue": [{"severity": "error", "code": "not-found", "diagnostics": f"Patient/{rid}"}]},
         )

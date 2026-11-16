@@ -15,7 +15,7 @@ from fastapi.responses import JSONResponse, Response
 from app.auth.verify import Principal, require_scope
 from app.fhir import document as doc_compile
 from app.fhir import store
-from app.fhir.ids import SLOT_IDENTIFIER_SYSTEM, bundle_id, patient_id
+from app.fhir.ids import bundle_id, owned_slot
 from app.routers.publish import document_path
 
 router = APIRouter()
@@ -24,14 +24,6 @@ router = APIRouter()
 def _oo(code: str, diag: str) -> dict:
     return {"resourceType": "OperationOutcome",
             "issue": [{"severity": "error", "code": code, "diagnostics": diag}]}
-
-
-def _slot_of(patient: dict) -> str | None:
-    """extract the ehds-demo slot identifier (p-001 etc.) if present."""
-    for ident in patient.get("identifier", []) or []:
-        if ident.get("system") == SLOT_IDENTIFIER_SYSTEM:
-            return ident.get("value")
-    return None
 
 
 def _build_reverse_index() -> dict[str, tuple[str, str]]:
@@ -47,8 +39,8 @@ def _build_reverse_index() -> dict[str, tuple[str, str]]:
     """
     out: dict[str, tuple[str, str]] = {}
     for p in store.list_all("Patient"):
-        slot = _slot_of(p)
-        if not slot or p.get("id") != patient_id(slot):
+        slot = owned_slot(p)
+        if slot is None:
             continue
         for cat in doc_compile.CATEGORY_TO_DOC_TYPE:
             out[bundle_id(slot, cat)] = (p["id"], cat)

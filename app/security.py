@@ -23,6 +23,8 @@ def _oo(severity: str, code: str, diag: str) -> dict:
             "issue": [{"severity": severity, "code": code, "diagnostics": diag}]}
 
 
+FHIR_JSON = "application/fhir+json"
+
 class BodySizeLimitMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, max_bytes: int) -> None:
         super().__init__(app)
@@ -33,10 +35,10 @@ class BodySizeLimitMiddleware(BaseHTTPMiddleware):
         if cl is not None:
             try:
                 if int(cl) > self.max_bytes:
-                    return JSONResponse(status_code=413, content=_oo("error", "too-costly",
+                    return JSONResponse(status_code=413, media_type=FHIR_JSON, content=_oo("error", "too-costly",
                         f"body exceeds {self.max_bytes} bytes"))
             except ValueError:
-                return JSONResponse(status_code=400, content=_oo("error", "invalid", "bad content-length"))
+                return JSONResponse(status_code=400, media_type=FHIR_JSON, content=_oo("error", "invalid", "bad content-length"))
         return await call_next(request)
 
 
@@ -70,7 +72,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         while q and q[0] < cutoff:
             q.popleft()
         if len(q) >= self.per_minute:
-            return JSONResponse(status_code=429, content=_oo("error", "throttled", "rate limit exceeded"),
+            return JSONResponse(status_code=429, media_type=FHIR_JSON, content=_oo("error", "throttled", "rate limit exceeded"),
                                 headers={"Retry-After": "30"})
         q.append(now)
         return await call_next(request)

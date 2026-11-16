@@ -18,6 +18,7 @@ import pytest
 from app.config import settings
 from app.fhir.document import CATEGORY_TO_DOC_TYPE
 from app.fhir.ids import bundle_id
+from app.fhir.origin import REFERENCE, origin_of
 
 pytestmark = pytest.mark.asyncio
 
@@ -33,11 +34,16 @@ def _store_snapshot() -> set[Path]:
 
 async def _real_document(client, auth_headers, category: str) -> bytes:
     """The bytes of a document of this category the server lists, found the way
-    a client would: ITI-67 search by type, then ITI-68 on the attachment url."""
+    a client would: ITI-67 search by type, then ITI-68 on the attachment url.
+    Only seeded (reference) FHIR documents: other tests publish into the same
+    store, and their submissions must not change what this helper returns."""
     code = CATEGORY_TO_DOC_TYPE[category]["code"]
     s = await client.get(f"/DocumentReference?type=http://loinc.org|{code}", headers=auth_headers)
     assert s.status_code == 200, s.text[:300]
-    urls = [e["resource"]["content"][0]["attachment"]["url"] for e in s.json().get("entry", [])]
+    urls = sorted(
+        e["resource"]["content"][0]["attachment"]["url"] for e in s.json().get("entry", [])
+        if origin_of(e["resource"])["kind"] == REFERENCE
+        and e["resource"]["content"][0]["attachment"].get("contentType", "").startswith("application/fhir+json"))
     assert urls, f"the seeded panel lists no {category} document"
     r = await client.get(f"/{urls[0]}", headers=auth_headers)
     assert r.status_code == 200, r.text[:300]
@@ -134,16 +140,16 @@ async def test_an_unknown_binary_still_needs_a_bearer(client):
 
 
 def test_every_router_error_is_typed_as_fhir():
-    """A JSONResponse with a 4xx/5xx status in the FHIR routers must say
+    """A JSONResponse with a 4xx/5xx status in the routers, main or security must say
     application/fhir+json. Catches the next hand-built error that forgets."""
     import re
     root = Path(__file__).resolve().parent.parent / "app"
     bad = []
-    for f in [*sorted((root / "routers").glob("*.py")), root / "main.py"]:
+    for f in [*sorted((root / "routers").glob("*.py")), root / "main.py", root / "security.py"]:
         src = f.read_text()
         for m in re.finditer(r"JSONResponse\((?:[^()]|\([^()]*\))*?status_code=[45]\d\d(?:[^()]|\([^()]*\))*\)", src):
             call = m.group(0)
-            if "media_type" not in call and '"error"' not in call:  # OAuth errors stay OAuth-shaped
+            if "media_type" not in call and '{"error"' not in call:  # OAuth errors stay OAuth-shaped
                 bad.append(f"{f.name}:{src[:m.start()].count(chr(10)) + 1}")
     assert bad == []
 

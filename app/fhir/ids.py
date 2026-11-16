@@ -31,6 +31,17 @@ def patient_id(slot: str) -> str:
     return _u5(f"Patient/{slot}")
 
 
+def owned_slot(patient: dict) -> str | None:
+    """The slot this Patient owns: its urn:ehds-demo:slot value, but only when
+    its id is the one derived from that slot. An upload can store a copy of a
+    reference Patient, slot identifier included; a copy owns no slot."""
+    for ident in patient.get("identifier") or []:
+        if isinstance(ident, dict) and ident.get("system") == SLOT_IDENTIFIER_SYSTEM:
+            slot = ident.get("value")
+            return slot if slot and patient.get("id") == patient_id(slot) else None
+    return None
+
+
 def practitioner_id(slot: str) -> str:
     return _u5(f"Practitioner/{slot}")
 
