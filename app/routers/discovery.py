@@ -77,6 +77,16 @@ def _require_owner(request: Request, client_id: str) -> None:
         raise HTTPException(status_code=403, detail=f"this token belongs to {principal.client_id}, not {client_id}")
 
 
+def _client_name(payload: dict) -> str | None:
+    """RFC 7591 client_name: a free-text label for who this client is."""
+    name = payload.get("client_name")
+    if name is None:
+        return None
+    if not isinstance(name, str) or not name.strip() or len(name) > 100:
+        raise HTTPException(status_code=400, detail="client_name must be a non-empty string of at most 100 chars")
+    return " ".join(name.split())
+
+
 def _invalid_scopes(scopes: list[str]) -> list[str]:
     return [s for s in scopes if not scope_syntax.is_valid(s)]
 
@@ -121,6 +131,7 @@ async def register_client_help() -> JSONResponse:
         },
         "request_body_schema": {
             "client_id": "3-64 chars: lowercase letters, digits, - and _, starting and ending with a letter or digit (required, must be new: 409 if taken)",
+            "client_name": "who you are, e.g. 'Jane Doe, Acme Health' or 'Claude agent for Jane' (please set it; shown in the audit log)",
             "scopes": "list of SMART system scopes, v1 or v2 syntax, e.g. ['system/*.rs', 'system/DocumentReference.c'] (default: ['system/*.read'])",
             "jwk": "single JWK dict (RSA or EC), OR",
             "public_key_pem": "PEM-encoded public key string (RSA or EC; alg auto-detected from key type)",
@@ -185,6 +196,7 @@ async def register_client(payload: dict, _replace: bool = False) -> JSONResponse
     cid = (payload.get("client_id") or "").strip()
     if not _CLIENT_ID_RE.match(cid):
         raise HTTPException(status_code=400, detail="client_id must match [a-z0-9][a-z0-9-_]{1,62}[a-z0-9]")
+    client_name = _client_name(payload)
     scopes = payload.get("scopes") or ["system/*.read"]
     if not isinstance(scopes, list) or not all(isinstance(s, str) for s in scopes):
         raise HTTPException(status_code=400, detail="scopes must be a list of strings")
@@ -235,13 +247,14 @@ async def register_client(payload: dict, _replace: bool = False) -> JSONResponse
             f"{settings.base_url}/register-client/{cid} (PATCH/PUT/DELETE) with a bearer token issued to it."))
 
     try:
-        upsert_client(cid, jwks, scopes)
+        upsert_client(cid, jwks, scopes, client_name=client_name)
     except (OSError, PermissionError) as e:
         raise HTTPException(status_code=500, detail=f"could not persist client: {e}")
 
     loaded = load_clients().get(cid)
     return JSONResponse({
         "client_id": cid,
+        "client_name": client_name,
         "scopes": list(scopes),
         "jwks": jwks,
         "registered": bool(loaded),
@@ -283,6 +296,7 @@ async def register_client_read(client_id: str) -> JSONResponse:
         raise HTTPException(status_code=404, detail=f"client_id not registered: {client_id}")
     return JSONResponse({
         "client_id": c.client_id,
+        "client_name": c.client_name,
         "scopes": list(c.scopes),
         "jwks": c.jwks,
         "kids": [k.get("kid") for k in c.jwks.get("keys", []) if k.get("kid")],
@@ -340,13 +354,15 @@ async def register_client_patch(client_id: str, payload: dict, request: Request)
         jwk["use"] = "sig"
         jwk.setdefault("alg", "RS256")
         new_jwks = {"keys": [jwk]}
-    if new_scopes is None and new_jwks is None:
+    new_name = _client_name(payload)
+    if new_scopes is None and new_jwks is None and new_name is None:
         raise HTTPException(status_code=400, detail="must include scopes and/or jwk/public_key_pem")
-    c = patch_client(client_id, scopes=new_scopes, jwks=new_jwks)
+    c = patch_client(client_id, scopes=new_scopes, jwks=new_jwks, client_name=new_name)
     if c is None:
         raise HTTPException(status_code=404, detail=f"client_id not registered: {client_id}")
     return JSONResponse({
         "client_id": c.client_id,
+        "client_name": c.client_name,
         "scopes": list(c.scopes),
         "jwks": c.jwks,
         "kids": [k.get("kid") for k in c.jwks.get("keys", []) if k.get("kid")],

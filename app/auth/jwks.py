@@ -84,6 +84,7 @@ class RegisteredClient:
     jwks: dict[str, Any]
     scopes: tuple[str, ...]
     registered_at: str | None = None  # ISO-8601 UTC; None for registrations that predate the field
+    client_name: str | None = None    # RFC 7591 client_name: who this client belongs to
 
 
 def load_clients() -> dict[str, RegisteredClient]:
@@ -98,11 +99,13 @@ def load_clients() -> dict[str, RegisteredClient]:
             jwks=entry["jwks"],
             scopes=tuple(entry.get("scopes", ["system/*.read"])),
             registered_at=entry.get("registered_at"),
+            client_name=entry.get("client_name"),
         )
     return out
 
 
-def upsert_client(client_id: str, jwks: dict[str, Any], scopes: list[str]) -> None:
+def upsert_client(client_id: str, jwks: dict[str, Any], scopes: list[str],
+                  client_name: str | None = None) -> None:
     """create or replace a client registration."""
     path = settings.client_registry
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -113,14 +116,17 @@ def upsert_client(client_id: str, jwks: dict[str, Any], scopes: list[str]) -> No
     from datetime import UTC, datetime
     registered_at = (previous or {}).get("registered_at") or datetime.now(UTC).isoformat(
         timespec="seconds").replace("+00:00", "Z")
-    raw["clients"].append({"client_id": client_id, "jwks": jwks, "scopes": scopes,
-                           "registered_at": registered_at})
+    entry = {"client_id": client_id, "jwks": jwks, "scopes": scopes, "registered_at": registered_at}
+    if client_name:
+        entry["client_name"] = client_name
+    raw["clients"].append(entry)
     path.write_text(json.dumps(raw, indent=2, sort_keys=True))
 
 
 def patch_client(client_id: str,
                  scopes: list[str] | None = None,
-                 jwks: dict[str, Any] | None = None) -> RegisteredClient | None:
+                 jwks: dict[str, Any] | None = None,
+                 client_name: str | None = None) -> RegisteredClient | None:
     """partial update: replace scopes and/or jwks for an existing client.
 
     returns the resulting RegisteredClient, or None if client_id was unknown.
@@ -136,6 +142,8 @@ def patch_client(client_id: str,
                 entry["scopes"] = scopes
             if jwks is not None:
                 entry["jwks"] = jwks
+            if client_name:
+                entry["client_name"] = client_name
             found = entry
             break
     if not found:
@@ -144,7 +152,8 @@ def patch_client(client_id: str,
     return RegisteredClient(client_id=found["client_id"],
                             jwks=found["jwks"],
                             scopes=tuple(found["scopes"]),
-                            registered_at=found.get("registered_at"))
+                            registered_at=found.get("registered_at"),
+                            client_name=found.get("client_name"))
 
 
 def delete_client(client_id: str) -> bool:

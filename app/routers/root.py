@@ -70,6 +70,7 @@ def discovery_document() -> dict:
             "standard": "OAuth 2.0 Dynamic Client Registration (RFC 7591), open to anyone",
             "request": {"method": "POST", "url": ep["register_client"], "content_type": "application/json",
                         "body": {"client_id": "my-agent-1",
+                                 "client_name": "<who you are, e.g. 'Claude agent for Jane Doe, Acme Health'>",
                                  "scopes": [READ_SCOPE, PUBLISH_SCOPE],
                                  "jwk": "<your public key as a JWK (RSA or EC)>  OR  public_key_pem: '<PEM>'"}},
             "notes": "GET the same URL for the full schema. The key id to put in your JWT header is "
@@ -187,7 +188,8 @@ def llms_text() -> str:
         f"- Specification: {d['specification']}",
         f"- CapabilityStatement: {d['start_here']['capability_statement']}",
         f"- SMART configuration: {d['start_here']['smart_configuration']}",
-        f"- Python quickstart (keypair, register, token, first query, publish): {d['start_here']['quickstart_script']}",
+        f"- Python quickstart (read-only: keypair, register, token, a few reads, prints the token for Bruno/Postman): "
+        f"{d['start_here']['quickstart_script']}",
         "",
         "## Access",
         f"{acc['summary']} These need no token: " + ", ".join(acc["open_without_token"]) + ".",
@@ -196,8 +198,10 @@ def llms_text() -> str:
         "",
         "## 1. Register a client",
         f"Make an RSA (2048+) or EC P-256 keypair. POST JSON to {s['register']['request']['url']}:",
-        '  {"client_id": "my-agent-1", "scopes": ["system/*.rs", "system/DocumentReference.c"], '
-        '"public_key_pem": "-----BEGIN PUBLIC KEY-----\\n..."}',
+        '  {"client_id": "my-agent-1", "client_name": "Claude agent for Jane Doe, Acme Health", '
+        '"scopes": ["system/*.rs", "system/DocumentReference.c"], "public_key_pem": "-----BEGIN PUBLIC KEY-----\\n..."}',
+        "Please set client_name to who you are (a person, organisation, or the agent and who it works for). "
+        "It is shown in the server's audit log so the demo's owner can tell clients apart.",
         "(or \"jwk\": {...} instead of public_key_pem). client_id: 3-64 chars, lowercase letters, digits, - and _, "
         "starting and ending with a letter or digit. It must be new (409 if taken). The response is 200 with "
         "next_steps.client_assertion_kid, the kid to use: <client_id>-key-1. To change scopes or rotate the key later, "

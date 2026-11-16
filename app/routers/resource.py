@@ -33,10 +33,10 @@ def _attach(rtype: str) -> None:
     @router.get(f"/{rtype}/{{rid}}", name=f"read_{rtype}")
     async def _read(rid: str, _p: Principal = scope_dep) -> JSONResponse:
         if "/" in rid or ".." in rid:
-            return JSONResponse(status_code=400, content=_operation_outcome("error", "invalid", "bad id"))
+            return JSONResponse(status_code=400, media_type="application/fhir+json", content=_operation_outcome("error", "invalid", "bad id"))
         res = store.read(rtype, rid)
         if res is None:
-            return JSONResponse(status_code=404, content=_operation_outcome("error", "not-found", f"{rtype}/{rid}"))
+            return JSONResponse(status_code=404, media_type="application/fhir+json", content=_operation_outcome("error", "not-found", f"{rtype}/{rid}"))
         return JSONResponse(res, media_type="application/fhir+json")
 
     @router.get(f"/{rtype}", name=f"search_{rtype}")

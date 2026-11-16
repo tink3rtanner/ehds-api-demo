@@ -190,6 +190,7 @@ def token(
         raise HTTPException(status_code=400, detail={"error": "invalid_request", "error_description": "wrong client_assertion_type"})
 
     client_id, allowed_scopes = _verify_client_assertion(client_assertion)
+    client_name = getattr(load_clients().get(client_id), "client_name", None)
     granted = _filter_scopes(scope, tuple(allowed_scopes))
     if not granted:
         raise HTTPException(status_code=400, detail={
@@ -207,6 +208,8 @@ def token(
         "scope": " ".join(granted),
         "client_id": client_id,
     }
+    if client_name:
+        bearer_payload["client_name"] = client_name
     bearer = jwt.encode(
         bearer_payload,
         server_private_key(),

@@ -33,14 +33,14 @@ def _attach(rtype: str) -> None:
     @router.get(f"/{rtype}/{{rid}}/$source", name=f"source_link_{rtype}")
     async def _source(rid: str, _p: Principal = scope_dep):
         if "/" in rid or ".." in rid:
-            return JSONResponse(status_code=400, content=_oo("error", "invalid", "bad id"))
+            return JSONResponse(status_code=400, media_type="application/fhir+json", content=_oo("error", "invalid", "bad id"))
         res = store.read(rtype, rid)
         if res is None:
-            return JSONResponse(status_code=404, content=_oo("error", "not-found", f"{rtype}/{rid}"))
+            return JSONResponse(status_code=404, media_type="application/fhir+json", content=_oo("error", "not-found", f"{rtype}/{rid}"))
         src = (res.get("meta") or {}).get("source")
         if not src:
             return JSONResponse(
-                status_code=404,
+                status_code=404, media_type="application/fhir+json",
                 content=_oo("information", "not-found",
                             f"no source back-link recorded for {rtype}/{rid}"),
             )

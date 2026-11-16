@@ -8,7 +8,8 @@ backward compatibility for two URL shapes:
         -> resolved to the deterministic uuid and 301 to /Bundle/{uuid}
 
 Stored Binaries (attachments uploaded in a Bundle, and non-FHIR content
-published with ITI-105) are served for real; see read_binary.
+published with ITI-105) are served for real; see read_binary. An id that is
+neither a stored Binary nor an existing Bundle is a 404 OperationOutcome.
 """
 from __future__ import annotations
 
@@ -23,6 +24,7 @@ from app.fhir import document as doc_compile
 from app.fhir import store
 from app.fhir.ids import bundle_id
 from app.fhir.naturalize import SOURCE_ID_SYSTEM
+from app.routers.bundle import bundle_exists
 
 router = APIRouter()
 
@@ -60,6 +62,10 @@ async def read_binary(request: Request, rid: str):
             return JSONResponse(res, media_type="application/fhir+json")
         return Response(content=base64.b64decode(res.get("data") or ""),
                         media_type=res.get("contentType") or "application/octet-stream")
+    # a legacy alias for a document Bundle: redirect only when that Bundle exists
+    verify_scope(request, "system/Binary.read")
     m = _LEGACY_DOC_ID_RE.match(rid)
     target_id = bundle_id(m.group("patient"), m.group("category")) if m else rid
-    return RedirectResponse(url=f"/Bundle/{target_id}", status_code=301)
+    if bundle_exists(target_id):
+        return RedirectResponse(url=f"/Bundle/{target_id}", status_code=301)
+    raise HTTPException(status_code=404, detail=f"Binary/{rid}")

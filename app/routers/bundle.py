@@ -51,6 +51,14 @@ def _build_reverse_index() -> dict[str, tuple[str, str]]:
     return out
 
 
+def bundle_exists(rid: str) -> bool:
+    """True when GET /Bundle/{rid} has something to serve: a published
+    document, a compiled document id, or a persisted Bundle."""
+    if document_path(rid) is not None or rid in _build_reverse_index():
+        return True
+    return "Bundle" in store.SUPPORTED_TYPES and store.read("Bundle", rid) is not None
+
+
 @router.get("/Bundle/{rid}", name="read_Bundle")
 async def read_bundle(
     rid: str,
@@ -67,14 +75,14 @@ async def read_bundle(
         persisted = store.read("Bundle", rid) if "Bundle" in store.SUPPORTED_TYPES else None
         if persisted is not None:
             return JSONResponse(persisted, media_type="application/fhir+json")
-        return JSONResponse(status_code=404, content=_oo("not-found", f"Bundle/{rid}"))
+        return JSONResponse(status_code=404, media_type="application/fhir+json", content=_oo("not-found", f"Bundle/{rid}"))
     pid, category = index[rid]
     if store.read("Patient", pid) is None:
-        return JSONResponse(status_code=404, content=_oo("not-found", f"Patient/{pid}"))
+        return JSONResponse(status_code=404, media_type="application/fhir+json", content=_oo("not-found", f"Patient/{pid}"))
     try:
         bundle = doc_compile.compile_document(pid, category)
     except doc_compile.UnknownCategory:
-        return JSONResponse(status_code=404, content=_oo("not-found", f"unknown category {category}"))
+        return JSONResponse(status_code=404, media_type="application/fhir+json", content=_oo("not-found", f"unknown category {category}"))
     except doc_compile.MissingResources as e:
-        return JSONResponse(status_code=422, content=_oo("not-supported", str(e)))
+        return JSONResponse(status_code=422, media_type="application/fhir+json", content=_oo("not-supported", str(e)))
     return Response(content=json.dumps(bundle), media_type="application/fhir+json")

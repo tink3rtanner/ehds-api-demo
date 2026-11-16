@@ -71,8 +71,8 @@ and eDispensation (MedicationDispense). `python -m scripts.validate_examples`
 validates one example of each of the six with the HL7 java validator.
 
 Publish with ITI-105 Simplified Publish: `POST /DocumentReference`, document
-inline as base64 (`/llms.txt` has the full recipe; `/quickstart.py` is a
-single-file Python client). The server accepts every publish, then validates it against the
+inline as base64 (`/llms.txt` has the full recipe; `/quickstart.py` is a read-only
+single-file Python client that gets a token and prints it for Bruno/Postman). The server accepts every publish, then validates it against the
 HL7 Europe profile for its category with the HL7 java validator and shows the
 result on the Coverage page. A failed validation does not reject the
 submission. A submission counts for the country in the patient's address; no

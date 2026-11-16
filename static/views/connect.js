@@ -42,7 +42,7 @@ export async function render({ ctx }) {
     try {
       if (!smart.cryptoAvailable()) throw new Error('This browser cannot generate keys here (needs HTTPS). Use the CLI: python -m app.tools.register_client');
       const keys = await smart.generateKeypair(id);
-      await api.fhir('/register-client', { method: 'POST', token: false, contentType: 'application/json', body: { client_id: id, scopes: chosen(), jwk: keys.publicJwk }, label: 'register' });
+      await api.fhir('/register-client', { method: 'POST', token: false, contentType: 'application/json', body: { client_id: id, client_name: 'EHDS demo UI, Connect page (browser)', scopes: chosen(), jwk: keys.publicJwk }, label: 'register' });
       st.clientId = id; st.keys = keys; st.token = null; mintBtn.disabled = false;
       const pem = await smart.privateKeyPem(keys.privateJwk);
       replace(out[0], note([el('strong', {}, `Registered ${id}.`), ' The private key is only in this tab. ',

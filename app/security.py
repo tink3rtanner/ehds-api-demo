@@ -91,6 +91,17 @@ def _extract_client_id(auth_header: str) -> str | None:
         return None
 
 
+def _extract_client_name(auth_header: str) -> str | None:
+    """the RFC 7591 client_name the token carries, if the client registered one."""
+    if not auth_header.lower().startswith("bearer "):
+        return None
+    try:
+        import jwt as _jwt
+        return _jwt.decode(auth_header.split(" ", 1)[1], options={"verify_signature": False}).get("client_name")
+    except Exception:
+        return None
+
+
 class StructuredLogMiddleware(BaseHTTPMiddleware):
     """Logs every request as one JSON line, both to the python logger (->
     systemd journal) and to a dated JSONL file under settings.audit_log_dir.
@@ -146,6 +157,7 @@ class StructuredLogMiddleware(BaseHTTPMiddleware):
             "status": response.status_code,
             "dur_ms": dur_ms,
             "client_id": client_id,
+            "client_name": _extract_client_name(request.headers.get("authorization", "")),
             "ip": request.client.host if request.client else None,
             "ua": request.headers.get("user-agent"),
             "req_bytes": req_bytes,

@@ -59,7 +59,9 @@ def load() -> Settings:
         env=os.environ.get("ENV", "dev"),
         rate_limit_per_min=int(os.environ.get("EHDS_RATE_LIMIT_PER_MIN", "240")),
         body_max_bytes=int(os.environ.get("EHDS_BODY_MAX_BYTES", str(5 * 1024 * 1024))),
-        token_ttl_seconds=int(os.environ.get("EHDS_TOKEN_TTL_SECONDS", "900")),
+        # 1 hour: longer than SMART's suggested 5 min, chosen for a synthetic-data demo
+        # where people paste tokens into Bruno/Postman
+        token_ttl_seconds=int(os.environ.get("EHDS_TOKEN_TTL_SECONDS", "3600")),
         eu_packages_dir=_path("EHDS_EU_PACKAGES_DIR", str(root / ".cache" / "eu-packages")),
         validator_home=_path("EHDS_VALIDATOR_HOME", str(data_dir / "validator-home")),
         validation_timeout_seconds=int(os.environ.get("EHDS_VALIDATION_TIMEOUT_SECONDS", "1800")),

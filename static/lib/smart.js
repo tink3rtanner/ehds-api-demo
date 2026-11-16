@@ -77,7 +77,7 @@ export function decodeJwt(token) {
 export async function registerClient({ clientId, scopes, publicJwk }) {
   return api.fhir('/register-client', {
     method: 'POST', token: false, contentType: 'application/json', label: 'register client',
-    body: { client_id: clientId, scopes, jwk: publicJwk },
+    body: { client_id: clientId, client_name: 'EHDS demo UI, scenario (browser)', scopes, jwk: publicJwk },
   });
 }
 

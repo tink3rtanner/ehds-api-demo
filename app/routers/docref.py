@@ -29,7 +29,7 @@ async def read_docref(
 ) -> JSONResponse:
     res = store.read("DocumentReference", rid)
     if res is None:
-        return JSONResponse(status_code=404, content=_oo("error", "not-found", f"DocumentReference/{rid}"))
+        return JSONResponse(status_code=404, media_type="application/fhir+json", content=_oo("error", "not-found", f"DocumentReference/{rid}"))
     return JSONResponse(res, media_type="application/fhir+json")
 
 

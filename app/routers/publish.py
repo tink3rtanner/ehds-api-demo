@@ -196,16 +196,7 @@ def publish(docref: Any) -> JSONResponse:
         return _oo("not-found", "could not resolve the subject: the DocumentReference.subject is not a Patient on "
                    "this server and the Bundle carries no Patient", status=422)
 
-    # ---- 5. evidence + exact bytes ----
-    inbox = settings.data_dir / "inbox"
-    inbox.mkdir(parents=True, exist_ok=True)
-    (inbox / f"{doc_id}.json").write_text(json.dumps(bundle, indent=2, sort_keys=True))
-    documents_dir().mkdir(parents=True, exist_ok=True)
-    (documents_dir() / f"{doc_id}.bin").write_bytes(raw)
-    for r in resources:
-        store.write(r)
-
-    # ---- 6. the DocumentReference ----
+    # ---- 5. the DocumentReference (built in full before anything is written) ----
     out = copy.deepcopy(docref)
     if docref.get("id"):
         add_source_identifier(out, str(docref["id"]))
@@ -231,7 +222,7 @@ def publish(docref: Any) -> JSONResponse:
     # rather than left dangling.
     id_map = {}
     for r in resources:
-        for i in r.get("identifier") or []:
+        for i in _identifiers(r):
             if i.get("system") == SOURCE_ID_SYSTEM:
                 id_map[f"{r['resourceType']}/{i['value']}"] = f"{r['resourceType']}/{r['id']}"
     for e in bundle.get("entry") or []:
@@ -250,6 +241,17 @@ def publish(docref: Any) -> JSONResponse:
     meta.pop("versionId", None)
     meta["lastUpdated"] = _now()
     tag_origin(out, COMMUNITY, submission_id=doc_id)
+
+    # ---- 6. write: evidence, exact bytes, resources, then the DocumentReference ----
+    # Nothing above writes, so a failure there leaves the store untouched; the
+    # DocumentReference goes last so it never points at content not yet stored.
+    inbox = settings.data_dir / "inbox"
+    inbox.mkdir(parents=True, exist_ok=True)
+    (inbox / f"{doc_id}.json").write_text(json.dumps(bundle, indent=2, sort_keys=True))
+    documents_dir().mkdir(parents=True, exist_ok=True)
+    (documents_dir() / f"{doc_id}.bin").write_bytes(raw)
+    for r in resources:
+        store.write(r)
     store.write(out)
 
     # EU-profile validation is a badge, never a gate
@@ -259,6 +261,15 @@ def publish(docref: Any) -> JSONResponse:
         "Location": f"{settings.base_url}/DocumentReference/{doc_id}",
         "ETag": 'W/"1"',
     })
+
+
+def _identifiers(res: dict[str, Any]) -> list[dict[str, Any]]:
+    """A resource's identifiers as a list. R4 has both shapes: Patient.identifier
+    is 0..*, but Composition.identifier and Bundle.identifier are 0..1 (one object)."""
+    ident = res.get("identifier")
+    if isinstance(ident, dict):
+        return [ident]
+    return [i for i in ident or [] if isinstance(i, dict)]
 
 
 def _publish_binary(docref: dict[str, Any], att: dict[str, Any], content_type: str,
@@ -274,7 +285,6 @@ def _publish_binary(docref: dict[str, Any], att: dict[str, Any], content_type: s
     binary = {"resourceType": "Binary", "id": doc_id, "contentType": content_type,
               "data": base64.b64encode(raw).decode("ascii"), "meta": {"lastUpdated": _now()}}
     tag_origin(binary, COMMUNITY, submission_id=doc_id)
-    store.write(binary)
     out = copy.deepcopy(docref)
     if docref.get("id"):
         add_source_identifier(out, str(docref["id"]))
@@ -290,6 +300,8 @@ def _publish_binary(docref: dict[str, Any], att: dict[str, Any], content_type: s
     meta.pop("versionId", None)
     meta["lastUpdated"] = _now()
     tag_origin(out, COMMUNITY, submission_id=doc_id)
+    # write only once both are built; the Binary first, so the reference resolves
+    store.write(binary)
     store.write(out)
     return JSONResponse(status_code=201, content=out, media_type="application/fhir+json", headers={
         "Location": f"{settings.base_url}/DocumentReference/{doc_id}", "ETag": 'W/"1"'})

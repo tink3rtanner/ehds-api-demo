@@ -14,7 +14,7 @@ MedicationDispense resources on the HL7 EU MPD profiles. Publish is ITI-105
 Simplified Publish, `POST /DocumentReference` (document inline as base64).
 `GET /` is a discovery document for agents (`/llms.txt` in prose, the bar: a
 fresh agent gets from it alone to a published document; `/quickstart.py` is a
-one-file Python client). Spec of record: the IG CI build,
+one-file read-only Python client: token, a few reads, prints the token for Bruno). Spec of record: the IG CI build,
 https://build.fhir.org/ig/euridice-org/eu-health-data-api/. Ships a human-facing UI at `/ui/` (vanilla ES modules,
 no build step) that tells the exchange story, runs a guided scenario with a
 real browser-side SMART client, and shows patients, documents, a coverage map

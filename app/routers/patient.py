@@ -219,10 +219,10 @@ async def read_patient(
     _p: Annotated[Principal, Depends(require_scope("system/Patient.read"))],
 ) -> JSONResponse:
     if not re.fullmatch(r"[A-Za-z0-9._-]{1,64}", rid):
-        return JSONResponse(status_code=400, content=_oo("error", "invalid", "bad id"))
+        return JSONResponse(status_code=400, media_type="application/fhir+json", content=_oo("error", "invalid", "bad id"))
     res = store.read("Patient", rid)
     if res is None:
-        return JSONResponse(status_code=404, content=_oo("error", "not-found", f"Patient/{rid}"))
+        return JSONResponse(status_code=404, media_type="application/fhir+json", content=_oo("error", "not-found", f"Patient/{rid}"))
     return JSONResponse(res, media_type="application/fhir+json")
 
 
@@ -242,11 +242,11 @@ async def patient_summary(
     """
     from app.fhir import document as _dc
     if store.read("Patient", rid) is None:
-        return JSONResponse(status_code=404, content=_oo("error", "not-found", f"Patient/{rid}"))
+        return JSONResponse(status_code=404, media_type="application/fhir+json", content=_oo("error", "not-found", f"Patient/{rid}"))
     try:
         bundle = _dc.compile_document(rid, "patient-summary")
     except _dc.MissingResources as e:
-        return JSONResponse(status_code=422, content=_oo("error", "not-supported", str(e)))
+        return JSONResponse(status_code=422, media_type="application/fhir+json", content=_oo("error", "not-supported", str(e)))
     return JSONResponse(bundle, media_type="application/fhir+json")
 
 
@@ -269,13 +269,13 @@ async def patient_match(
     body: dict = Body(...),
 ) -> JSONResponse:
     if body.get("resourceType") != "Parameters":
-        return JSONResponse(status_code=400, content=_oo("error", "invalid", "expected Parameters resource"))
+        return JSONResponse(status_code=400, media_type="application/fhir+json", content=_oo("error", "invalid", "expected Parameters resource"))
     resource_param = next((p for p in body.get("parameter", []) if p.get("name") == "resource"), None)
     if not resource_param or "resource" not in resource_param:
-        return JSONResponse(status_code=400, content=_oo("error", "invalid", "missing 'resource' parameter"))
+        return JSONResponse(status_code=400, media_type="application/fhir+json", content=_oo("error", "invalid", "missing 'resource' parameter"))
     query = resource_param["resource"]
     if query.get("resourceType") != "Patient":
-        return JSONResponse(status_code=400, content=_oo("error", "invalid", "resource must be Patient"))
+        return JSONResponse(status_code=400, media_type="application/fhir+json", content=_oo("error", "invalid", "resource must be Patient"))
     count = 5
     for p in body.get("parameter", []):
         if p.get("name") == "count" and isinstance(p.get("valueInteger"), int):

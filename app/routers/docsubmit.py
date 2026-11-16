@@ -54,15 +54,15 @@ async def submit_bundle(
     body: dict = Body(...),
 ) -> JSONResponse:
     if body.get("resourceType") != "Bundle":
-        return JSONResponse(status_code=400, content=_oo("error", "invalid", "expected Bundle"))
+        return JSONResponse(status_code=400, media_type="application/fhir+json", content=_oo("error", "invalid", "expected Bundle"))
     btype = body.get("type")
     if btype not in ("transaction", "document"):
-        return JSONResponse(status_code=400, content=_oo("error", "invalid", "Bundle.type must be transaction or document"))
+        return JSONResponse(status_code=400, media_type="application/fhir+json", content=_oo("error", "invalid", "Bundle.type must be transaction or document"))
 
     # structural validation
     ok, problems = structural_validate(body)
     if not ok:
-        return JSONResponse(status_code=400, content={"resourceType": "OperationOutcome",
+        return JSONResponse(status_code=400, media_type="application/fhir+json", content={"resourceType": "OperationOutcome",
             "issue": [{"severity": "error", "code": "structure", "diagnostics": p} for p in problems]})
 
     # persist the AS-SUBMITTED bundle as evidence (foreign ids intact) before

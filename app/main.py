@@ -129,7 +129,7 @@ async def _validation_error(request: Request, exc: RequestValidationError) -> JS
 async def _unhandled(_request: Request, exc: Exception) -> JSONResponse:
     log.exception("unhandled error: %s", exc)
     return JSONResponse(
-        status_code=500,
+        status_code=500, media_type="application/fhir+json",
         content={
             "resourceType": "OperationOutcome",
             "issue": [{"severity": "error", "code": "exception", "diagnostics": "internal server error"}],

@@ -108,3 +108,29 @@ async def test_registration_is_owned_by_its_client(client, test_client_jwk, auth
     assert r.status_code == 403
     assert (await client.delete("/register-client/owned-client", headers=auth_headers)).status_code == 403
     assert (await client.get("/register-client/owned-client")).status_code == 200
+
+
+async def test_client_name_is_stored_and_carried_in_the_token(client, test_client_jwk, test_client_key):
+    import time
+    import uuid
+
+    import jwt
+    pub = {k: v for k, v in test_client_jwk.items() if k in ("kty", "n", "e")}
+    r = await client.post("/register-client", json={"client_id": "named-client", "client_name": "Jane  Doe, Acme",
+                                                    "jwk": pub, "scopes": ["system/*.rs"]})
+    assert r.status_code == 200 and r.json()["client_name"] == "Jane Doe, Acme"
+    assert (await client.get("/register-client/named-client")).json()["client_name"] == "Jane Doe, Acme"
+    now = int(time.time())
+    assertion = jwt.encode({"iss": "named-client", "sub": "named-client", "aud": "http://testserver/token",
+                            "iat": now, "exp": now + 60, "jti": str(uuid.uuid4())},
+                           test_client_key, algorithm="RS256", headers={"kid": test_client_jwk.get("kid", "x")})
+    tok = (await client.post("/token", data={
+        "grant_type": "client_credentials",
+        "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
+        "client_assertion": assertion, "scope": "system/*.rs"})).json()
+    assert tok["expires_in"] == 3600
+    claims = jwt.decode(tok["access_token"], options={"verify_signature": False})
+    assert claims["client_name"] == "Jane Doe, Acme"
+    bad = await client.post("/register-client", json={"client_id": "named-2", "client_name": "x" * 101,
+                                                      "jwk": pub, "scopes": ["system/*.rs"]})
+    assert bad.status_code == 400
