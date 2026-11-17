@@ -225,3 +225,26 @@ def test_offline_downgrades_only_the_slice_ambiguity_artefact():
     # with a terminology server nothing is downgraded
     online = vq.collapse_issues([slice_err], offline=False)
     assert online["errors"] == 1 and online["downgraded"] == 0
+
+
+def test_collapse_issues_keeps_urls_and_slice_names_but_folds_resource_ids():
+    """A reader must see which slice, profile and code system failed; only
+    per-resource ids (uuids, urn:uuid) and entry indices are folded."""
+    slice_err = {"severity": "error", "expression": ["Bundle"], "details": {"text":
+        "Slice 'Bundle.entry:composition': a matching slice is required, but not found "
+        "(from http://hl7.eu/fhir/eps/StructureDefinition/bundle-eu-eps|1.0.0-ci-build)"}}
+    cs_errs = [
+        {"severity": "error", "expression": [f"Bundle.entry[{i}].resource"], "details": {"text":
+            "A definition for CodeSystem 'http://terminology.hl7.org/CodeSystem/condition-clinical' version '4.0.0' "
+            f"could not be found (urn:uuid:{u})"}}
+        for i, u in enumerate(["0127a4bf-611b-4867-b211-af28c5677e02", "39adab95-7bf3-4bb4-80ba-375cb2c5180e"])
+    ]
+    issues = [slice_err, *cs_errs]
+    out = vq.collapse_issues(issues)
+    texts = [i["text"] for i in out["issues"]]
+    assert any("Bundle.entry:composition" in t and "http://hl7.eu/fhir/eps/StructureDefinition/bundle-eu-eps" in t
+               for t in texts)
+    cs = [i for i in out["issues"] if "condition-clinical" in i["text"]]
+    assert len(cs) == 1 and cs[0]["count"] == 2
+    assert "http://terminology.hl7.org/CodeSystem/condition-clinical" in cs[0]["text"]
+    assert "0127a4bf" not in cs[0]["text"] and "<id>" in cs[0]["text"]

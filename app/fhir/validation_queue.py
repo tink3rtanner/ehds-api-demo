@@ -144,7 +144,11 @@ def _validator_available() -> tuple[bool, str]:
 # ---------- the validator itself ----------
 
 _INDEX_RE = re.compile(r"\[\d+\]")
-_LONG_TOKEN_RE = re.compile(r"[A-Za-z0-9._:/-]{24,}")
+# per-resource ids only: uuids (optionally urn:uuid:) and the validator's
+# /*Type/id*/ resource comments. URLs, slice names and code systems stay, so a
+# reader can see what failed.
+_UUID_RE = re.compile(r"(urn:uuid:)?[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
+_RES_COMMENT_RE = re.compile(r"/\*[^*]*\*/")
 
 
 def _issue_text(issue: dict[str, Any]) -> str:
@@ -154,8 +158,9 @@ def _issue_text(issue: dict[str, Any]) -> str:
 
 
 def _normalise(text: str) -> str:
-    """fold entry indices and long ids so 200 copies of one root cause count as one."""
-    return _LONG_TOKEN_RE.sub("<id>", _INDEX_RE.sub("[N]", text))
+    """fold entry indices and resource ids so 200 copies of one root cause count as one."""
+    text = _RES_COMMENT_RE.sub("/*<id>*/", text)
+    return _UUID_RE.sub("<id>", _INDEX_RE.sub("[N]", text))
 
 
 # The one validator finding that is an artefact of running without a
@@ -191,7 +196,7 @@ def collapse_issues(issues: list[dict[str, Any]], *, top: int = 25, offline: boo
     for sev, group, prefix in groups:
         counted = Counter(_normalise(_issue_text(i)) for i in group)
         for text, n in counted.most_common(top):
-            out.append({"severity": sev, "text": (prefix + text)[:300], "count": n})
+            out.append({"severity": sev, "text": (prefix + text)[:500], "count": n})
     return {"errors": len(errors), "warnings": len(warnings) + len(downgraded), "downgraded": len(downgraded),
             "issues": out}
 
