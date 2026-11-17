@@ -7,7 +7,7 @@ Run on the server (it signs with the server's own key):
     python -m app.tools.mint_day_token --hours 8 --label workshop
 
 The token is an ordinary access token for this server, just longer-lived than
-the 15-minute ones /token issues. Its client_id is ``day-<label>-<date>`` so its
+the 1-hour ones /token issues. Its client_id is ``day-<label>-<date>`` so its
 calls are easy to spot in the audit log. There is no revocation short of
 rotating the server key, so keep --hours small.
 """

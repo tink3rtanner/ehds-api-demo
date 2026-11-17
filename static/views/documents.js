@@ -3,7 +3,7 @@
 import { el, fmtDate, replace } from '../lib/dom.js';
 import * as api from '../lib/api.js';
 import { pageShell, table, button, originBadge, requestChip } from '../lib/components.js';
-import { CATEGORIES, CATEGORY_META, categoryOfDocRef, ccText, attachmentUrl } from '../lib/fhir.js';
+import { CATEGORIES, CATEGORY_META, categoryOfDocRef, ccText, attachmentUrl, nonFhirContentType } from '../lib/fhir.js';
 import { categoryBadge, docHref, patientLabel } from '../lib/render.js';
 
 export async function render() {
@@ -31,7 +31,8 @@ export async function render() {
         { label: 'Date', className: 'mono nowrap', render: (r) => fmtDate(r.d.date) },
         { label: 'Origin', render: (r) => originBadge(r.d, { withSource: false }) },
         { label: 'Where', className: 'mono', render: (r) => attachmentUrl(r.d) || '—' },
-        { label: '', className: 'shrink', render: (r) => docHref(r.d) ? el('a', { href: docHref(r.d) }, 'Open') : el('span', { class: 'muted' }, 'not held here') },
+        { label: '', className: 'shrink', render: (r) => docHref(r.d) ? el('a', { href: docHref(r.d) }, 'Open')
+          : el('span', { class: 'muted' }, nonFhirContentType(r.d) ? nonFhirContentType(r.d) : 'not held here') },
       ],
       rows: filter ? rows.filter((r) => r.cat === filter) : rows,
       onRow: (r) => { const h = docHref(r.d); if (h) location.hash = h; },

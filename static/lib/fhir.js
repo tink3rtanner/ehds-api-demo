@@ -201,6 +201,12 @@ export function attachmentUrl(dr) {
   return (dr?.content || [])[0]?.attachment?.url || null;
 }
 
+/** Non-FHIR content type of a DocumentReference (e.g. text/plain), or null for a FHIR document. */
+export function nonFhirContentType(dr) {
+  const ct = ((dr?.content || [])[0]?.attachment?.contentType || '').split(';')[0].trim();
+  return ct && !/^application\/(fhir\+)?json$/.test(ct) ? ct : null;
+}
+
 export function refId(ref) {
   if (!ref) return null;
   const s = typeof ref === 'string' ? ref : ref.reference;

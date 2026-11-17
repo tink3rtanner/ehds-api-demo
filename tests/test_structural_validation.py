@@ -7,13 +7,16 @@ from pathlib import Path
 
 import pytest
 
+from app.config import settings
 from app.fhir.document import CATEGORY_TO_DOC_TYPE
 from app.fhir.ids import bundle_id
 from app.fhir.validate import structural_validate
 from scripts.seed import PANEL
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-DATA = REPO_ROOT / "data"
+# the test data dir conftest seeds (a fresh copy of the reference panel), NOT
+# the live data/ dir: the live store changes under the suite whenever someone
+# publishes or purges, which made this test's count and results drift.
+DATA = Path(settings.data_dir)
 CATEGORIES = list(CATEGORY_TO_DOC_TYPE.keys())
 
 

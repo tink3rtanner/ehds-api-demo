@@ -8,6 +8,7 @@ import { badge, card, codingChip, countryBadge, originBadge, openResource } from
 import {
   CATEGORY_META, attachmentUrl, bundleIdFromAttachment, categoryOfDocRef, humanName, originOf,
   patientCity, patientCountry, pickCoding, pickDate, pickName, slotOf, statusOf, sourceHost,
+  nonFhirContentType,
 } from './fhir.js';
 
 export function patientLabel(p) {
@@ -68,6 +69,8 @@ export function categoryBadge(cat) {
 
 /** Where a DocumentReference's content can be opened in this UI, if it can. */
 export function docHref(dr) {
+  // only FHIR documents open in the document view; non-FHIR content (a Binary) has no Bundle
+  if (nonFhirContentType(dr)) return null;
   const id = bundleIdFromAttachment(attachmentUrl(dr));
   return id ? `#/documents/${id}` : null;
 }
@@ -84,7 +87,8 @@ export function docCard(dr, { patient } = {}) {
     sub: [patient ? patientLabel(patient) : null, dr.date ? fmtDate(dr.date) : null].filter(Boolean).join(' · '),
     body: meta ? meta.blurb : (dr.description || ''),
     footer: href ? [icon('documents', { size: 13 }), el('span', {}, 'Open document')]
-      : [icon('alert', { size: 13 }), el('span', {}, 'Content not held on this server')],
+      : [icon('alert', { size: 13 }), el('span', {}, nonFhirContentType(dr)
+        ? `Non-FHIR content (${nonFhirContentType(dr)})` : 'Content not held on this server')],
   });
 }
 
