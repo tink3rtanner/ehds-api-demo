@@ -231,6 +231,7 @@ CATEGORY_BY_LOINC: dict[str, str] = {
     "18842-5": "discharge-report",
     "34105-7": "discharge-report",   # HDR Composition.type is fixed to this code
     "18748-4": "imaging-report",
+    "85430-7": "imaging-report",     # EU imaging IG Composition/DocumentReference type
 }
 
 

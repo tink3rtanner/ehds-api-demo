@@ -126,6 +126,7 @@ def test_country_of_bundle_never_guesses():
     ("18842-5", "discharge-report"),
     ("34105-7", "discharge-report"),   # HDR fixes this code; the Epic pipeline emits it
     ("18748-4", "imaging-report"),
+    ("85430-7", "imaging-report"),   # EU imaging IG Composition.type
     ("57833-6", None),   # prescription is no longer a document category
     ("99999-9", None),
 ])
