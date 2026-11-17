@@ -38,8 +38,7 @@ async function loadContext() {
 // ---------- routes ----------
 
 const ROUTES = [
-  { re: /^#\/?$/, view: 'story', nav: 'story' },
-  { re: /^#\/scenario(?:\/(\d+))?$/, view: 'scenario', nav: 'story', params: (m) => ({ step: m[1] ? Number(m[1]) : 0 }) },
+  { re: /^#\/?$/, view: 'home', nav: 'home' },
   { re: /^#\/patients$/, view: 'patients', nav: 'patients' },
   { re: /^#\/patients\/([^/?]+)$/, view: 'patient', nav: 'patients', params: (m) => ({ id: m[1] }) },
   { re: /^#\/documents$/, view: 'documents', nav: 'documents' },
@@ -54,7 +53,7 @@ const LEGACY = [
   [/^#\/p\/([^/]+)\/doc\/([^/]+)$/, (m) => `#/patients/${m[1]}`],
   [/^#\/p\/([^/]+)$/, (m) => `#/patients/${m[1]}`],
   [/^#\/(logs|audit)$/, () => '#/activity'],
-  [/^#\/(client|demo)$/, () => '#/scenario'],
+  [/^#\/(client|demo|scenario(\/\d+)?)$/, () => '#/connect'],
   [/^#\/(implement|register|authorization|endpoints|server)$/, () => '#/connect'],
   [/^#\/(qr|resources)$/, () => '#/patients'],
 ];
@@ -89,7 +88,7 @@ async function route() {
     app.appendChild(el('section', { class: 'page' },
       el('header', { class: 'page-head' }, el('div', {}, el('h1', {}, 'Nothing here'),
         el('p', { class: 'purpose' }, `No view matches ${hash}.`))),
-      el('div', { class: 'btn-row' }, el('a', { class: 'btn btn-primary', href: '#/' }, 'Story'),
+      el('div', { class: 'btn-row' }, el('a', { class: 'btn btn-primary', href: '#/' }, 'Home'),
         el('a', { class: 'btn', href: '#/patients' }, 'Patients'))));
     return;
   }

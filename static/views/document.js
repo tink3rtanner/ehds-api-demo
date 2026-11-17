@@ -28,8 +28,12 @@ export async function render({ id }) {
   const title = `${categoryLabel(category)}${patient ? ` · ${humanName(patient)}` : ''}`;
 
   const vHost = el('span', {}, validationBadge({ state: 'none' }));
-  const canValidate = !!(patient && category && originOf(patient).kind === 'reference');
-  const refresh = () => api.ui(`validation/reference/${patient.id}/${category}`).then((rec) => { replace(vHost, validationBadge(rec)); return rec; });
+  // seeded documents are validated by (patient, category); published ones by their own id
+  const isRef = !!(patient && category && originOf(patient).kind === 'reference');
+  const recPath = isRef ? `validation/reference/${patient.id}/${category}` : `validation/${id}`;
+  const runPath = isRef ? recPath : `submissions/${id}/validate`;
+  const canValidate = isRef || !!patient;
+  const refresh = () => api.ui(recPath).then((rec) => { replace(vHost, validationBadge(rec)); return rec; });
   if (canValidate) refresh().catch(() => {});
   const show = (rec) => rec && rec.state !== 'none' && drawer.open('EU profile validation', el('div', { class: 'stack' },
     kv([{ label: 'State', value: validationBadge(rec) }, { label: 'Profile', value: rec.profile || 'base R4', mono: true },
@@ -41,7 +45,7 @@ export async function render({ id }) {
   const validate = canValidate ? button('Validate now', { small: true, icon: 'shield', onClick: async () => {
     validate.disabled = true;
     try {
-      await api.ui(`validation/reference/${patient.id}/${category}`, { method: 'POST' });
+      await api.ui(runPath, { method: 'POST' });
       let rec = await refresh();
       const t0 = Date.now();
       while (rec.state === 'pending' && Date.now() - t0 < 15 * 60_000) { await new Promise((r) => setTimeout(r, 4000)); rec = await refresh(); }

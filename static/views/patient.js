@@ -58,8 +58,7 @@ export async function render({ id }) {
     el('div', { class: 'demo' }, demographics(p)),
     chips,
     el('div', { class: 'row muted mono' }, `Patient/${p.id}`, slot ? ` · ${slot}` : '',
-      o.source ? el('a', { href: o.source, target: '_blank', rel: 'noopener' }, sourceHost(o.source), ' ', icon('external', { size: 12 })) : null,
-      o.submission ? el('a', { href: `#/coverage?submission=${o.submission}` }, 'submission') : null),
+      o.source ? el('a', { href: o.source, target: '_blank', rel: 'noopener' }, sourceHost(o.source), ' ', icon('external', { size: 12 })) : null),
   ));
 
   return pageShell({

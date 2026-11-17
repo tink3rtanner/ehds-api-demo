@@ -11,9 +11,10 @@ are compiled on demand from atomic FHIR resources.
 
 `GET /` returns a discovery document for agents and `/llms.txt` the same in
 prose, both with working example URLs. A browser at the same URL opens the UI
-(`/ui/`): a six-step scenario that runs a real SMART client in the browser, the
+(`/ui/`): a home page that links the IG and `/llms.txt`, the
 reference patients, the documents with their EU-profile validation badge, a
-map of which countries have submitted example data, and the request log.
+map of which countries have example data, a page to register a client and
+call the API in the browser, and the request log.
 See [`docs/ui-design.md`](docs/ui-design.md).
 
 ## Quick start
@@ -44,7 +45,7 @@ open http://localhost:8000/ui/                                        # the UI
 ```
 
 Every FHIR request needs a bearer. The UI uses a read-only one from
-`POST /ui/api/viewer-token`; the Connect page and the scenario register a
+`POST /ui/api/viewer-token`; the "Do your own demo" page registers a
 client and mint a token in the browser.
 
 ## What it implements

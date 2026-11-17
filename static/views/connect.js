@@ -1,6 +1,6 @@
-// Connect — one URL for agents; register, mint, call for people; the endpoints.
+// Do your own demo: register a client, get a token, call the API; the endpoints.
 
-import { el, download, relTime, replace } from '../lib/dom.js';
+import { el, download, replace } from '../lib/dom.js';
 import * as api from '../lib/api.js';
 import * as smart from '../lib/smart.js';
 import { pageShell, section, button, kv, codeBlock, requestChip, copyButton, note, spinner, errorBox } from '../lib/components.js';
@@ -12,27 +12,11 @@ export async function render({ ctx }) {
   const ex = ctx.examples;
   const st = { clientId: null, keys: null, token: null };
 
-  const clients = el('span', { class: 'muted' });
-  api.ui('clients').then((c) => {
-    const recent = c.clients.filter((x) => x.registered_at).slice(0, 5);
-    replace(clients, `${c.total} clients registered`, recent.length ? ' · latest ' : '', ...recent.map((x, i) => el('span', {}, i ? ', ' : '', el('code', {}, x.client_id), ` ${relTime(x.registered_at)}`)));
-  }).catch(() => {});
-
-  const agent = section(null, el('div', { class: 'stack' },
-    el('div', { class: 'agent-line' }, el('span', { class: 'label' }, 'Point your agent at'), el('code', {}, base), copyButton(base)),
-    el('div', { class: 'btn-row' },
-      button('GET / discovery', { small: true, icon: 'external', href: `${base}/` }),
-      button('/llms.txt', { small: true, icon: 'external', href: `${base}/llms.txt` }),
-      button('/metadata', { small: true, icon: 'external', href: `${base}/metadata` }),
-      button('smart-configuration', { small: true, icon: 'external', href: `${base}/.well-known/smart-configuration` }),
-      clients),
-  ), { className: 'block-tint' });
-
   const clientId = el('input', { value: `dev-${Math.random().toString(36).slice(2, 7)}` });
   const scopeBoxes = SCOPES.map((s) => el('input', { type: 'checkbox', value: s, checked: s === 'system/*.rs' }));
   const out = [el('div', {}), el('div', {}), el('div', {})];
-  const mintBtn = button('Mint a token', { kind: 'primary', icon: 'key', disabled: true, onClick: () => mint() });
-  const callBtn = button('First call', { kind: 'primary', icon: 'play', disabled: true, onClick: () => call() });
+  const mintBtn = button('Get a token', { kind: 'primary', icon: 'key', disabled: true, onClick: () => mint() });
+  const callBtn = button('Call the API', { kind: 'primary', icon: 'play', disabled: true, onClick: () => call() });
   const chosen = () => scopeBoxes.filter((b) => b.checked).map((b) => b.value);
 
   const register = async () => {
@@ -42,7 +26,7 @@ export async function render({ ctx }) {
     try {
       if (!smart.cryptoAvailable()) throw new Error('This browser cannot generate keys here (needs HTTPS). Use the CLI: python -m app.tools.register_client');
       const keys = await smart.generateKeypair(id);
-      await api.fhir('/register-client', { method: 'POST', token: false, contentType: 'application/json', body: { client_id: id, client_name: 'EHDS demo UI, Connect page (browser)', scopes: chosen(), jwk: keys.publicJwk }, label: 'register' });
+      await api.fhir('/register-client', { method: 'POST', token: false, contentType: 'application/json', body: { client_id: id, client_name: 'EHDS demo UI (browser)', scopes: chosen(), jwk: keys.publicJwk }, label: 'register' });
       st.clientId = id; st.keys = keys; st.token = null; mintBtn.disabled = false;
       const pem = await smart.privateKeyPem(keys.privateJwk);
       replace(out[0], note([el('strong', {}, `Registered ${id}.`), ' The private key is only in this tab. ',
@@ -70,16 +54,16 @@ export async function render({ ctx }) {
     } catch (e) { replace(out[2], errorBox(e.message)); }
   };
 
-  const steps = section('Register, mint, call', el('div', { class: 'stack connect-steps' },
+  const steps = section('Three steps', el('div', { class: 'stack connect-steps' },
     el('div', { class: 'connect-step stack' }, el('h3', {}, 'Register a client'),
       el('div', { class: 'form' }, el('div', { class: 'field' }, el('label', {}, 'Client id'), clientId)),
       el('div', { class: 'scope-grid' }, scopeBoxes.map((b) => el('label', {}, b, b.value))),
       el('div', { class: 'btn-row' }, button('Register', { kind: 'primary', icon: 'shield', onClick: register }), requestChip('GET', '/register-client')),
       out[0]),
-    el('div', { class: 'connect-step stack' }, el('h3', {}, 'Mint a token'),
-      el('p', { class: 'muted' }, 'The browser signs a JWT with the private key (iss = sub = client id, aud = token endpoint, 60 s) and POSTs it to /token for a bearer.'),
+    el('div', { class: 'connect-step stack' }, el('h3', {}, 'Get a token'),
+      el('p', { class: 'muted' }, 'The browser signs a short-lived JWT with the key and trades it at /token for a bearer token.'),
       el('div', { class: 'btn-row' }, mintBtn), out[1]),
-    el('div', { class: 'connect-step stack' }, el('h3', {}, 'Make the first call'), el('div', { class: 'btn-row' }, callBtn), out[2]),
+    el('div', { class: 'connect-step stack' }, el('h3', {}, 'Call the API'), el('div', { class: 'btn-row' }, callBtn), out[2]),
   ));
 
   const rows = [
@@ -97,7 +81,14 @@ export async function render({ ctx }) {
     el('div', { class: 'what' }, what),
     method === 'GET' && !path.includes('{') ? requestChip('GET', path) : el('span', { class: 'row' }, el('span', { class: `method method-${method.toLowerCase()}` }, method), el('code', {}, path))))));
 
-  return pageShell({ title: 'Connect', children: [agent, steps, endpoints] });
+  const fromCode = el('p', { class: 'muted' }, 'From code: ', el('a', { href: `${base}/quickstart.py` }, el('code', {}, '/quickstart.py')),
+    ' · For AI agents: ', el('a', { href: `${base}/llms.txt` }, el('code', {}, '/llms.txt')));
+
+  return pageShell({
+    title: 'Do your own demo',
+    purpose: 'Register a client, get a token, call the API. It all runs in this browser.',
+    children: [fromCode, steps, endpoints],
+  });
 
   function pathOf(url) {
     if (!url) return null;

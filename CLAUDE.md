@@ -16,9 +16,9 @@ Simplified Publish, `POST /DocumentReference` (document inline as base64).
 fresh agent gets from it alone to a published document; `/quickstart.py` is a
 one-file read-only Python client: token, a few reads, prints the token for Bruno). Spec of record: the IG CI build,
 https://build.fhir.org/ig/euridice-org/eu-health-data-api/. Ships a human-facing UI at `/ui/` (vanilla ES modules,
-no build step) that tells the exchange story, runs a guided scenario with a
-real browser-side SMART client, and shows patients, documents, a coverage map
-and the audit log. **Read `docs/ui-design.md` before touching `static/`.**
+no build step): a short home page (IG link, `/llms.txt` for agents), patients,
+documents, a map, "Do your own demo" (a real browser-side SMART client) and
+the audit log. **Read `docs/ui-design.md` before touching `static/`.**
 
 `README.md` has the IG-actor matrix and pretty-stack quickstart.
 `HANDOFF.md` has the full VPS bring-up runbook.
@@ -220,7 +220,7 @@ valid R4 bundle and accepts garbage instead.
 every environment (the dev-mode anonymous GET was removed; see
 `docs/conformance-deviations.md` §2). The UI gets a read-only token from
 `POST /ui/api/viewer-token` (client `ui-viewer`, scope `system/*.read`). The
-scenario and the Connect page register a client in the browser (Web Crypto
+"Do your own demo" page (`#/connect`) registers a client in the browser (Web Crypto
 RSA key, `static/lib/smart.js`) and mint via `/token`.
 
 The signing-alg check honours the registered key's `kty`: RSA keys verify
@@ -363,8 +363,8 @@ signature verification) so 401s still show who claimed to call.
 `app/audit_log.py` reads the JSONL files for `/ui/api/audit` +
 `/ui/api/audit/stats`; `/ui/#/activity` is the viewer. Entries are classified
 `fhir|ui|noise` (scanner probes for `wp-config.php` etc.) and queries default
-to `scope=fhir`. The `X-Demo-Run` header is persisted as `run` so the UI's
-scenario can show its own receipt.
+to `scope=fhir`. The `X-Demo-Run` header is persisted as `run` (no UI page
+sends it since the scenario page was removed; clients may).
 
 ## Things that are tracked vs not
 

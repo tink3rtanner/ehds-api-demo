@@ -31,12 +31,12 @@ function requestsBar() {
   const count = el('span', { class: 'count' }, '0');
   const list = el('div', { class: 'req-list' });
   const details = el('details', { class: 'requests-bar' },
-    el('summary', {}, icon('code', { size: 16 }), el('span', {}, 'Requests behind this page'), count,
-      el('span', { class: 'hint' }, 'the FHIR requests this page made')),
+    el('summary', {}, icon('code', { size: 16 }), el('span', {}, 'Requests this page made'), count),
     list,
   );
   const render = (reqs) => {
     count.textContent = String(reqs.length);
+    details.hidden = !reqs.length;   // nothing to show on pages that made no FHIR request
     clear(list);
     if (!reqs.length) { list.appendChild(el('div', { class: 'muted pad' }, 'No FHIR requests yet.')); return; }
     for (const r of reqs) list.appendChild(requestRow(r));
@@ -322,18 +322,6 @@ export async function openResource(type, id, { token } = {}) {
   } catch (e) {
     drawer.open(`${type}/${id}`, errorBox(e.message));
   }
-}
-
-// ---------- stepper ----------
-
-/** stepper(steps:[{title, short}], active, onSelect) */
-export function stepper(steps, active, onSelect, { done = [] } = {}) {
-  return el('ol', { class: 'stepper' }, steps.map((s, i) => el('li', {
-    class: `step ${i === active ? 'is-active' : ''} ${done.includes(i) ? 'is-done' : ''}`.trim(),
-    onclick: onSelect ? () => onSelect(i) : null,
-  },
-  el('span', { class: 'step-n' }, done.includes(i) && i !== active ? icon('check', { size: 12 }) : String(i + 1)),
-  el('span', { class: 'step-t' }, s.short || s.title))));
 }
 
 // ---------- timeline ----------

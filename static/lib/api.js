@@ -8,7 +8,7 @@
 //                        (audit log, coverage, validation badges, viewer token).
 //
 // The default bearer is the read-only viewer token the server mints for the
-// page. Views can pass their own (the scenario mints a real client token).
+// page. Views can pass their own (Do your own demo passes its own client's token).
 
 const state = {
   token: null,

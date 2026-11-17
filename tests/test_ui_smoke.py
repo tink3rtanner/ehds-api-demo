@@ -19,7 +19,7 @@ import pytest
 playwright = pytest.importorskip("playwright.sync_api", reason="playwright not installed")
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-ROUTES = ["#/", "#/scenario/0", "#/patients", "#/documents", "#/coverage", "#/connect", "#/activity"]
+ROUTES = ["#/", "#/patients", "#/documents", "#/coverage", "#/connect", "#/activity"]
 
 
 def _free_port() -> int:
@@ -127,26 +127,50 @@ def test_patient_and_document_pages_render(server_url, browser):
         ctx.close()
 
 
-def test_scenario_walks_all_six_steps_with_a_real_smart_client(server_url, browser):
-    """Step 1 registers a browser-side client and mints a token via /token;
-    steps 2-5 use that bearer; step 6 shows the audit receipt for the run."""
+def test_home_points_people_at_the_ig_and_agents_at_llms_txt(server_url, browser):
     ctx = browser.new_context(viewport={"width": 1280, "height": 900})
     page = ctx.new_page()
     errors = _collect(page)
     try:
+        page.goto(f"{server_url}/ui/#/")
+        page.wait_for_timeout(2500)
+        text = page.evaluate("() => document.getElementById('app').innerText")
+        assert "reference implementation" in text and "/llms.txt" in text
+        assert page.evaluate("() => !!document.querySelector('#app a[href^=\"https://build.fhir.org/ig/euridice-org/eu-health-data-api\"]')")
+        assert not errors, errors
+    finally:
+        ctx.close()
+
+
+def test_scenario_links_land_on_do_your_own_demo(server_url, browser):
+    ctx = browser.new_context(viewport={"width": 1280, "height": 900})
+    page = ctx.new_page()
+    try:
         page.goto(f"{server_url}/ui/#/scenario/0")
-        seen = []
-        for step in range(6):
-            page.wait_for_timeout(3500)
-            seen.append(page.evaluate("() => document.querySelector('.scene-result')?.innerText || ''"))
-            if step < 5:
-                page.click("text=Next")
-        assert "registered the public key" in seen[0] or "viewer token" in seen[0], seen[0][:200]
-        assert "certain" in seen[1], seen[1][:200]
-        assert "Summary" in seen[2], seen[2][:200]
-        assert "entries" in seen[3], seen[3][:200]
-        assert "allergies" in seen[4], seen[4][:200]
-        assert "/token" in seen[5] and "/Patient/$match" in seen[5], seen[5][:300]
+        page.wait_for_timeout(2000)
+        assert page.evaluate("() => location.hash") == "#/connect"
+    finally:
+        ctx.close()
+
+
+def test_do_your_own_demo_registers_mints_and_calls_with_a_real_smart_client(server_url, browser):
+    """Register a browser-side client (Web Crypto key), sign an assertion,
+    trade it at /token, then call the API with that bearer."""
+    ctx = browser.new_context(viewport={"width": 1280, "height": 900})
+    page = ctx.new_page()
+    errors = _collect(page)
+    try:
+        page.goto(f"{server_url}/ui/#/connect")
+        page.wait_for_timeout(2500)
+        page.click("button:has-text('Register')")
+        page.wait_for_timeout(2500)
+        page.click("button:has-text('Get a token')")
+        page.wait_for_timeout(2000)
+        page.click("button:has-text('Call the API')")
+        page.wait_for_timeout(2000)
+        text = page.evaluate("() => document.getElementById('app').innerText")
+        assert "Registered" in text, text[:500]
+        assert "HTTP 200" in text, text[:800]
         assert not errors, errors
     finally:
         ctx.close()

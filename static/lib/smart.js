@@ -1,7 +1,7 @@
 // SMART Backend Services, client side: generate a keypair in the browser,
 // register its public half, sign a JWT client assertion, exchange it for a
-// bearer. The private key never leaves the browser. Used by the scenario (a
-// real client, not the viewer token) and by the Connect page.
+// bearer. The private key never leaves the browser. Used by the "Do your own
+// demo" page (#/connect): a real client, not the viewer token.
 
 import * as api from './api.js';
 
@@ -77,7 +77,7 @@ export function decodeJwt(token) {
 export async function registerClient({ clientId, scopes, publicJwk }) {
   return api.fhir('/register-client', {
     method: 'POST', token: false, contentType: 'application/json', label: 'register client',
-    body: { client_id: clientId, client_name: 'EHDS demo UI, scenario (browser)', scopes, jwk: publicJwk },
+    body: { client_id: clientId, client_name: 'EHDS demo UI (browser)', scopes, jwk: publicJwk },
   });
 }
 
@@ -93,60 +93,4 @@ export async function mintToken({ assertion, scope, tokenEndpoint = '/token', ru
     method: 'POST', token: false, contentType: 'application/x-www-form-urlencoded', body: form, run,
     label: 'mint token', pillar: 'authorize',
   });
-}
-
-// ---------- the scenario's persistent browser client ----------
-
-const STORE_KEY = 'ehds.scenario.client';
-
-export function loadScenarioClient() {
-  try { return JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch { return null; }
-}
-
-export function saveScenarioClient(c) {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify(c)); } catch { /* private mode: fine, it just re-registers next time */ }
-}
-
-export function forgetScenarioClient() {
-  try { localStorage.removeItem(STORE_KEY); } catch { /* ignore */ }
-}
-
-/**
- * Make sure this browser has a registered read-only client and return
- * { clientId, kid, publicJwk, privateJwk, registered: bool (this call) }.
- */
-export async function ensureScenarioClient() {
-  let c = loadScenarioClient();
-  let registeredNow = false;
-  if (!c || !c.privateJwk || !c.clientId) {
-    const clientId = `browser-${Math.random().toString(36).slice(2, 8)}`;
-    const keys = await generateKeypair(clientId);
-    c = { clientId, ...keys, createdAt: new Date().toISOString() };
-    await registerClient({ clientId, scopes: ['system/*.read'], publicJwk: c.publicJwk });
-    registeredNow = true;
-    saveScenarioClient(c);
-  }
-  return { ...c, registeredNow };
-}
-
-/** Full flow for the scenario: ensure client, sign, mint. Re-registers once if the server forgot us. */
-export async function scenarioToken({ tokenEndpoint, run }) {
-  let c = await ensureScenarioClient();
-  const attempt = async () => {
-    const { jwt, claims } = await signAssertion({ clientId: c.clientId, kid: c.kid, privateJwk: c.privateJwk, tokenEndpoint });
-    const tok = await mintToken({ assertion: jwt, scope: 'system/*.read', run });
-    return { client: c, assertion: jwt, assertionClaims: claims, token: tok };
-  };
-  try {
-    return await attempt();
-  } catch (e) {
-    // registry reset on the server (reseed, redeploy) -> register again with the same key
-    if (e.status === 401 || e.status === 400) {
-      await registerClient({ clientId: c.clientId, scopes: ['system/*.read'], publicJwk: c.publicJwk });
-      c = { ...c, registeredNow: true };
-      saveScenarioClient(c);
-      return attempt();
-    }
-    throw e;
-  }
 }
