@@ -45,7 +45,7 @@ open http://localhost:8000/ui/                                        # the UI
 ```
 
 Every FHIR request needs a bearer. The UI uses a read-only one from
-`POST /ui/api/viewer-token`; the "Do your own demo" page registers a
+`POST /ui/api/viewer-token`; the "Quick start" page registers a
 client and mint a token in the browser.
 
 ## What it implements

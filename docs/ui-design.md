@@ -19,7 +19,7 @@ Keep it short. Plain words, no pitch, no story.
 
 | Decision | Choice | Reason |
 | --- | --- | --- |
-| Structure | Six sections: Home, Patients, Documents, Map, Do your own demo, Activity | The old UI had 13 pages, then a story and a guided scenario that repeated Connect |
+| Structure | Six sections: Home, Quick start, Patients, Documents, Map, Activity | The old UI had 13 pages, then a story and a guided scenario that repeated Connect |
 | Data access | The UI reads FHIR through the public API with a read-only viewer token; `/ui/api` serves no FHIR | Everything on screen is what any client would get |
 | Attribution | A submission counts for the country in the patient's address; no client data is collected or shown | Josh does not want to collect organisation or contact data |
 | Validation | Runs after the 201, result is a badge; a failed validation never rejects a submission | Easy to use; the validator is slow and sometimes fails for reasons unrelated to the bundle |
@@ -37,7 +37,7 @@ Keep it short. Plain words, no pitch, no story.
 | `#/patients`, `#/patients/{id}` | The panel grouped by origin; one record with documents, timeline and compartment |
 | `#/documents`, `#/documents/{bundleId}` | The registry filtered by category; one document rendered by section with the raw bundle one click away and its EU validation result |
 | `#/coverage[/{CC}]` | Map: European countries with data; click one for its categories |
-| `#/connect` | Do your own demo: register, get a token, call the API in the browser; the endpoint list |
+| `#/connect` | Quick start: register, get a token, call the API in the browser; the endpoint list |
 | `#/activity` | The audit log, scanner noise hidden by default, filter by client |
 
 Every page that calls the API ends with a collapsed list of the requests it

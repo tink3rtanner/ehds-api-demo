@@ -136,13 +136,18 @@ def test_home_points_people_at_the_ig_and_agents_at_llms_txt(server_url, browser
         page.wait_for_timeout(2500)
         text = page.evaluate("() => document.getElementById('app').innerText")
         assert "reference implementation" in text and "/llms.txt" in text
+        for want in ("Query", "Publish", "Get started", "Patient Summary", "Imaging Report", "ITI-105"):
+            assert want in text, want
+        assert page.evaluate("() => !!document.querySelector('#app a[href=\"#/connect\"]')")
+        nav = page.evaluate("() => [...document.querySelectorAll('#nav a')].map(a => a.textContent)")
+        assert nav[:2] == ["Home", "Quick start"], nav
         assert page.evaluate("() => !!document.querySelector('#app a[href^=\"https://build.fhir.org/ig/euridice-org/eu-health-data-api\"]')")
         assert not errors, errors
     finally:
         ctx.close()
 
 
-def test_scenario_links_land_on_do_your_own_demo(server_url, browser):
+def test_scenario_links_land_on_quick_start(server_url, browser):
     ctx = browser.new_context(viewport={"width": 1280, "height": 900})
     page = ctx.new_page()
     try:
@@ -153,7 +158,7 @@ def test_scenario_links_land_on_do_your_own_demo(server_url, browser):
         ctx.close()
 
 
-def test_do_your_own_demo_registers_mints_and_calls_with_a_real_smart_client(server_url, browser):
+def test_quick_start_registers_mints_and_calls_with_a_real_smart_client(server_url, browser):
     """Register a browser-side client (Web Crypto key), sign an assertion,
     trade it at /token, then call the API with that bearer."""
     ctx = browser.new_context(viewport={"width": 1280, "height": 900})

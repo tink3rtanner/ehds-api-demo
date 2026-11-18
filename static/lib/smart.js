@@ -1,7 +1,7 @@
 // SMART Backend Services, client side: generate a keypair in the browser,
 // register its public half, sign a JWT client assertion, exchange it for a
-// bearer. The private key never leaves the browser. Used by the "Do your own
-// demo" page (#/connect): a real client, not the viewer token.
+// bearer. The private key never leaves the browser. Used by the "Quick start
+//" page (#/connect): a real client, not the viewer token.
 
 import * as api from './api.js';
 

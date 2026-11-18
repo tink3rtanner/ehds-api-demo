@@ -413,3 +413,11 @@ details.bucket[open] summary { border-bottom: 1px solid var(--border-soft); }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+/* home */
+.home-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.cat-list { margin: 0 0 12px; padding-left: 18px; }
+.cat-list li { margin: 2px 0; }
+.steps { margin: 0 0 14px; padding-left: 20px; }
+.steps li { margin: 4px 0; }
+@media (max-width: 720px) { .home-grid { grid-template-columns: 1fr; } }

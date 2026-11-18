@@ -17,7 +17,7 @@ fresh agent gets from it alone to a published document; `/quickstart.py` is a
 one-file read-only Python client: token, a few reads, prints the token for Bruno). Spec of record: the IG CI build,
 https://build.fhir.org/ig/euridice-org/eu-health-data-api/. Ships a human-facing UI at `/ui/` (vanilla ES modules,
 no build step): a short home page (IG link, `/llms.txt` for agents), patients,
-documents, a map, "Do your own demo" (a real browser-side SMART client) and
+documents, a map, "Quick start" (a real browser-side SMART client) and
 the audit log. **Read `docs/ui-design.md` before touching `static/`.**
 
 `README.md` has the IG-actor matrix and pretty-stack quickstart.
@@ -220,7 +220,7 @@ valid R4 bundle and accepts garbage instead.
 every environment (the dev-mode anonymous GET was removed; see
 `docs/conformance-deviations.md` §2). The UI gets a read-only token from
 `POST /ui/api/viewer-token` (client `ui-viewer`, scope `system/*.read`). The
-"Do your own demo" page (`#/connect`) registers a client in the browser (Web Crypto
+"Quick start" page (`#/connect`) registers a client in the browser (Web Crypto
 RSA key, `static/lib/smart.js`) and mint via `/token`.
 
 The signing-alg check honours the registered key's `kty`: RSA keys verify

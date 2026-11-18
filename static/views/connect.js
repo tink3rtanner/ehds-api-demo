@@ -1,4 +1,4 @@
-// Do your own demo: register a client, get a token, call the API; the endpoints.
+// Quick start: register a client, get a token, call the API; the endpoints.
 
 import { el, download, replace } from '../lib/dom.js';
 import * as api from '../lib/api.js';
@@ -85,7 +85,7 @@ export async function render({ ctx }) {
     ' · For AI agents: ', el('a', { href: `${base}/llms.txt` }, el('code', {}, '/llms.txt')));
 
   return pageShell({
-    title: 'Do your own demo',
+    title: 'Quick start',
     purpose: 'Register a client, get a token, call the API. It all runs in this browser.',
     children: [fromCode, steps, endpoints],
   });
