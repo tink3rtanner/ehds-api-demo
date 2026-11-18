@@ -88,21 +88,21 @@ async def search_docref(
             return False
         results = [r for r in results if has_ident(r)]
     if (v := norm.get("status")):
-        results = [r for r in results if r.get("status") == v[0]]
+        results = [r for r in results if r.get("status") in store.or_codes(v[0])]
     if (v := norm.get("category")):
-        wanted = v[0].split("|")[-1]
+        wanted = store.or_codes(v[0])
         def cat_match(r):
             for c in (r.get("category") or []):
                 for code in (c.get("coding") or []):
-                    if code.get("code") == wanted:
+                    if code.get("code") in wanted:
                         return True
             return False
         results = [r for r in results if cat_match(r)]
     if (v := norm.get("type")):
-        wanted = v[0].split("|")[-1]
+        wanted = store.or_codes(v[0])
         def type_match(r):
             for code in (r.get("type", {}).get("coding") or []):
-                if code.get("code") == wanted:
+                if code.get("code") in wanted:
                     return True
             return False
         results = [r for r in results if type_match(r)]
@@ -121,9 +121,9 @@ async def search_docref(
     if (v := norm.get("_lastUpdated") or norm.get("_lastupdated")):
         results = [r for r in results if store.match_date(v[0], (r.get("meta") or {}).get("lastUpdated"))]
     if (v := norm.get("format")):
-        wanted = v[0].split("|")[-1]
+        wanted = store.or_codes(v[0])
         def format_match(r):
-            return any(isinstance(c.get("format"), dict) and c["format"].get("code") == wanted
+            return any(isinstance(c.get("format"), dict) and c["format"].get("code") in wanted
                        for c in (r.get("content") or []))
         results = [r for r in results if format_match(r)]
     if (v := norm.get("security-label")):

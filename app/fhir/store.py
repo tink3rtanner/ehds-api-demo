@@ -220,9 +220,19 @@ def find_patient_ids_by_identifier(value: str) -> set[str]:
     return out
 
 
+def or_codes(value: str) -> set[str]:
+    """The codes a token search value asks for. A comma means OR (FHIR search);
+    each part may be ``code`` or ``system|code`` (only the code is matched)."""
+    return {part.split("|")[-1] for part in value.split(",") if part}
+
+
 def _match_token(res: dict[str, Any], field: str, value: str) -> bool:
-    """rudimentary token search: status, code, category fields. value can be system|code."""
-    target = value.split("|")[-1]  # strip system prefix
+    """rudimentary token search: status, code, category fields. value can be
+    system|code, several comma-separated (OR)."""
+    targets = or_codes(value)
+    if len(targets) > 1:
+        return any(_match_token(res, field, t) for t in targets)
+    target = next(iter(targets), "")
     fv = res.get(field)
     if isinstance(fv, str):
         return fv == value or fv == target
@@ -271,7 +281,10 @@ def token_in(value: Any, wanted: str) -> bool:
     any of those. ``wanted`` is ``code`` or ``system|code`` — the system half is
     accepted but only the code is matched (the demo never collides on code).
     """
-    target = wanted.split("|")[-1]
+    targets = or_codes(wanted)
+    if len(targets) > 1:
+        return any(token_in(value, t) for t in targets)
+    target = next(iter(targets), "")
     if value is None:
         return False
     if isinstance(value, str):
