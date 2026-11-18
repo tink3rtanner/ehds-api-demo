@@ -109,3 +109,12 @@ async def test_no_hard_coded_slot_ids_in_the_frontend():
         for m in re.finditer(r"/(Patient|Bundle|Observation|DocumentReference)/p-\d{3}", text):
             offenders.append(f"{fp.name}: {m.group(0)}")
     assert not offenders, offenders
+
+
+async def test_ui_static_files_revalidate_so_a_deploy_shows_up(client):
+    # without this, browsers heuristically cache app.js and the view modules
+    # and keep showing the old UI after a deploy
+    for path in ("/ui/", "/ui/app.js", "/ui/views/home.js", "/ui/app.css"):
+        r = await client.get(path)
+        assert r.status_code == 200, path
+        assert r.headers.get("cache-control") == "no-cache", path

@@ -19,6 +19,16 @@ from app.security import install as install_security
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
 
+class _RevalidatingStaticFiles(StaticFiles):
+    """The UI has no build step or hashed filenames, so tell browsers to
+    revalidate (ETag -> 304) instead of reusing stale modules after a deploy."""
+
+    def file_response(self, *args, **kwargs):
+        response = super().file_response(*args, **kwargs)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
 @asynccontextmanager
 async def _lifespan(_app: FastAPI):
     # re-queue EU-profile validations a previous process left `pending`
@@ -83,7 +93,7 @@ def _build_app() -> FastAPI:
         from app.routers import ui as ui_router
         app.include_router(ui_router.router)
         if STATIC_DIR.exists():
-            app.mount("/ui", StaticFiles(directory=str(STATIC_DIR), html=True), name="ui")
+            app.mount("/ui", _RevalidatingStaticFiles(directory=str(STATIC_DIR), html=True), name="ui")
 
     return app
 
