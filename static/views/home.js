@@ -31,7 +31,6 @@ export async function render({ ctx }) {
         ]),
         section('Publish', [
           el('p', {}, 'Send a FHIR document with ITI-105 (POST /DocumentReference). The server stores it byte for byte, makes it searchable and validates it against its EU profile.'),
-          el('p', { class: 'muted' }, 'Synthetic data only.'),
         ])),
 
       section('Get started', [
@@ -41,7 +40,7 @@ export async function render({ ctx }) {
           el('li', {}, el('b', {}, 'Call the API'), ' with the bearer token.')),
         el('div', { class: 'btn-row' },
           button('Quick start in your browser', { kind: 'primary', href: '#/connect' }),
-          el('span', { class: 'muted' }, 'or from code: ', el('code', {}, '/quickstart.py'))),
+          el('span', { class: 'muted' }, 'or from code: ', el('a', { href: `${base}/quickstart.py` }, el('code', {}, '/quickstart.py')))),
       ]),
 
       el('div', { class: 'agent-line' },
