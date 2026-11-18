@@ -242,8 +242,9 @@ def build_capability_statement() -> dict[str, Any]:
             "interaction": [{
                 "code": "transaction",
                 "documentation": ("Convenience upload, not ITI-105: POST a Bundle (type transaction or document) "
-                                  "to the base URL with scope system/Bundle.write. The standard way to publish "
-                                  "is POST /DocumentReference."),
+                                  "to the base URL with scope system/Bundle.write. A document Bundle is published as by "
+                                  "ITI-105; a transaction Bundle's resources are stored without a DocumentReference. "
+                                  "The standard way to publish is POST /DocumentReference."),
             }],
             "operation": [
                 {"name": "match", "definition": "http://hl7.org/fhir/OperationDefinition/Patient-match"},

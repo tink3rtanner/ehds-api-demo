@@ -20,9 +20,11 @@ pytestmark = pytest.mark.asyncio
 
 
 async def _upload_copy_of_p001(client, auth_headers) -> str:
-    """POST / a p-001 document; return the id of the Patient copy it stores."""
-    raw = (await client.get(f"/Bundle/{bundle_id('p-001', 'patient-summary')}", headers=auth_headers)).content
-    r = await client.post("/", headers={**auth_headers, "Content-Type": "application/fhir+json"}, content=raw)
+    """POST / p-001's document as a transaction; return the id of the Patient copy it stores.
+    (A document Bundle is published instead, and links to p-001 by identifier.)"""
+    doc = (await client.get(f"/Bundle/{bundle_id('p-001', 'patient-summary')}", headers=auth_headers)).json()
+    doc["type"] = "transaction"
+    r = await client.post("/", headers={**auth_headers, "Content-Type": "application/fhir+json"}, json=doc)
     assert r.status_code == 201, r.text[:300]
     copies = [e["response"]["location"].split("/")[1] for e in r.json()["entry"]
               if e["response"]["location"].startswith("Patient/")]

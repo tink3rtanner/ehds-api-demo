@@ -173,3 +173,39 @@ async def test_bundle_upload_stores_binary_and_rewrites_attachment(client, auth_
     for path in (f"/{bin_loc}", "/Binary/my-binary-1"):
         g = await client.get(path, headers={**auth_headers, "Accept": "text/plain"})
         assert g.status_code == 200 and g.content == b"hello", path
+
+
+async def test_a_bare_bundle_sent_to_publish_says_how_to_wrap_it(client, auth_headers):
+    # a client that sends the document itself (not wrapped in a DocumentReference)
+    # must be told what to send instead
+    r = await client.post("/DocumentReference", headers={**auth_headers, "Content-Type": "application/fhir+json"},
+                          content=_bytes(_doc_bundle()))
+    assert r.status_code == 400
+    diag = r.json()["issue"][0]["diagnostics"]
+    assert "Bundle" in diag and "content[0].attachment.data" in diag and "base64" in diag and "/llms.txt" in diag
+
+
+async def test_a_document_bundle_posted_to_root_is_published(client, auth_headers):
+    # POST / with a Bundle.type=document must not store loose resources only:
+    # it publishes, so the document is found by ITI-67 and retrieved by ITI-68
+    raw = _bytes(_doc_bundle(patient_ident=(FOREIGN_SYSTEM, "ROOT-1")))
+    r = await client.post("/", headers={**auth_headers, "Content-Type": "application/fhir+json"}, content=raw)
+    assert r.status_code == 201, r.text
+    dr = r.json()
+    assert dr["resourceType"] == "DocumentReference"
+    assert r.headers["location"].endswith(f"/DocumentReference/{dr['id']}")
+    pid = dr["subject"]["reference"].split("/", 1)[1]
+    found = (await client.get(f"/DocumentReference?patient={pid}", headers=auth_headers)).json()
+    assert dr["id"] in [e["resource"]["id"] for e in found.get("entry", [])]
+    got = await client.get(f"/{dr['content'][0]['attachment']['url']}", headers=auth_headers)
+    assert got.status_code == 200 and got.content == raw   # the exact bytes sent
+
+
+async def test_a_transaction_bundle_posted_to_root_still_stores_resources(client, auth_headers):
+    b = _doc_bundle(patient_ident=(FOREIGN_SYSTEM, "ROOT-2"))
+    b["type"] = "transaction"
+    for e in b["entry"]:
+        e["request"] = {"method": "POST", "url": e["resource"]["resourceType"]}
+    r = await client.post("/", headers=auth_headers, json=b)
+    assert r.status_code == 201, r.text
+    assert r.json()["type"] == "transaction-response"

@@ -166,7 +166,8 @@ def discovery_document() -> dict:
         },
         "conveniences_not_in_the_ig": {
             "upload_bundle": f"POST {base}/ with a transaction or document Bundle (scope system/Bundle.write). "
-                             "Stores the resources; does not create a DocumentReference. Use ITI-105 instead.",
+                             "A document Bundle is published as ITI-105 would publish it; a transaction Bundle's resources "
+                             "are stored, with no DocumentReference. Prefer ITI-105.",
             "patient_summary_operation": ep.get("patient_summary_operation"),
         },
     }

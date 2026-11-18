@@ -138,7 +138,7 @@ async def test_round_trip_breaks_open_bundle_naturalizes_and_chains(client, auth
     bundle = {
         "resourceType": "Bundle",
         "id": f"sub-{sfx}",
-        "type": "document",
+        "type": "transaction",
         "entry": [
             {
                 "fullUrl": f"{src}/DocumentReference/{dr_fid}",

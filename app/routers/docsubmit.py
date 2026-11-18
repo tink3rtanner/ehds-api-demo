@@ -6,6 +6,11 @@ clients that already use it. It accepts POST / (root) with Content-Type: applica
 Bundle.type=transaction whose entries contain a DocumentReference + Binary
 (and any supporting Composition + clinical resources).
 
+A Bundle.type=document is published exactly as ITI-105 would publish it
+(``publish(wrap_document(...))``): 201 with the DocumentReference, the
+document retrievable at its attachment.url. The steps below are for
+transaction Bundles.
+
 we:
   1. validate the bundle structurally via fhir.resources
   2. persist the as-submitted bundle to data/inbox/<bundle-id>.json (evidence)
@@ -30,7 +35,7 @@ import json
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends
+from fastapi import APIRouter, Body, Depends, Request
 from fastapi.responses import JSONResponse
 
 from app.auth.verify import Principal, require_scope
@@ -39,6 +44,7 @@ from app.fhir import store
 from app.fhir.naturalize import naturalize_bundle
 from app.fhir.validate import structural_validate
 from app.fhir.validation_queue import enqueue_submission
+from app.routers.publish import publish, wrap_document
 
 router = APIRouter()
 
@@ -50,6 +56,7 @@ def _oo(severity: str, code: str, diag: str) -> dict:
 
 @router.post("/", name="iti_105_submit")
 async def submit_bundle(
+    request: Request,
     _p: Annotated[Principal, Depends(require_scope("system/Bundle.write"))],
     body: dict = Body(...),
 ) -> JSONResponse:
@@ -58,6 +65,12 @@ async def submit_bundle(
     btype = body.get("type")
     if btype not in ("transaction", "document"):
         return JSONResponse(status_code=400, media_type="application/fhir+json", content=_oo("error", "invalid", "Bundle.type must be transaction or document"))
+
+    # a FHIR document is published (ITI-105 path), not just mirrored: otherwise
+    # its resources are stored but no DocumentReference finds it. The bytes
+    # sent are the bytes stored.
+    if btype == "document":
+        return publish(wrap_document(await request.body()))
 
     # structural validation
     ok, problems = structural_validate(body)

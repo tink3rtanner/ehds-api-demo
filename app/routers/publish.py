@@ -47,6 +47,18 @@ router = APIRouter()
 
 PUBLISH_SCOPE = "system/DocumentReference.c"
 FHIR_JSON = "application/fhir+json"
+BARE_BUNDLE_HINT = (
+    "expected a DocumentReference, got a Bundle. ITI-105 takes a DocumentReference with the document "
+    "Bundle base64-encoded in content[0].attachment.data and contentType application/fhir+json; "
+    "the server takes the Patient from the Bundle. Recipe: /llms.txt")
+
+
+def wrap_document(raw: bytes) -> dict[str, Any]:
+    """The smallest ITI-105 DocumentReference carrying ``raw`` (a document
+    Bundle) inline. The patient, type and dates come from the Bundle."""
+    return {"resourceType": "DocumentReference", "status": "current",
+            "content": [{"attachment": {"contentType": FHIR_JSON,
+                                        "data": base64.b64encode(raw).decode("ascii")}}]}
 
 
 def _oo(code: str, diag: str, status: int = 400) -> JSONResponse:
@@ -131,6 +143,8 @@ async def publish_document(
 def publish(docref: Any) -> JSONResponse:
     """ITI-105 Simplified Publish of one DocumentReference (data inline).
     Shared by the HTTP route and scripts/republish_inbox.py."""
+    if isinstance(docref, dict) and docref.get("resourceType") == "Bundle":
+        return _oo("invalid", BARE_BUNDLE_HINT)
     if not isinstance(docref, dict) or docref.get("resourceType") != "DocumentReference":
         return _oo("invalid", "expected a DocumentReference")
     content = docref.get("content")

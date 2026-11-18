@@ -73,10 +73,13 @@ async def test_publish_round_trips_every_document_this_server_compiles(client, a
 
 
 @pytest.mark.parametrize("category", CATEGORIES)
-async def test_bundle_upload_accepts_every_document_this_server_compiles(client, auth_headers, category):
+async def test_bundle_upload_publishes_every_document_this_server_compiles(client, auth_headers, category):
     raw = await _real_document(client, auth_headers, category)
     r = await client.post("/", headers={**auth_headers, "Content-Type": "application/fhir+json"}, content=raw)
     assert r.status_code == 201, r.text[:500]
+    assert r.json()["resourceType"] == "DocumentReference"
+    g = await client.get(f"/{r.json()['content'][0]['attachment']['url']}", headers=auth_headers)
+    assert g.content == raw
 
 
 async def test_a_publish_that_fails_part_way_writes_nothing(client, auth_headers, pid, monkeypatch):
@@ -155,11 +158,12 @@ def test_every_router_error_is_typed_as_fhir():
 
 
 async def test_uploading_a_reference_document_does_not_hijack_its_patient(client, auth_headers, pid):
-    """A Bundle upload creates a community copy of the Patient, slot identifier
-    and all. The compiled documents must still resolve to the seeded Patient."""
+    """A transaction upload creates a community copy of the Patient, slot
+    identifier and all. The compiled documents must still resolve to the seeded Patient."""
     bid = bundle_id("p-001", "patient-summary")
-    raw = (await client.get(f"/Bundle/{bid}", headers=auth_headers)).content
-    up = await client.post("/", headers={**auth_headers, "Content-Type": "application/fhir+json"}, content=raw)
+    doc = (await client.get(f"/Bundle/{bid}", headers=auth_headers)).json()
+    doc["type"] = "transaction"
+    up = await client.post("/", headers={**auth_headers, "Content-Type": "application/fhir+json"}, json=doc)
     assert up.status_code == 201, up.text[:300]
 
     r = await client.get(f"/Bundle/{bid}", headers=auth_headers)

@@ -175,8 +175,11 @@ reference graph intact, so a single source of truth beats a denormalised copy.
 
 ITI-105 Simplified Publish is `POST /DocumentReference` with the document
 inline (`app/routers/publish.py`). `POST /` with a transaction/document Bundle
-predates it and is kept for existing clients. It stores the resources but makes
-no DocumentReference, so ITI-67 does not find what it uploads. `/metadata`
+predates it and is kept for existing clients. A `Bundle.type=document` is
+published exactly as ITI-105 would publish it (the 201 body is the
+DocumentReference). A transaction Bundle's resources are stored with no
+DocumentReference, so ITI-67 does not find them. A bare Bundle sent to
+`POST /DocumentReference` gets a 400 that says how to wrap it. `/metadata`
 declares it as the system `transaction` interaction with that caveat;
 `/llms.txt` lists it under "Not part of the IG".
 

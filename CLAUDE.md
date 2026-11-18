@@ -326,8 +326,10 @@ repeatedly (2026-11-16).
 
 ### The `POST /` Bundle upload is permissive (and known so) — a convenience, not ITI-105
 
-`app/routers/docsubmit.py` accepts `Bundle.type=transaction` or `document`,
-runs structural validation, persists the whole bundle to `data/inbox/<server uuid>.json`, and
+`app/routers/docsubmit.py` accepts `Bundle.type=transaction` or `document`.
+**A `document` Bundle goes through ITI-105** (`publish(wrap_document(raw))`, exact
+bytes kept), so it gets a DocumentReference and shows in the UI. For a
+`transaction` Bundle it runs structural validation, persists the whole bundle to `data/inbox/<server uuid>.json`, and
 **mirrors every entry whose `resourceType` is in `store.SUPPORTED_TYPES`**
 into the type-folder store. It does not honour `entry.request.method/url` —
 any supported resource gets written regardless of what the bundle says.
