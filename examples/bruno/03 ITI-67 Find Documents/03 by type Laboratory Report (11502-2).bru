@@ -1,0 +1,33 @@
+meta {
+  name: by type Laboratory Report (11502-2)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/DocumentReference?patient={{patientId}}&type={{loinc}}|11502-2
+  body: none
+  auth: inherit
+}
+
+headers {
+  Accept: application/fhir+json
+}
+
+tests {
+  test('200 searchset', function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().resourceType).to.equal('Bundle');
+    expect(res.getBody().type).to.equal('searchset');
+  });
+
+  test('returns DocumentReference', function() {
+    const e = (res.getBody().entry || []).filter(x => (x.search || {}).mode !== 'include' && (x.search || {}).mode !== 'outcome');
+    expect(e.length).to.be.above(0);
+    e.forEach(x => expect(x.resource.resourceType).to.equal('DocumentReference'));
+  });
+
+  test('every result has type 11502-2', function() {
+    res.getBody().entry.forEach(e => expect(e.resource.type.coding.map(c => c.code)).to.include('11502-2'));
+  });
+}

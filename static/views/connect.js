@@ -82,6 +82,7 @@ export async function render({ ctx }) {
     method === 'GET' && !path.includes('{') ? requestChip('GET', path) : el('span', { class: 'row' }, el('span', { class: `method method-${method.toLowerCase()}` }, method), el('code', {}, path))))));
 
   const fromCode = el('p', { class: 'muted' }, 'From code: ', el('a', { href: `${base}/quickstart.py` }, el('code', {}, '/quickstart.py')),
+    ' · In Bruno: ', el('a', { href: `${base}/bruno.zip` }, 'the collection'), ' (all 60 requests, with tests)',
     ' · For AI agents: ', el('a', { href: `${base}/llms.txt` }, el('code', {}, '/llms.txt')));
 
   return pageShell({

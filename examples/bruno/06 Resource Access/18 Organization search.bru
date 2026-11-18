@@ -1,0 +1,29 @@
+meta {
+  name: Organization search
+  type: http
+  seq: 18
+}
+
+get {
+  url: {{baseUrl}}/Organization
+  body: none
+  auth: inherit
+}
+
+headers {
+  Accept: application/fhir+json
+}
+
+tests {
+  test('200 searchset', function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().resourceType).to.equal('Bundle');
+    expect(res.getBody().type).to.equal('searchset');
+  });
+
+  test('returns Organization', function() {
+    const e = (res.getBody().entry || []).filter(x => (x.search || {}).mode !== 'include' && (x.search || {}).mode !== 'outcome');
+    expect(e.length).to.be.above(0);
+    e.forEach(x => expect(x.resource.resourceType).to.equal('Organization'));
+  });
+}

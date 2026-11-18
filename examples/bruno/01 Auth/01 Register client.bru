@@ -1,0 +1,45 @@
+meta {
+  name: Register client
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/register-client
+  body: json
+  auth: none
+}
+
+headers {
+  Accept: application/json
+  Content-Type: application/json
+}
+
+body:json {
+  {{registerBody}}
+}
+
+script:pre-request {
+  const crypto = require('crypto');
+  const fs = require('fs');
+  const path = require('path');
+  const pem = fs.readFileSync(path.resolve(bru.cwd(), bru.getEnvVar('privateKeyPath')), 'utf8');
+  const jwk = crypto.createPublicKey(pem).export({ format: 'jwk' });
+  jwk.alg = 'RS256'; jwk.use = 'sig';
+  bru.setVar('registerBody', JSON.stringify({
+    client_id: (bru.getEnvVar('clientId') || ('bruno-' + crypto.createHash('sha256').update(crypto.createPublicKey(pem).export({ type: 'spki', format: 'der' })).digest('hex').slice(0, 12))),
+    client_name: bru.getEnvVar('clientName'),
+    scopes: bru.getEnvVar('scope').split(' '),
+    jwk: jwk,
+  }));
+}
+
+tests {
+  test('registered (200) or already registered (409)', function() {
+    expect([200, 201, 409]).to.include(res.getStatus());
+  });
+}
+
+docs {
+  Open dynamic client registration. The public JWK is derived from the local private key in the pre-request script.
+}

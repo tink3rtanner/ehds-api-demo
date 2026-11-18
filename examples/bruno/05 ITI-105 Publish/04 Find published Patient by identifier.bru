@@ -1,0 +1,38 @@
+meta {
+  name: Find published Patient by identifier
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/Patient?identifier={{publishPatientSystem}}|{{publishPatientValue}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  Accept: application/fhir+json
+}
+
+tests {
+  test('200 searchset', function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().resourceType).to.equal('Bundle');
+    expect(res.getBody().type).to.equal('searchset');
+  });
+
+  test('returns Patient', function() {
+    const e = (res.getBody().entry || []).filter(x => (x.search || {}).mode !== 'include' && (x.search || {}).mode !== 'outcome');
+    expect(e.length).to.be.above(0);
+    e.forEach(x => expect(x.resource.resourceType).to.equal('Patient'));
+  });
+
+  test('single Patient, the one the document was filed under', function() {
+    expect(res.getBody().entry.length).to.equal(1);
+    expect(res.getBody().entry[0].resource.id).to.equal(bru.getVar('publishedPatientId'));
+  });
+}
+
+docs {
+  Re-running the collection must not create duplicate Patients: the identifier match should reuse one.
+}

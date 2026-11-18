@@ -1,0 +1,19 @@
+meta {
+  name: Unknown DocumentReference (404)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/DocumentReference/00000000-0000-0000-0000-000000000000
+  body: none
+  auth: inherit
+}
+
+headers {
+  Accept: application/fhir+json
+}
+
+tests {
+  test('404 OperationOutcome', function() { expect(res.getStatus()).to.equal(404); expect(res.getBody().resourceType).to.equal('OperationOutcome'); });
+}

@@ -1,0 +1,30 @@
+meta {
+  name: SMART configuration
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/.well-known/smart-configuration
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+}
+
+tests {
+  test('200 OK', function() { expect(res.getStatus()).to.equal(200); });
+  test('backend services advertised', function() {
+    const b = res.getBody();
+    expect(b.token_endpoint).to.equal(bru.getEnvVar('baseUrl') + '/token');
+    expect(b.grant_types_supported).to.include('client_credentials');
+    expect(b.token_endpoint_auth_methods_supported).to.include('private_key_jwt');
+    expect(b.scopes_supported).to.include('system/DocumentReference.c');
+  });
+}
+
+docs {
+  SMART App Launch 2 discovery for Backend Services (client_credentials + private_key_jwt).
+}

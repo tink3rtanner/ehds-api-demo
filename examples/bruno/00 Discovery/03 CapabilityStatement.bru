@@ -1,0 +1,26 @@
+meta {
+  name: CapabilityStatement
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/metadata
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/fhir+json
+}
+
+tests {
+  test('200 OK', function() { expect(res.getStatus()).to.equal(200); });
+  test('FHIR R4 CapabilityStatement with DocumentReference read/search/create', function() {
+    const b = res.getBody();
+    expect(b.resourceType).to.equal('CapabilityStatement');
+    expect(b.fhirVersion).to.equal('4.0.1');
+    const dr = b.rest[0].resource.find(r => r.type === 'DocumentReference');
+    expect(dr.interaction.map(i => i.code)).to.include.members(['read', 'search-type', 'create']);
+  });
+}

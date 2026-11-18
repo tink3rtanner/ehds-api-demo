@@ -1,0 +1,33 @@
+meta {
+  name: ImagingStudy by patient
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/ImagingStudy?patient={{patientId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  Accept: application/fhir+json
+}
+
+script:post-response {
+  bru.setVar('imagingStudyId', ((res.getBody().entry || [])[0] || {resource: {}}).resource.id || '');
+}
+
+tests {
+  test('200 searchset', function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().resourceType).to.equal('Bundle');
+    expect(res.getBody().type).to.equal('searchset');
+  });
+
+  test('returns ImagingStudy', function() {
+    const e = (res.getBody().entry || []).filter(x => (x.search || {}).mode !== 'include' && (x.search || {}).mode !== 'outcome');
+    expect(e.length).to.be.above(0);
+    e.forEach(x => expect(x.resource.resourceType).to.equal('ImagingStudy'));
+  });
+}

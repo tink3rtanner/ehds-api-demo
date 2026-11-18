@@ -1,0 +1,51 @@
+meta {
+  name: Patient by slot identifier
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/Patient?identifier={{slotSystem}}|{{slot}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  Accept: application/fhir+json
+}
+
+script:post-response {
+  const e = (res.getBody().entry || [])[0];
+  if (e) {
+    const p = e.resource;
+    bru.setVar('patientId', p.id);
+    bru.setVar('patientFamily', p.name[0].family);
+    bru.setVar('patientGiven', p.name[0].given[0]);
+    bru.setVar('patientBirthDate', p.birthDate);
+    bru.setVar('patientGender', p.gender);
+  }
+}
+
+tests {
+  test('200 searchset', function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().resourceType).to.equal('Bundle');
+    expect(res.getBody().type).to.equal('searchset');
+  });
+
+  test('returns Patient', function() {
+    const e = (res.getBody().entry || []).filter(x => (x.search || {}).mode !== 'include' && (x.search || {}).mode !== 'outcome');
+    expect(e.length).to.be.above(0);
+    e.forEach(x => expect(x.resource.resourceType).to.equal('Patient'));
+  });
+
+  test('exactly one match carrying the slot identifier', function() {
+    const e = res.getBody().entry;
+    expect(e.length).to.equal(1);
+    expect(e[0].resource.identifier.some(i => i.value === bru.getEnvVar('slot'))).to.equal(true);
+  });
+}
+
+docs {
+  Captures patientId and demographics for later requests. Change `slot` (p-001 … p-010) to use another seeded patient.
+}

@@ -1,0 +1,33 @@
+meta {
+  name: by category (Laboratory 26436-6)
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/DocumentReference?patient={{patientId}}&category={{loinc}}|26436-6
+  body: none
+  auth: inherit
+}
+
+headers {
+  Accept: application/fhir+json
+}
+
+tests {
+  test('200 searchset', function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().resourceType).to.equal('Bundle');
+    expect(res.getBody().type).to.equal('searchset');
+  });
+
+  test('returns DocumentReference', function() {
+    const e = (res.getBody().entry || []).filter(x => (x.search || {}).mode !== 'include' && (x.search || {}).mode !== 'outcome');
+    expect(e.length).to.be.above(0);
+    e.forEach(x => expect(x.resource.resourceType).to.equal('DocumentReference'));
+  });
+
+  test('lab report found', function() {
+    expect(res.getBody().entry.flatMap(e => e.resource.type.coding.map(c => c.code))).to.include('11502-2');
+  });
+}

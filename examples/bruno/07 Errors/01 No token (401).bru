@@ -1,0 +1,19 @@
+meta {
+  name: No token (401)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/Patient/{{patientId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/fhir+json
+}
+
+tests {
+  test('401', function() { expect(res.getStatus()).to.equal(401); });
+}

@@ -1,0 +1,25 @@
+meta {
+  name: Retrieve published document (ITI-68, exact content)
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/{{publishedUrl}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  Accept: application/fhir+json
+}
+
+tests {
+  test('200 document Bundle', function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().type).to.equal('document');
+  });
+  test('identical to what was published', function() {
+    expect(res.getBody()).to.eql(JSON.parse(bru.getVar('publishBundleJson')));
+  });
+}

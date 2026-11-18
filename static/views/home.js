@@ -40,7 +40,8 @@ export async function render({ ctx }) {
           el('li', {}, el('b', {}, 'Call the API'), ' with the bearer token.')),
         el('div', { class: 'btn-row' },
           button('Quick start in your browser', { kind: 'primary', href: '#/connect' }),
-          el('span', { class: 'muted' }, 'or from code: ', el('a', { href: `${base}/quickstart.py` }, el('code', {}, '/quickstart.py')))),
+          el('span', { class: 'muted' }, 'or from code: ', el('a', { href: `${base}/quickstart.py` }, el('code', {}, '/quickstart.py')),
+            ' · every transaction with tests: ', el('a', { href: `${base}/bruno.zip` }, 'Bruno collection'))),
       ]),
 
       el('div', { class: 'agent-line' },

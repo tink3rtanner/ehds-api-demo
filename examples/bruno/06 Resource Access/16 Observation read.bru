@@ -1,0 +1,20 @@
+meta {
+  name: Observation read
+  type: http
+  seq: 16
+}
+
+get {
+  url: {{baseUrl}}/Observation/{{observationId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  Accept: application/fhir+json
+}
+
+tests {
+  test('200 OK', function() { expect(res.getStatus()).to.equal(200); });
+  test('Observation', function() { expect(res.getBody().resourceType).to.equal('Observation'); });
+}

@@ -1,0 +1,20 @@
+meta {
+  name: Patient read
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/Patient/{{patientId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  Accept: application/fhir+json
+}
+
+tests {
+  test('200 OK', function() { expect(res.getStatus()).to.equal(200); });
+  test('same patient', function() { expect(res.getBody().id).to.equal(bru.getVar('patientId')); });
+}

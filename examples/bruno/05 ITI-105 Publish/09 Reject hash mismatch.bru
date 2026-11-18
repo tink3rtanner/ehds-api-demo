@@ -1,0 +1,33 @@
+meta {
+  name: Reject hash mismatch
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/DocumentReference
+  body: json
+  auth: inherit
+}
+
+headers {
+  Accept: application/fhir+json
+  Content-Type: application/fhir+json
+}
+
+body:json {
+  {
+    "resourceType": "DocumentReference",
+    "status": "current",
+    "type": {"coding": [{"system": "http://loinc.org", "code": "60591-5"}]},
+    "subject": {"reference": "Patient/bruno-ps-patient"},
+    "content": [{"attachment": {"contentType": "application/fhir+json", "data": "{{publishData}}", "hash": "AAAAAAAAAAAAAAAAAAAAAAAAAAA="}}]
+  }
+}
+
+tests {
+  test('4xx OperationOutcome', function() {
+    expect(res.getStatus()).to.be.within(400, 499);
+    expect(res.getBody().resourceType).to.equal('OperationOutcome');
+  });
+}

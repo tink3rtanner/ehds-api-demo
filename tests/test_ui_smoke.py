@@ -139,6 +139,7 @@ def test_home_points_people_at_the_ig_and_agents_at_llms_txt(server_url, browser
         for want in ("Query", "Publish", "Get started", "Patient Summary", "Imaging Report", "ITI-105"):
             assert want in text, want
         assert page.evaluate("() => !!document.querySelector('#app a[href=\"#/connect\"]')")
+        assert page.evaluate("() => !!document.querySelector('#app a[href$=\"/bruno.zip\"]')")
         nav = page.evaluate("() => [...document.querySelectorAll('#nav a')].map(a => a.textContent)")
         assert nav[:2] == ["Home", "Quick start"], nav
         assert page.evaluate("() => !!document.querySelector('#app a[href^=\"https://build.fhir.org/ig/euridice-org/eu-health-data-api\"]')")

@@ -1,0 +1,33 @@
+meta {
+  name: Find published document (ITI-67)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/DocumentReference?patient={{publishedPatientId}}&type={{loinc}}|60591-5
+  body: none
+  auth: inherit
+}
+
+headers {
+  Accept: application/fhir+json
+}
+
+tests {
+  test('200 searchset', function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().resourceType).to.equal('Bundle');
+    expect(res.getBody().type).to.equal('searchset');
+  });
+
+  test('returns DocumentReference', function() {
+    const e = (res.getBody().entry || []).filter(x => (x.search || {}).mode !== 'include' && (x.search || {}).mode !== 'outcome');
+    expect(e.length).to.be.above(0);
+    e.forEach(x => expect(x.resource.resourceType).to.equal('DocumentReference'));
+  });
+
+  test('includes the published DocumentReference', function() {
+    expect(res.getBody().entry.map(e => e.resource.id)).to.include(bru.getVar('publishedDocRefId'));
+  });
+}

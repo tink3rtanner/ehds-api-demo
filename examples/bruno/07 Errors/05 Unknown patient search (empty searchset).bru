@@ -1,0 +1,25 @@
+meta {
+  name: Unknown patient search (empty searchset)
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/DocumentReference?patient=00000000-0000-0000-0000-000000000000
+  body: none
+  auth: inherit
+}
+
+headers {
+  Accept: application/fhir+json
+}
+
+tests {
+  test('200 searchset', function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().resourceType).to.equal('Bundle');
+    expect(res.getBody().type).to.equal('searchset');
+  });
+
+  test('no entries', function() { expect((res.getBody().entry || []).length).to.equal(0); });
+}

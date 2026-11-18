@@ -1,0 +1,33 @@
+meta {
+  name: Encounter by patient
+  type: http
+  seq: 11
+}
+
+get {
+  url: {{baseUrl}}/Encounter?patient={{patientId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  Accept: application/fhir+json
+}
+
+script:post-response {
+  bru.setVar('encounterId', ((res.getBody().entry || [])[0] || {resource: {}}).resource.id || '');
+}
+
+tests {
+  test('200 searchset', function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().resourceType).to.equal('Bundle');
+    expect(res.getBody().type).to.equal('searchset');
+  });
+
+  test('returns Encounter', function() {
+    const e = (res.getBody().entry || []).filter(x => (x.search || {}).mode !== 'include' && (x.search || {}).mode !== 'outcome');
+    expect(e.length).to.be.above(0);
+    e.forEach(x => expect(x.resource.resourceType).to.equal('Encounter'));
+  });
+}

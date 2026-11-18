@@ -1,0 +1,20 @@
+meta {
+  name: Read published DocumentReference
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/DocumentReference/{{publishedDocRefId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  Accept: application/fhir+json
+}
+
+tests {
+  test('200 OK', function() { expect(res.getStatus()).to.equal(200); });
+  test('same id', function() { expect(res.getBody().id).to.equal(bru.getVar('publishedDocRefId')); });
+}

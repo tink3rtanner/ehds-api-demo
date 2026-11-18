@@ -1,0 +1,20 @@
+meta {
+  name: DocumentReference read
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/DocumentReference/{{docRefId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  Accept: application/fhir+json
+}
+
+tests {
+  test('200 OK', function() { expect(res.getStatus()).to.equal(200); });
+  test('DocumentReference', function() { expect(res.getBody().resourceType).to.equal('DocumentReference'); });
+}

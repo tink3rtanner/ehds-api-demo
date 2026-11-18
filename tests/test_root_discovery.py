@@ -118,3 +118,17 @@ async def test_smart_configuration_shares_the_same_examples(client):
     assert sc["example_endpoints"] == d["examples"]
     assert sc["discovery_document"] == "http://testserver/"
     assert "/ui/#/implement" not in str(sc)
+
+
+async def test_bruno_collection_downloads_without_keys(client):
+    import io
+    import zipfile
+    r = await client.get("/bruno.zip")
+    assert r.status_code == 200 and r.headers["content-type"] == "application/zip"
+    names = zipfile.ZipFile(io.BytesIO(r.content)).namelist()
+    assert "bruno/bruno.json" in names and "bruno/collection.bru" in names
+    assert sum(n.endswith(".bru") for n in names) > 60
+    assert not [n for n in names if n.endswith(".pem")]   # a developer's local key never ships
+    d = (await client.get("/", headers={"Accept": "application/json"})).json()
+    assert d["start_here"]["bruno_collection"].endswith("/bruno.zip")
+    assert "/bruno.zip" in (await client.get("/llms.txt")).text

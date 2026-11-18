@@ -1,0 +1,26 @@
+meta {
+  name: Validation status of published document
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/ui/api/validation/{{publishedDocRefId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  Accept: application/json
+}
+
+tests {
+  test('200 OK', function() { expect(res.getStatus()).to.equal(200); });
+  test('has a validation state', function() {
+    expect(['pending', 'validated', 'failed', 'unavailable']).to.include(res.getBody().state);
+  });
+}
+
+docs {
+  Server convenience (not IG). Post-publish profile validation is informational; this minimal fixture is not expected to pass the EPS profile.
+}

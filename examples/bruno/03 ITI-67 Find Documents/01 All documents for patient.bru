@@ -1,0 +1,51 @@
+meta {
+  name: All documents for patient
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/DocumentReference?patient={{patientId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  Accept: application/fhir+json
+}
+
+script:post-response {
+  const map = { '60591-5': 'psUrl', '11502-2': 'labUrl', '18842-5': 'hdrUrl', '34105-7': 'hdrUrl', '85430-7': 'imgUrl', '18748-4': 'imgUrl' };
+  const entries = res.getBody().entry || [];
+  entries.forEach(e => {
+    const d = e.resource;
+    d.type.coding.forEach(c => { if (map[c.code]) bru.setVar(map[c.code], d.content[0].attachment.url); });
+  });
+  if (entries[0]) bru.setVar('docRefId', entries[0].resource.id);
+}
+
+tests {
+  test('200 searchset', function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().resourceType).to.equal('Bundle');
+    expect(res.getBody().type).to.equal('searchset');
+  });
+
+  test('returns DocumentReference', function() {
+    const e = (res.getBody().entry || []).filter(x => (x.search || {}).mode !== 'include' && (x.search || {}).mode !== 'outcome');
+    expect(e.length).to.be.above(0);
+    e.forEach(x => expect(x.resource.resourceType).to.equal('DocumentReference'));
+  });
+
+  test('all four document categories present', function() {
+    const codes = res.getBody().entry.flatMap(e => e.resource.type.coding.map(c => c.code));
+    ['60591-5', '11502-2', '85430-7', '18842-5'].forEach(c => expect(codes).to.include(c));
+  });
+  test('attachments carry url and contentType', function() {
+    res.getBody().entry.forEach(e => {
+      const a = e.resource.content[0].attachment;
+      expect(a.url).to.be.a('string');
+      expect(a.contentType).to.be.a('string');
+    });
+  });
+}

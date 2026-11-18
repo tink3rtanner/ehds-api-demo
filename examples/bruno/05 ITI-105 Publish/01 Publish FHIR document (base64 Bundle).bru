@@ -1,0 +1,90 @@
+meta {
+  name: Publish FHIR document (base64 Bundle)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/DocumentReference
+  body: json
+  auth: inherit
+}
+
+headers {
+  Accept: application/fhir+json
+  Content-Type: application/fhir+json
+}
+
+body:json {
+  {
+    "resourceType": "DocumentReference",
+    "status": "current",
+    "type": {"coding": [{"system": "http://loinc.org", "code": "60591-5", "display": "Patient summary Document"}]},
+    "subject": {"reference": "Patient/bruno-ps-patient"},
+    "content": [{"attachment": {
+      "contentType": "application/fhir+json",
+      "data": "{{publishData}}",
+      "size": {{publishSize}},
+      "hash": "{{publishHash}}"
+    }}]
+  }
+}
+
+script:pre-request {
+  const crypto = require('crypto');
+  const now = new Date().toISOString();
+  const runId = crypto.randomUUID();
+  const bundle = {
+    resourceType: 'Bundle',
+    identifier: { system: 'urn:ietf:rfc:3986', value: 'urn:uuid:' + runId },
+    type: 'document',
+    timestamp: now,
+    entry: [
+      { fullUrl: 'urn:uuid:' + runId + '-comp', resource: {
+        resourceType: 'Composition', status: 'final',
+        type: { coding: [{ system: 'http://loinc.org', code: '60591-5', display: 'Patient summary Document' }] },
+        subject: { reference: 'urn:uuid:' + runId + '-pat' },
+        date: now, author: [{ display: 'Bruno collection' }],
+        title: 'Patient Summary (Bruno ITI-105 test ' + now + ')',
+        section: [{ title: 'Allergies and intolerances',
+          code: { coding: [{ system: 'http://loinc.org', code: '48765-2' }] },
+          text: { status: 'generated', div: '<div xmlns="http://www.w3.org/1999/xhtml">No known allergies</div>' } }] } },
+      { fullUrl: 'urn:uuid:' + runId + '-pat', resource: {
+        resourceType: 'Patient', id: 'bruno-ps-patient',
+        identifier: [{ system: bru.getEnvVar('publishPatientSystem'), value: bru.getEnvVar('publishPatientValue') }],
+        name: [{ family: 'Bruno', given: ['Testa'] }], gender: 'female', birthDate: '1990-01-01' } },
+    ],
+  };
+  const bytes = Buffer.from(JSON.stringify(bundle), 'utf8');
+  bru.setVar('publishBundleJson', bytes.toString('utf8'));
+  bru.setVar('publishData', bytes.toString('base64'));
+  bru.setVar('publishSize', bytes.length);
+  bru.setVar('publishHash', crypto.createHash('sha1').update(bytes).digest('base64'));
+}
+
+script:post-response {
+  const b = res.getBody();
+  if (res.getStatus() === 201) {
+    bru.setVar('publishedDocRefId', b.id);
+    bru.setVar('publishedUrl', b.content[0].attachment.url);
+    bru.setVar('publishedPatientRef', b.subject.reference);
+    bru.setVar('publishedPatientId', b.subject.reference.split('/').pop());
+  }
+}
+
+tests {
+  test('201 Created with Location', function() {
+    expect(res.getStatus()).to.equal(201);
+    expect(res.getHeader('location')).to.include('/DocumentReference/');
+  });
+  test('stored DocumentReference has url, size, hash and no data', function() {
+    const a = res.getBody().content[0].attachment;
+    expect(a.url).to.match(/^Bundle\//);
+    expect(a.size).to.equal(Number(bru.getVar('publishSize')));
+    expect(a.hash).to.equal(bru.getVar('publishHash'));
+    expect(a.data).to.be.undefined;
+  });
+  test('filed under a server Patient', function() {
+    expect(res.getBody().subject.reference).to.match(/^Patient\/[0-9a-f-]{36}$/);
+  });
+}

@@ -1,0 +1,37 @@
+meta {
+  name: Reject Bundle that is not a document
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{baseUrl}}/DocumentReference
+  body: json
+  auth: inherit
+}
+
+headers {
+  Accept: application/fhir+json
+  Content-Type: application/fhir+json
+}
+
+body:json {
+  {
+    "resourceType": "DocumentReference",
+    "status": "current",
+    "type": {"coding": [{"system": "http://loinc.org", "code": "60591-5"}]},
+    "subject": {"reference": "Patient/bruno-ps-patient"},
+    "content": [{"attachment": {"contentType": "application/fhir+json", "data": "{{badData}}"}}]
+  }
+}
+
+script:pre-request {
+  bru.setVar('badData', Buffer.from(JSON.stringify({resourceType: 'Bundle', type: 'collection', entry: []})).toString('base64'));
+}
+
+tests {
+  test('4xx OperationOutcome', function() {
+    expect(res.getStatus()).to.be.within(400, 499);
+    expect(res.getBody().resourceType).to.equal('OperationOutcome');
+  });
+}

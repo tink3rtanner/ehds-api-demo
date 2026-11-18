@@ -1,0 +1,12 @@
+meta {
+  name: 01 Auth
+  seq: 2
+}
+
+auth {
+  mode: none
+}
+
+docs {
+  Register this collection as a SMART backend client (idempotent: 409 = already registered), then get a token. The private key is read from `privateKeyPath` (relative to the collection folder) and never leaves the machine. The collection pre-request script also fetches a token automatically when one is missing or expiring.
+}

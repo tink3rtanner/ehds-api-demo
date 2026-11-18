@@ -1,0 +1,30 @@
+meta {
+  name: Retrieve Hospital Discharge Report
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/{{hdrUrl}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  Accept: application/fhir+json
+}
+
+tests {
+  test('200 document Bundle', function() {
+    expect(res.getStatus()).to.equal(200);
+    const b = res.getBody();
+    expect(b.resourceType).to.equal('Bundle');
+    expect(b.type).to.equal('document');
+  });
+  test('Composition is first entry', function() {
+    expect(res.getBody().entry[0].resource.resourceType).to.equal('Composition');
+  });
+  test('Bundle contains the Patient', function() {
+    expect(res.getBody().entry.some(e => e.resource.resourceType === 'Patient')).to.equal(true);
+  });
+}

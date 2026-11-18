@@ -1,0 +1,20 @@
+meta {
+  name: Discovery document
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+}
+
+tests {
+  test('200 OK', function() { expect(res.getStatus()).to.equal(200); });
+  test('lists steps', function() { expect(res.getBody().steps).to.be.an('array').that.is.not.empty; });
+}

@@ -10,7 +10,9 @@ https://build.fhir.org/ig/euridice-org/eu-health-data-api/
 """
 from __future__ import annotations
 
+import io
 import json
+import zipfile
 from pathlib import Path
 
 from fastapi import APIRouter, Request
@@ -36,6 +38,7 @@ DESCRIPTION = (
     "Anyone can register a client, then read and publish with a token."
 )
 QUICKSTART = Path(__file__).resolve().parent.parent.parent / "examples" / "quickstart.py"
+BRUNO_DIR = QUICKSTART.parent / "bruno"
 
 READ_SCOPE = "system/*.rs"
 PUBLISH_SCOPE = "system/DocumentReference.c"
@@ -144,6 +147,7 @@ def discovery_document() -> dict:
             "smart_configuration": ep["smart_configuration"],
             "register_client": ep["register_client"],
             "quickstart_script": f"{base}/quickstart.py",
+            "bruno_collection": f"{base}/bruno.zip",
             "human_ui": f"{base}/ui/" if not settings.is_prod else None,
         },
         "steps": steps,
@@ -191,6 +195,8 @@ def llms_text() -> str:
         f"- SMART configuration: {d['start_here']['smart_configuration']}",
         f"- Python quickstart (read-only: keypair, register, token, a few reads, prints the token for Bruno/Postman): "
         f"{d['start_here']['quickstart_script']}",
+        f"- Bruno collection (every transaction in order, with tests; bring your own key): "
+        f"{d['start_here']['bruno_collection']}",
         "",
         "## Access",
         f"{acc['summary']} These need no token: " + ", ".join(acc["open_without_token"]) + ".",
@@ -316,6 +322,19 @@ async def root(request: Request) -> Response:
 @router.get("/llms.txt", include_in_schema=False)
 async def llms() -> PlainTextResponse:
     return PlainTextResponse(llms_text(), media_type="text/plain; charset=utf-8")
+
+
+@router.get("/bruno.zip", include_in_schema=False)
+async def bruno_collection() -> Response:
+    """examples/bruno zipped on request. Keys (*.pem) a developer keeps next to
+    the collection are never included."""
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        for p in sorted(BRUNO_DIR.rglob("*")):
+            if p.is_file() and p.suffix != ".pem":
+                z.write(p, Path("bruno") / p.relative_to(BRUNO_DIR))
+    return Response(buf.getvalue(), media_type="application/zip",
+                    headers={"Content-Disposition": 'attachment; filename="ehds-bruno.zip"'})
 
 
 @router.get("/quickstart.py", include_in_schema=False)

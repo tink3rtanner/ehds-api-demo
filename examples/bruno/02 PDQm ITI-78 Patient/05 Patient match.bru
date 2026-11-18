@@ -1,0 +1,44 @@
+meta {
+  name: Patient $match
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/Patient/$match
+  body: json
+  auth: inherit
+}
+
+headers {
+  Accept: application/fhir+json
+  Content-Type: application/fhir+json
+}
+
+body:json {
+  {
+    "resourceType": "Parameters",
+    "parameter": [
+      {"name": "resource", "resource": {
+        "resourceType": "Patient",
+        "name": [{"family": "{{patientFamily}}", "given": ["{{patientGiven}}"]}],
+        "birthDate": "{{patientBirthDate}}",
+        "gender": "{{patientGender}}"
+      }}
+    ]
+  }
+}
+
+tests {
+  test('200 searchset', function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().resourceType).to.equal('Bundle');
+    expect(res.getBody().type).to.equal('searchset');
+  });
+
+  test('best match is the patient, with a score', function() {
+    const e = res.getBody().entry.filter(x => x.resource.resourceType === 'Patient');
+    expect(e[0].resource.id).to.equal(bru.getVar('patientId'));
+    expect(e[0].search.score).to.be.a('number');
+  });
+}

@@ -1,0 +1,22 @@
+meta {
+  name: Retrieve non-FHIR document (raw Binary)
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/{{binaryUrl}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  Accept: text/plain
+}
+
+tests {
+  test('200 with original text', function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(String(res.getBody())).to.equal(bru.getVar('textPlain'));
+  });
+}

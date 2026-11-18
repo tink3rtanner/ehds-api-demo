@@ -138,6 +138,10 @@ python examples/ehds_client.py --base <fhir-base> --client-id <id> --key <pem> s
 python examples/ehds_client.py --base <fhir-base> --client-id <id> --key <pem> \
     --scope "system/DocumentReference.c" publish --patient Patient/<id> --file summary.json [--dry-run]
 
+# Bruno collection (examples/bruno, served zipped at /bruno.zip): edit the generator, then
+python -m scripts.gen_bruno
+cd examples/bruno && bru run --env local --sandbox developer   # needs private-key.pem there (gitignored)
+
 # a 24 h read (or --publish) token to paste in a chat
 python -m app.tools.mint_day_token --publish
 

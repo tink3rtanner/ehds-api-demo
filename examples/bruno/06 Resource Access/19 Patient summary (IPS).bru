@@ -1,0 +1,34 @@
+meta {
+  name: Patient $summary (IPS)
+  type: http
+  seq: 19
+}
+
+get {
+  url: {{baseUrl}}/Patient/{{patientId}}/$summary
+  body: none
+  auth: inherit
+}
+
+headers {
+  Accept: application/fhir+json
+}
+
+tests {
+  test('200 document Bundle', function() {
+    expect(res.getStatus()).to.equal(200);
+    const b = res.getBody();
+    expect(b.resourceType).to.equal('Bundle');
+    expect(b.type).to.equal('document');
+  });
+  test('Composition is first entry', function() {
+    expect(res.getBody().entry[0].resource.resourceType).to.equal('Composition');
+  });
+  test('Bundle contains the Patient', function() {
+    expect(res.getBody().entry.some(e => e.resource.resourceType === 'Patient')).to.equal(true);
+  });
+}
+
+docs {
+  IPS $summary - server convenience, not part of the EU IG.
+}

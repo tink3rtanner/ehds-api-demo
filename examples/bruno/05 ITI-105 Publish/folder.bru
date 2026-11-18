@@ -1,0 +1,8 @@
+meta {
+  name: 05 ITI-105 Publish
+  seq: 6
+}
+
+docs {
+  IHE MHD ITI-105 Simplified Publish, run in order. 1 publishes a small patient summary whose Patient carries a fixed identifier (publishPatientSystem|publishPatientValue), so repeat runs reuse one server Patient. 2-6 read, find, retrieve byte-for-byte and check validation status. 7-8 publish/retrieve non-FHIR content. 9-10 are negative tests.
+}

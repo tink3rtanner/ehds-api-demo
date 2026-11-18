@@ -1,0 +1,41 @@
+meta {
+  name: Publish non-FHIR document (text-plain)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/DocumentReference
+  body: json
+  auth: inherit
+}
+
+headers {
+  Accept: application/fhir+json
+  Content-Type: application/fhir+json
+}
+
+body:json {
+  {
+    "resourceType": "DocumentReference",
+    "status": "current",
+    "type": {"coding": [{"system": "http://loinc.org", "code": "11506-3", "display": "Progress note"}]},
+    "subject": {"reference": "{{publishedPatientRef}}"},
+    "content": [{"attachment": {"contentType": "text/plain", "data": "{{textData}}"}}]
+  }
+}
+
+script:pre-request {
+  const txt = 'Bruno ITI-105 plain-text test note ' + new Date().toISOString();
+  bru.setVar('textPlain', txt);
+  bru.setVar('textData', Buffer.from(txt, 'utf8').toString('base64'));
+}
+
+script:post-response {
+  if (res.getStatus() === 201) bru.setVar('binaryUrl', res.getBody().content[0].attachment.url);
+}
+
+tests {
+  test('201 Created', function() { expect(res.getStatus()).to.equal(201); });
+  test('attachment.url is Binary/<id>', function() { expect(res.getBody().content[0].attachment.url).to.match(/^Binary\//); });
+}

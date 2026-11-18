@@ -1,0 +1,19 @@
+meta {
+  name: Unknown Bundle (404)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/Bundle/00000000-0000-0000-0000-000000000000
+  body: none
+  auth: inherit
+}
+
+headers {
+  Accept: application/fhir+json
+}
+
+tests {
+  test('404', function() { expect(res.getStatus()).to.equal(404); });
+}

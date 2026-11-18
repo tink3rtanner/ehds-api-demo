@@ -1,0 +1,20 @@
+meta {
+  name: Server JWKS
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/.well-known/jwks.json
+  body: none
+  auth: none
+}
+
+headers {
+  Accept: application/json
+}
+
+tests {
+  test('200 OK', function() { expect(res.getStatus()).to.equal(200); });
+  test('has keys', function() { expect(res.getBody().keys).to.be.an('array').that.is.not.empty; });
+}

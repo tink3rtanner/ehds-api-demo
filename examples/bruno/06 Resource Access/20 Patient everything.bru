@@ -1,0 +1,20 @@
+meta {
+  name: Patient $everything
+  type: http
+  seq: 20
+}
+
+get {
+  url: {{baseUrl}}/Patient/{{patientId}}/$everything
+  body: none
+  auth: inherit
+}
+
+headers {
+  Accept: application/fhir+json
+}
+
+tests {
+  test('200 OK', function() { expect(res.getStatus()).to.equal(200); });
+  test('Bundle with entries', function() { expect(res.getBody().resourceType).to.equal('Bundle'); expect(res.getBody().entry.length).to.be.above(1); });
+}

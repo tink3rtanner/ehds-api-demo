@@ -1,0 +1,33 @@
+meta {
+  name: Patient by family + birthdate
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/Patient?family={{patientFamily}}&birthdate={{patientBirthDate}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  Accept: application/fhir+json
+}
+
+tests {
+  test('200 searchset', function() {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().resourceType).to.equal('Bundle');
+    expect(res.getBody().type).to.equal('searchset');
+  });
+
+  test('returns Patient', function() {
+    const e = (res.getBody().entry || []).filter(x => (x.search || {}).mode !== 'include' && (x.search || {}).mode !== 'outcome');
+    expect(e.length).to.be.above(0);
+    e.forEach(x => expect(x.resource.resourceType).to.equal('Patient'));
+  });
+
+  test('finds the patient', function() {
+    expect(res.getBody().entry.map(e => e.resource.id)).to.include(bru.getVar('patientId'));
+  });
+}
